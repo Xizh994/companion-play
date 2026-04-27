@@ -1,0 +1,82 @@
+@import "tailwindcss";
+
+/* ============================================================
+   二次元风格主题配色
+   ============================================================ */
+:root {
+  --color-primary: #ff6b9d;
+  --color-secondary: #c084fc;
+  --color-accent: #fbbf24;
+  --color-bg: #0f0f1a;
+  --color-surface: #1a1a2e;
+  --color-card: #16213e;
+  --color-border: #2d2d44;
+  --color-text: #e2e8f0;
+  --color-muted: #94a3b8;
+}
+
+@theme {
+  --color-primary: var(--color-primary);
+  --color-secondary: var(--color-secondary);
+  --color-accent: var(--color-accent);
+  --color-bg: var(--color-bg);
+  --color-surface: var(--color-surface);
+  --color-card: var(--color-card);
+  --color-border: var(--color-border);
+  --color-text: var(--color-text);
+  --color-muted: var(--color-muted);
+}
+
+/* 背景渐变 */
+body {
+  background: linear-gradient(135deg, #0f0f1a 0%, #1a1a2e 50%, #16213e 100%);
+  min-height: 100vh;
+  color: var(--color-text);
+  font-family: 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+}
+
+/* 滚动条美化 */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--color-surface);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-primary);
+  border-radius: 3px;
+}
+
+/* 卡片发光效果 */
+.glow-card {
+  box-shadow: 0 0 20px rgba(255, 107, 157, 0.15);
+  transition: box-shadow 0.3s ease;
+}
+.glow-card:hover {
+  box-shadow: 0 0 30px rgba(255, 107, 157, 0.3);
+}
+
+/* 渐变按钮 */
+.btn-gradient {
+  background: linear-gradient(135deg, #ff6b9d, #c084fc);
+  border: none;
+  color: white;
+  transition: all 0.3s ease;
+}
+.btn-gradient:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(255, 107, 157, 0.4);
+}
+
+/* 标签样式 */
+.tag-gradient {
+  background: linear-gradient(135deg, rgba(255, 107, 157, 0.2), rgba(192, 132, 252, 0.2));
+  border: 1px solid rgba(255, 107, 157, 0.3);
+}
+
+/* 毛玻璃效果 */
+.glass {
+  backdrop-filter: blur(12px);
+  background: rgba(26, 26, 46, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}

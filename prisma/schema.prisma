@@ -1,0 +1,187 @@
+// This is your Prisma schema file,
+// learn more about it in our docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================
+// 用户角色枚举
+// ============================================================
+enum UserRole {
+  BOSS       // 老板（普通用户）
+  PLAYER     // 个人陪玩
+  SHOP       // 陪玩店
+}
+
+// 认证状态枚举
+enum VerificationStatus {
+  PENDING    // 待审核
+  APPROVED    // 已通过
+  REJECTED    // 已拒绝
+}
+
+// ============================================================
+// 用户基础表（所有角色的公共信息）
+// ============================================================
+model User {
+  id            String    @id @default(cuid())
+  phone         String    @unique  // 手机号（登录凭证）
+  passwordHash  String    // 密码（bcrypt加密存储）
+  role          UserRole  @default(PLAYER)
+  nickname      String
+  avatar        String?   // 头像URL
+  bio           String?   // 个人简介
+  status        String    @default("online") // online/offline/busy
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // 关联
+  verification  Verification?
+  playerProfile PlayerProfile?
+  shopProfile   ShopProfile?
+  sentMessages  Message[]   @relation("SentMessages")
+  receivedMessages Message[] @relation("ReceivedMessages")
+
+  @@map("users")
+}
+
+// ============================================================
+// 个人陪玩认证资料
+// ============================================================
+model PlayerProfile {
+  id             String             @id @default(cuid())
+  userId         String             @unique
+  user           User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // 基本信息
+  realName       String             // 真实姓名
+  idCardNumber   String             // 身份证号（加密存储）
+  idCardFront    String             // 身份证正面照
+  idCardBack     String              // 身份证背面照
+  gender         String?            // 性别
+  birthday       DateTime?          // 生日
+
+  // 服务相关
+  gameCategories String[]           // 游戏品类，如 ["王者荣耀","英雄联盟","原神"]
+  pricePerHour   Decimal?           @db.Decimal(10,2) // 每小时价格
+  serviceTags    String[]           // 服务标签，如 ["上分","陪聊","教学"]
+  serviceDesc    String?            // 服务描述
+
+  // 认证状态
+  verificationStatus VerificationStatus @default(PENDING)
+  verificationNotes  String?          // 审核备注
+  verifiedAt         DateTime?
+  verifiedBy         String?
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@map("player_profiles")
+}
+
+// ============================================================
+// 陪玩店认证资料
+// ============================================================
+model ShopProfile {
+  id             String             @id @default(cuid())
+  userId         String             @unique
+  user           User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // 店铺信息
+  shopName       String             // 店铺名称
+  shopCover      String?            // 封面图
+  shopBanner     String?            // 轮播Banner图
+  shopDesc       String?            // 店铺介绍
+  shopAddress    String?            // 店铺地址
+
+  // 营业执照/实景照片
+  licenseType    String             // 执照类型: business_license / real_photo
+  licenseImage   String             // 执照或实景照片URL
+
+  // 负责人信息
+  contactName    String             // 负责人姓名
+  contactPhone   String             // 负责人电话
+  contactIdCard  String?            // 负责人身份证
+
+  // 认证状态
+  verificationStatus VerificationStatus @default(PENDING)
+  verificationNotes  String?
+  verifiedAt         DateTime?
+  verifiedBy         String?
+
+  // 店铺统计
+  playerCount    Int        @default(0)  // 旗下陪玩师数量
+  rating         Decimal?   @db.Decimal(3,2) // 平均评分
+  orderCount     Int        @default(0)  // 总接单数
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@map("shop_profiles")
+}
+
+// ============================================================
+// 认证申请记录（审核后台用）
+// ============================================================
+model Verification {
+  id             String             @id @default(cuid())
+  userId         String             @unique
+  user           User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  applicantType  UserRole           // 申请人角色
+  status         VerificationStatus @default(PENDING)
+  reviewer       String?            // 审核人ID
+  reviewerNotes  String?            // 审核意见
+  reviewedAt     DateTime?
+
+  submittedAt    DateTime @default(now())
+
+  @@map("verifications")
+}
+
+// ============================================================
+// 即时聊天消息
+// ============================================================
+model Message {
+  id          String   @id @default(cuid())
+  fromId      String
+  from        User     @relation("SentMessages", fields: [fromId], references: [id])
+  toId        String
+  to          User     @relation("ReceivedMessages", fields: [toId], references: [id])
+
+  // 消息类型
+  type        String   @default("text") // text/image/video/audio
+  content     String   // 文本内容或媒体URL
+
+  // 附加数据（JSON）
+  metadata    Json?    // 存放位置、大小、时长等
+
+  // 状态
+  isRead      Boolean  @default(false)
+  readAt      DateTime?
+
+  createdAt   DateTime @default(now())
+
+  @@index([toId, isRead])
+  @@map("messages")
+}
+
+// ============================================================
+// 会话记录（用于展示聊天列表）
+// ============================================================
+model Conversation {
+  id          String   @id @default(cuid())
+  participants String[] // [userId1, userId2]
+  lastMessage String?
+  lastMessageAt DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("conversations")
+}
