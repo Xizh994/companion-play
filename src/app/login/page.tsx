@@ -33,7 +33,7 @@ export default function LoginPage() {
             <h1 className="text-2xl font-bold bg-gradient-to-r from-pink-400 to-purple-400 bg-clip-text text-transparent mt-2">
               欢迎回来
             </h1>
-            <p className="text-gray-400 text-sm mt-1">登录 CompanionPlay</p>
+            <p className="text-gray-400 text-sm mt-1">登录搭子星</p>
           </div>
 
           <form onSubmit={handleLogin} className="space-y-5">

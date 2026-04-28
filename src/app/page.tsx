@@ -89,7 +89,7 @@ const GAME_CATEGORIES = [
   { name: "王者荣耀", icon: "👑" },
   { name: "英雄联盟", icon: "⚔️" },
   { name: "原神", icon: "🌟" },
-  { name: "和平精英", icon: "🎮" },
+  { name: "和平精英", icon: "🚀" },
   { name: "蛋仔派对", icon: "🥚" },
   { name: "第五人格", icon: "🏚️" },
   { name: "CS2", icon: "🔫" },
@@ -104,9 +104,9 @@ export default function HomePage() {
       <header className="glass sticky top-0 z-50 border-b border-white/10">
         <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <span className="text-2xl">🎮</span>
+            <span className="text-2xl">🚀</span>
             <span className="text-xl font-bold bg-gradient-to-r from-pink-400 to-purple-400 bg-clip-text text-transparent">
-              CompanionPlay
+              搭子星
             </span>
           </div>
           <nav className="flex items-center gap-6">
@@ -144,16 +144,16 @@ export default function HomePage() {
         </div>
         <div className="relative max-w-4xl mx-auto text-center">
           <h1 className="text-5xl font-bold mb-6 bg-gradient-to-r from-pink-400 via-purple-400 to-yellow-400 bg-clip-text text-transparent">
-            找到你的专属陪玩
+            找到你的专属搭子
           </h1>
           <p className="text-xl text-gray-400 mb-10">
-            汇聚专业陪玩师与优质店铺，让游戏不再孤单
+            汇聚优质搭子与好玩店铺，让游戏不再孤单
           </p>
           {/* 搜索框 */}
           <div className="glass rounded-2xl p-2 flex items-center gap-2 max-w-2xl mx-auto">
             <input
               type="text"
-              placeholder="搜索陪玩师、游戏或店铺..."
+              placeholder="搜索搭子、游戏或店铺..."
               className="flex-1 bg-transparent border-none outline-none px-4 py-3 text-white placeholder-gray-500"
             />
             <button className="btn-gradient px-8 py-3 rounded-xl font-medium">
@@ -273,7 +273,7 @@ export default function HomePage() {
       {/* 底部 */}
       <footer className="glass mt-20 py-10 border-t border-white/5">
         <div className="max-w-7xl mx-auto px-4 text-center text-gray-500 text-sm">
-          <p>© 2024 CompanionPlay. 用 ❤️ 和代码构建</p>
+          <p>© 2024 搭子星. 用 ❤️ 和代码构建</p>
         </div>
       </footer>
     </div>

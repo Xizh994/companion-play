@@ -3,8 +3,8 @@ import "./globals.css";
 import { Toaster } from "sonner";
 
 export const metadata: Metadata = {
-  title: "CompanionPlay - 陪玩平台",
-  description: "陪玩店与老板的发现与沟通平台",
+  title: "搭子星 - 游戏搭子平台",
+  description: "游戏搭子平台，汇聚优质陪玩师与店铺，让游戏不再孤单",
 };
 
 export default function RootLayout({
