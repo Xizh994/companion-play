@@ -1,20 +1,28 @@
 "use client";
 import { cn } from "@/lib/utils";
 
-const GRADIENTS: [string, string][] = [
-  ["#f43f5e", "#f97316"],
-  ["#ec4899", "#8b5cf6"],
-  ["#8b5cf6", "#3b82f6"],
-  ["#06b6d4", "#10b981"],
-  ["#f59e0b", "#ef4444"],
-  ["#6366f1", "#ec4899"],
-  ["#14b8a6", "#3b82f6"],
-  ["#a855f7", "#06b6d4"],
-  ["#f97316", "#dc2626"],
-  ["#22c55e", "#06b6d4"],
-  ["#3b82f6", "#9333ea"],
-  ["#e11d48", "#7c3aed"],
+/** 16 种纯正面表情组合 — 无负面情绪 */
+const POSITIVE_COMBOS = [
+  { mouth: "smile", eyes: "happy" },
+  { mouth: "twinkle", eyes: "default" },
+  { mouth: "tongue", eyes: "wink" },
+  { mouth: "eating", eyes: "default" },
+  { mouth: "smile", eyes: "winkWacky" },
+  { mouth: "twinkle", eyes: "happy" },
+  { mouth: "smile", eyes: "surprised" },
+  { mouth: "default", eyes: "happy" },
+  { mouth: "tongue", eyes: "default" },
+  { mouth: "smile", eyes: "wink" },
+  { mouth: "twinkle", eyes: "squint" },
+  { mouth: "eating", eyes: "happy" },
+  { mouth: "smile", eyes: "squint" },
+  { mouth: "default", eyes: "wink" },
+  { mouth: "tongue", eyes: "surprised" },
+  { mouth: "twinkle", eyes: "wink" },
 ];
+
+/** 柔和马卡龙背景色 */
+const BG_COLORS = "b6e3f4,c0aede,d1d4f9,ffd5dc,ffdfbf,b5e4ca,ffe4b5,e8d5c4";
 
 function hashCode(s: string): number {
   let h = 0;
@@ -24,31 +32,37 @@ function hashCode(s: string): number {
   return h;
 }
 
-interface GeneratedAvatarProps {
+/**
+ * 正面情绪 DiceBear 卡通头像
+ * 根据 seed 哈希自动选择表情 + 背景色，同一 seed 始终同一头像
+ */
+export function GeneratedAvatar({
+  seed,
+  size = 48,
+  className,
+}: {
   seed: string;
   size?: number;
   className?: string;
-}
-
-export function GeneratedAvatar({ seed, size = 48, className }: GeneratedAvatarProps) {
-  const idx = Math.abs(hashCode(seed)) % GRADIENTS.length;
-  const [from, to] = GRADIENTS[idx];
+}) {
+  const idx = Math.abs(hashCode(seed)) % POSITIVE_COMBOS.length;
+  const { mouth, eyes } = POSITIVE_COMBOS[idx];
+  const url = `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(seed)}&mouth=${mouth}&eyes=${eyes}&backgroundColor=${BG_COLORS}`;
 
   return (
-    <div
-      className={cn("rounded-full shrink-0", className)}
-      style={{
-        width: size,
-        height: size,
-        backgroundImage: `linear-gradient(135deg, ${from}, ${to})`,
-        boxShadow: `0 0 0 2px rgba(168,85,247,0.15), inset 0 0 20px rgba(255,255,255,0.08)`,
-      }}
-      aria-hidden="true"
+    <img
+      src={url}
+      alt=""
+      className={cn("shrink-0", className)}
+      style={{ width: size, height: size }}
+      loading="lazy"
     />
   );
 }
 
-/** 头像渲染：有真实头像用 img，否则用渐变生成 */
+/**
+ * 智能头像：有真实上传头像用 img，否则用正面 DiceBear 生成
+ */
 export function SafeAvatar({
   src,
   seed,
