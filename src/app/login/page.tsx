@@ -2,21 +2,29 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { toast } from "sonner";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function LoginPage() {
+  const router = useRouter();
+  const { login } = useAuth();
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError("");
     setLoading(true);
-    // TODO: 调用后端 API
-    setTimeout(() => {
+    try {
+      await login(phone, password);
+      router.push("/discover");
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
       setLoading(false);
-      toast.success("登录成功！");
-    }, 1000);
+    }
   };
 
   return (
@@ -24,10 +32,9 @@ export default function LoginPage() {
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-gradient-to-r from-pink-500/15 to-purple-500/15 rounded-full blur-3xl" />
       </div>
-      
+
       <div className="relative w-full max-w-md">
         <div className="glass rounded-3xl p-8 glow-card">
-          {/* Logo */}
           <div className="text-center mb-8">
             <span className="text-4xl">🎮</span>
             <h1 className="text-2xl font-bold bg-gradient-to-r from-pink-400 to-purple-400 bg-clip-text text-transparent mt-2">
@@ -36,11 +43,15 @@ export default function LoginPage() {
             <p className="text-gray-400 text-sm mt-1">登录搭子星</p>
           </div>
 
+          {error && (
+            <div className="mb-4 p-3 bg-red-500/10 border border-red-500/30 rounded-xl text-red-400 text-sm text-center">
+              {error}
+            </div>
+          )}
+
           <form onSubmit={handleLogin} className="space-y-5">
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                手机号
-              </label>
+              <label className="block text-sm font-medium text-gray-300 mb-2">手机号</label>
               <input
                 type="tel"
                 value={phone}
@@ -50,11 +61,8 @@ export default function LoginPage() {
                 required
               />
             </div>
-
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                密码
-              </label>
+              <label className="block text-sm font-medium text-gray-300 mb-2">密码</label>
               <input
                 type="password"
                 value={password}
@@ -64,17 +72,6 @@ export default function LoginPage() {
                 required
               />
             </div>
-
-            <div className="flex items-center justify-between text-sm">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input type="checkbox" className="w-4 h-4 rounded border-gray-600 bg-white/5 text-pink-500 focus:ring-pink-500" />
-                <span className="text-gray-400">记住我</span>
-              </label>
-              <Link href="/forgot-password" className="text-pink-400 hover:text-pink-300">
-                忘记密码？
-              </Link>
-            </div>
-
             <button
               type="submit"
               disabled={loading}
