@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { GeneratedAvatar } from "@/components/GeneratedAvatar";
 import { Badge } from "@/components/ui/badge";
 import {
   Settings, Shield, Bell, Moon, Sun, Gamepad2,
@@ -41,9 +41,7 @@ export default function ProfilePage() {
           <div className="flex items-center gap-5">
             {/* 头像 */}
             <div className="relative shrink-0">
-              <div className="w-20 h-20 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center ring-4 ring-purple-500/20">
-                <span className="text-3xl font-bold text-white">习</span>
-              </div>
+              <GeneratedAvatar seed="习朝晖" size={80} className="ring-4 ring-purple-500/20" />
               <button className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-purple-500 flex items-center justify-center shadow-lg hover:bg-purple-400 transition-colors">
                 <Camera className="w-3.5 h-3.5 text-white" />
               </button>

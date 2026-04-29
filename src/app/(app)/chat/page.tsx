@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useSocket } from "@/hooks/useSocket";
+import { GeneratedAvatar, SafeAvatar } from "@/components/GeneratedAvatar";
 import dynamic from "next/dynamic";
 
 const EmojiPicker = dynamic(() => import("emoji-picker-react"), { ssr: false });
@@ -168,11 +169,7 @@ export default function ChatListPage() {
                 }`}
               >
                 <div className="relative shrink-0">
-                  <img
-                    src={u?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${otherId}`}
-                    alt={u?.nickname || "用户"}
-                    className="w-12 h-12 rounded-xl object-cover"
-                  />
+                  <SafeAvatar src={u?.avatar} seed={otherId} size={48} className="rounded-xl" alt={u?.nickname || "用户"} />
                   {u?.status === "online" && (
                     <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 rounded-full border-2 border-[#0f0f1a]" />
                   )}
@@ -196,11 +193,7 @@ export default function ChatListPage() {
       {selectedConv && contact ? (
         <div className="flex-1 flex flex-col">
           <div className="glass border-b border-white/10 px-4 py-3 flex items-center gap-3">
-            <img
-              src={contact.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${contact.id}`}
-              alt={contact.nickname}
-              className="w-10 h-10 rounded-xl object-cover"
-            />
+            <SafeAvatar src={contact.avatar} seed={contact.id} size={40} className="rounded-xl" alt={contact.nickname} />
             <div>
               <h2 className="font-bold text-white">{contact.nickname}</h2>
               <p className="text-xs text-gray-400">ID: {contact.id.slice(-6)}</p>
@@ -211,7 +204,7 @@ export default function ChatListPage() {
             {messages.map((msg) => (
               <div key={msg.id} className={`flex ${msg.isMine ? "justify-end" : "justify-start"}`}>
                 {!msg.isMine && (
-                  <img src={contact.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${contact.id}`} alt="" className="w-8 h-8 rounded-lg object-cover mr-2 mt-1 shrink-0" />
+                  <SafeAvatar src={contact.avatar} seed={contact.id} size={32} className="rounded-lg mr-2 mt-1" />
                 )}
                 <div className={`max-w-[70%] rounded-2xl px-4 py-2.5 ${
                   msg.isMine
@@ -224,7 +217,7 @@ export default function ChatListPage() {
                   </p>
                 </div>
                 {msg.isMine && (
-                  <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=me" alt="" className="w-8 h-8 rounded-lg object-cover ml-2 mt-1 shrink-0" />
+                  <GeneratedAvatar seed={currentUser?.id || "me"} size={32} className="rounded-lg ml-2 mt-1" />
                 )}
               </div>
             ))}

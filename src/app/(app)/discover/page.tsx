@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { GeneratedAvatar } from '@/components/GeneratedAvatar';
 import { Search, Gamepad2, Sword, Car, Dice6, Music, Code, Palette, Trophy, Heart, MessageCircle, Star, Filter, X, Store, Users } from 'lucide-react';
 
 // Mock data for discover page
@@ -233,14 +233,7 @@ export default function DiscoverPage() {
               <Card key={shop.id} className="group hover:border-purple-500/50 transition-all duration-300 bg-white/5 backdrop-blur-sm border-white/10">
                 <CardHeader className="pb-3">
                   <div className="flex items-start gap-4">
-                    <Avatar className="h-12 w-12 border-2 border-purple-500/50">
-                      <img
-                        src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(shop.avatarSeed)}&mouth=smile02`}
-                        alt={shop.shopName}
-                        className="w-full h-full object-cover"
-                      />
-                      <AvatarFallback>{shop.shopName[0]}</AvatarFallback>
-                    </Avatar>
+                    <GeneratedAvatar seed={shop.avatarSeed} size={48} className="border-2 border-purple-500/50" />
                     <div className="flex-1">
                       <CardTitle className="text-lg group-hover:text-purple-400 transition-colors">
                         <Link href={`/shop/${shop.id}`}>{shop.shopName}</Link>
@@ -302,14 +295,7 @@ export default function DiscoverPage() {
                 <CardHeader className="pb-3">
                   <div className="flex items-start gap-4">
                     <div className="relative">
-                      <Avatar className="h-12 w-12 border-2 border-purple-500/50">
-                        <img
-                          src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(player.avatarSeed)}&mouth=smile02`}
-                          alt={player.nickname}
-                          className="w-full h-full object-cover"
-                        />
-                        <AvatarFallback>{player.nickname[0]}</AvatarFallback>
-                      </Avatar>
+                      <GeneratedAvatar seed={player.avatarSeed} size={48} className="border-2 border-purple-500/50" />
                       {player.online && (
                         <div className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full bg-green-500 border-2 border-background" />
                       )}

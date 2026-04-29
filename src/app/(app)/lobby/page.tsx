@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { SafeAvatar } from "@/components/GeneratedAvatar";
 import { Input } from "@/components/ui/input";
 import { useSocket } from "@/hooks/useSocket";
 import { MessageCircle, Users, Search, Sparkles } from "lucide-react";
@@ -130,14 +130,7 @@ export default function LobbyPage() {
                 <CardContent className="pt-6">
                   <div className="flex items-center gap-3 mb-3">
                     <div className="relative">
-                      <Avatar className="h-12 w-12 border-2 border-purple-500/50">
-                        <img
-                          src={user.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(user.nickname)}`}
-                          alt={user.nickname}
-                          className="w-full h-full object-cover"
-                        />
-                        <AvatarFallback>{user.nickname[0]}</AvatarFallback>
-                      </Avatar>
+                      <SafeAvatar src={user.avatar} seed={user.nickname} size={48} className="border-2 border-purple-500/50" alt={user.nickname} />
                       <span className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-background ${
                         user.status === "online" ? "bg-green-500" : "bg-yellow-500"
                       }`} />
