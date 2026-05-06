@@ -56,7 +56,7 @@ export default function ProfilePage() {
         </button>
         <div className="absolute -bottom-12 left-1/2 -translate-x-1/2 z-10">
           <div className="relative">
-            <SafeAvatar src={profile.avatar} seed={profile.nickname} size={96} className="rounded-2xl border-4 border-[#0f0f1a]" />
+            <SafeAvatar src={profile.avatar} seed={profile.nickname} size={96} />
             {profile.online && (
               <span className="absolute -bottom-1 -right-1 w-5 h-5 bg-green-500 rounded-full border-3 border-[#0f0f1a]" />
             )}

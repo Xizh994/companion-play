@@ -130,7 +130,7 @@ export default function LobbyPage() {
                 <CardContent className="pt-6">
                   <div className="flex items-center gap-3 mb-3">
                     <div className="relative">
-                      <SafeAvatar src={user.avatar} seed={user.nickname} size={48} className="border-2 border-purple-500/50" alt={user.nickname} />
+                      <SafeAvatar src={user.avatar} seed={user.nickname} size={48} alt={user.nickname} />
                       <span className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-background ${
                         user.status === "online" ? "bg-green-500" : "bg-yellow-500"
                       }`} />

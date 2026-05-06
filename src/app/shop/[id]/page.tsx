@@ -61,7 +61,7 @@ export default function ShopPage() {
         <button onClick={() => router.back()} className="absolute top-4 left-4 z-10 w-10 h-10 glass rounded-full flex items-center justify-center text-white hover:bg-white/20 transition">←</button>
         <div className="absolute -bottom-12 left-1/2 -translate-x-1/2 z-10">
           <div className="relative">
-            <SafeAvatar src={shop.avatar} seed={shop.shopName} size={96} className="rounded-2xl border-4 border-[#0f0f1a]" />
+            <SafeAvatar src={shop.avatar} seed={shop.shopName} size={96} />
             {shop.online && <span className="absolute -bottom-1 -right-1 w-5 h-5 bg-green-500 rounded-full border-3 border-[#0f0f1a]" />}
           </div>
         </div>
@@ -106,7 +106,7 @@ export default function ShopPage() {
               {shop.players.map((p) => (
                 <Link key={p.id} href={`/profile/${p.id}`} className="glass rounded-xl p-4 hover:bg-white/10 transition flex items-center gap-4">
                   <div className="relative shrink-0">
-                    <SafeAvatar src={p.avatar} seed={p.nickname} size={56} className="rounded-xl" />
+                    <SafeAvatar src={p.avatar} seed={p.nickname} size={56} />
                     {p.online && <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-green-500 rounded-full border-2 border-[#1a1a2e]" />}
                   </div>
                   <div className="flex-1 min-w-0">

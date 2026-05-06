@@ -41,7 +41,7 @@ export default function ProfilePage() {
           <div className="flex items-center gap-5">
             {/* 头像 */}
             <div className="relative shrink-0">
-              <GeneratedAvatar seed="习朝晖" size={80} className="ring-4 ring-purple-500/20" />
+              <GeneratedAvatar seed="习朝晖" size={80} />
               <button className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-purple-500 flex items-center justify-center shadow-lg hover:bg-purple-400 transition-colors">
                 <Camera className="w-3.5 h-3.5 text-white" />
               </button>

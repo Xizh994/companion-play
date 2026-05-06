@@ -21,9 +21,6 @@ const POSITIVE_COMBOS = [
   { mouth: "twinkle", eyes: "wink" },
 ];
 
-/** 柔和马卡龙背景色 */
-const BG_COLORS = "b6e3f4,c0aede,d1d4f9,ffd5dc,ffdfbf,b5e4ca,ffe4b5,e8d5c4";
-
 function hashCode(s: string): number {
   let h = 0;
   for (let i = 0; i < s.length; i++) {
@@ -33,8 +30,8 @@ function hashCode(s: string): number {
 }
 
 /**
- * 正面情绪 DiceBear 卡通头像
- * 根据 seed 哈希自动选择表情 + 背景色，同一 seed 始终同一头像
+ * 透明背景 DiceBear 卡通头像 — 无形状无边框，像贴纸一样融入页面
+ * 根据 seed 哈希自动选择表情，同一 seed 始终同一头像
  */
 export function GeneratedAvatar({
   seed,
@@ -47,13 +44,13 @@ export function GeneratedAvatar({
 }) {
   const idx = Math.abs(hashCode(seed)) % POSITIVE_COMBOS.length;
   const { mouth, eyes } = POSITIVE_COMBOS[idx];
-  const url = `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(seed)}&mouth=${mouth}&eyes=${eyes}&backgroundColor=${BG_COLORS}`;
+  const url = `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(seed)}&mouth=${mouth}&eyes=${eyes}&backgroundColor=transparent`;
 
   return (
     <img
       src={url}
       alt=""
-      className={cn("shrink-0", className)}
+      className={cn("shrink-0 drop-shadow-md", className)}
       style={{ width: size, height: size }}
       loading="lazy"
     />
@@ -81,7 +78,7 @@ export function SafeAvatar({
       <img
         src={src}
         alt={alt}
-        className={cn("object-cover shrink-0", className)}
+        className={cn("object-cover shrink-0 drop-shadow-md", className)}
         style={{ width: size, height: size }}
       />
     );

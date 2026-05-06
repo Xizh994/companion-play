@@ -169,7 +169,7 @@ export default function ChatListPage() {
                 }`}
               >
                 <div className="relative shrink-0">
-                  <SafeAvatar src={u?.avatar} seed={otherId} size={48} className="rounded-xl" alt={u?.nickname || "用户"} />
+                  <SafeAvatar src={u?.avatar} seed={otherId} size={48} alt={u?.nickname || "用户"} />
                   {u?.status === "online" && (
                     <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 rounded-full border-2 border-[#0f0f1a]" />
                   )}
@@ -193,7 +193,7 @@ export default function ChatListPage() {
       {selectedConv && contact ? (
         <div className="flex-1 flex flex-col">
           <div className="glass border-b border-white/10 px-4 py-3 flex items-center gap-3">
-            <SafeAvatar src={contact.avatar} seed={contact.id} size={40} className="rounded-xl" alt={contact.nickname} />
+            <SafeAvatar src={contact.avatar} seed={contact.id} size={40} alt={contact.nickname} />
             <div>
               <h2 className="font-bold text-white">{contact.nickname}</h2>
               <p className="text-xs text-gray-400">ID: {contact.id.slice(-6)}</p>
@@ -204,7 +204,7 @@ export default function ChatListPage() {
             {messages.map((msg) => (
               <div key={msg.id} className={`flex ${msg.isMine ? "justify-end" : "justify-start"}`}>
                 {!msg.isMine && (
-                  <SafeAvatar src={contact.avatar} seed={contact.id} size={32} className="rounded-lg mr-2 mt-1" />
+                  <SafeAvatar src={contact.avatar} seed={contact.id} size={32} className="mr-2 mt-1" />
                 )}
                 <div className={`max-w-[70%] rounded-2xl px-4 py-2.5 ${
                   msg.isMine
@@ -217,7 +217,7 @@ export default function ChatListPage() {
                   </p>
                 </div>
                 {msg.isMine && (
-                  <GeneratedAvatar seed={currentUser?.id || "me"} size={32} className="rounded-lg ml-2 mt-1" />
+                  <GeneratedAvatar seed={currentUser?.id || "me"} size={32} className="ml-2 mt-1" />
                 )}
               </div>
             ))}

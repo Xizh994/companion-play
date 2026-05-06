@@ -233,7 +233,7 @@ export default function DiscoverPage() {
               <Card key={shop.id} className="group hover:border-purple-500/50 transition-all duration-300 bg-white/5 backdrop-blur-sm border-white/10">
                 <CardHeader className="pb-3">
                   <div className="flex items-start gap-4">
-                    <GeneratedAvatar seed={shop.avatarSeed} size={48} className="border-2 border-purple-500/50" />
+                    <GeneratedAvatar seed={shop.avatarSeed} size={48} />
                     <div className="flex-1">
                       <CardTitle className="text-lg group-hover:text-purple-400 transition-colors">
                         <Link href={`/shop/${shop.id}`}>{shop.shopName}</Link>
@@ -295,7 +295,7 @@ export default function DiscoverPage() {
                 <CardHeader className="pb-3">
                   <div className="flex items-start gap-4">
                     <div className="relative">
-                      <GeneratedAvatar seed={player.avatarSeed} size={48} className="border-2 border-purple-500/50" />
+                      <GeneratedAvatar seed={player.avatarSeed} size={48} />
                       {player.online && (
                         <div className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full bg-green-500 border-2 border-background" />
                       )}

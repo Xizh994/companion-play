@@ -133,7 +133,7 @@ export default function RegisterPage() {
             >
               <div
                 className={cn(
-                  "w-24 h-24 rounded-full border-2 flex items-center justify-center overflow-hidden transition-all duration-300",
+                  "w-24 h-24 border-2 flex items-center justify-center overflow-hidden transition-all duration-300",
                   avatarPreview
                     ? "border-white/20 ring-4 ring-pink-500/20"
                     : "border-dashed border-white/15 bg-white/5 group-hover:border-pink-400/40 group-hover:bg-white/[0.08]"
@@ -142,7 +142,7 @@ export default function RegisterPage() {
                 {avatarPreview ? (
                   <>
                     <img src={avatarPreview} alt="头像预览" className="w-full h-full object-cover" />
-                    <div className="absolute inset-0 rounded-full bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
                       <Camera className="w-5 h-5 text-white" />
                     </div>
                   </>
