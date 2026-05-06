@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "node server.js",
     "next-start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "seed": "tsx prisma/seed.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.4.1",

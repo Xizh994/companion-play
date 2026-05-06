@@ -4,6 +4,17 @@ import { useState, useEffect, useCallback } from "react";
 
 const TOKEN_KEY = "dazistar_token";
 const USER_KEY = "dazistar_user";
+const COOKIE_KEY = "dazistar_token";
+
+function setTokenCookie(token: string) {
+  if (typeof document === "undefined") return;
+  document.cookie = `${COOKIE_KEY}=${token}; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax`;
+}
+
+function removeTokenCookie() {
+  if (typeof document === "undefined") return;
+  document.cookie = `${COOKIE_KEY}=; path=/; max-age=0`;
+}
 
 export interface AuthUser {
   id: string;
@@ -42,6 +53,7 @@ export function useAuth() {
     const data = await res.json();
     localStorage.setItem(TOKEN_KEY, data.token);
     localStorage.setItem(USER_KEY, JSON.stringify(data.user));
+    setTokenCookie(data.token);
     setToken(data.token);
     setUser(data.user);
     return data;
@@ -60,6 +72,7 @@ export function useAuth() {
     const data = await res.json();
     localStorage.setItem(TOKEN_KEY, data.token);
     localStorage.setItem(USER_KEY, JSON.stringify(data.user));
+    setTokenCookie(data.token);
     setToken(data.token);
     setUser(data.user);
     return data;
@@ -68,6 +81,7 @@ export function useAuth() {
   const logout = useCallback(() => {
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(USER_KEY);
+    removeTokenCookie();
     setToken(null);
     setUser(null);
   }, []);

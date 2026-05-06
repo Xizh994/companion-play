@@ -11,34 +11,72 @@ export async function GET(req: NextRequest) {
     const userId = url.searchParams.get("id");
     const role = url.searchParams.get("role");
     const game = url.searchParams.get("game");
+    const search = url.searchParams.get("search");
 
-    // 单用户查询
     if (userId) {
       const user = await prisma.user.findUnique({
         where: { id: userId },
-        include: { playerProfile: true },
+        include: { playerProfile: true, shopProfile: true },
       });
       if (!user) return NextResponse.json({ users: [] });
       return NextResponse.json({
-        users: [{
-          id: user.id,
-          nickname: user.nickname,
-          avatar: user.avatar,
-          bio: user.bio,
-          status: user.status,
-          role: user.role,
-          games: user.playerProfile?.gameCategories || [],
-          services: user.playerProfile?.serviceTags || [],
-          pricePerHour: user.playerProfile?.pricePerHour,
-          createdAt: user.createdAt,
-        }],
+        users: [formatUser(user)],
       });
     }
 
-    // 列表查询
+    if (role === "SHOP") {
+      const where: any = {};
+      if (search) {
+        where.OR = [
+          { nickname: { contains: search, mode: "insensitive" } },
+          { shopProfile: { shopName: { contains: search, mode: "insensitive" } } },
+          { shopProfile: { shopDesc: { contains: search, mode: "insensitive" } } },
+        ];
+      }
+
+      const users = await prisma.user.findMany({
+        where: { ...where, role: "SHOP" },
+        include: { shopProfile: true },
+        take: 50,
+        orderBy: { shopProfile: { orderCount: "desc" } },
+      });
+
+      return NextResponse.json({
+        users: users.map(formatUser),
+      });
+    }
+
+    if (role === "BOSS") {
+      const where: any = { role: "BOSS", status: "online" };
+      if (search) {
+        where.OR = [
+          { nickname: { contains: search, mode: "insensitive" } },
+          { bio: { contains: search, mode: "insensitive" } },
+        ];
+      }
+
+      const users = await prisma.user.findMany({
+        where,
+        take: 50,
+        orderBy: { createdAt: "desc" },
+      });
+
+      return NextResponse.json({
+        users: users.map(formatUser),
+      });
+    }
+
     const where: any = { status: { not: "offline" }, role: "PLAYER" };
     if (game) {
       where.playerProfile = { gameCategories: { has: game } };
+    }
+    if (search) {
+      where.OR = [
+        { nickname: { contains: search, mode: "insensitive" } },
+        { bio: { contains: search, mode: "insensitive" } },
+        { playerProfile: { gameCategories: { has: search } } },
+        { playerProfile: { serviceTags: { has: search } } },
+      ];
     }
 
     const users = await prisma.user.findMany({
@@ -49,20 +87,32 @@ export async function GET(req: NextRequest) {
     });
 
     return NextResponse.json({
-      users: users.map((u) => ({
-        id: u.id,
-        nickname: u.nickname,
-        avatar: u.avatar,
-        bio: u.bio,
-        status: u.status,
-        role: u.role,
-        games: u.playerProfile?.gameCategories || [],
-        services: u.playerProfile?.serviceTags || [],
-        pricePerHour: u.playerProfile?.pricePerHour,
-        createdAt: u.createdAt,
-      })),
+      users: users.map(formatUser),
     });
-  } catch {
+  } catch (error) {
+    console.error("Users API error:", error);
     return NextResponse.json({ error: "获取用户列表失败" }, { status: 500 });
   }
+}
+
+function formatUser(u: any) {
+  return {
+    id: u.id,
+    nickname: u.nickname,
+    avatar: u.avatar,
+    bio: u.bio,
+    status: u.status,
+    role: u.role,
+    games: u.playerProfile?.gameCategories || [],
+    services: u.playerProfile?.serviceTags || [],
+    pricePerHour: u.playerProfile?.pricePerHour,
+    shopName: u.shopProfile?.shopName || null,
+    shopDesc: u.shopProfile?.shopDesc || null,
+    shopCover: u.shopProfile?.shopCover || null,
+    shopAddress: u.shopProfile?.shopAddress || null,
+    playerCount: u.shopProfile?.playerCount || 0,
+    rating: u.shopProfile?.rating ? Number(u.shopProfile.rating) : null,
+    orderCount: u.shopProfile?.orderCount || 0,
+    createdAt: u.createdAt,
+  };
 }

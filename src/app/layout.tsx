@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import "./globals.css";
 import { Toaster } from "sonner";
 
@@ -15,7 +16,13 @@ export default function RootLayout({
   return (
     <html lang="zh-CN">
       <body>
-        {children}
+        <Suspense fallback={
+          <div className="min-h-screen flex items-center justify-center">
+            <span className="text-2xl animate-bounce">🎮</span>
+          </div>
+        }>
+          {children}
+        </Suspense>
         <Toaster position="top-center" richColors />
       </body>
     </html>

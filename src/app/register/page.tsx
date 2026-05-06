@@ -4,41 +4,31 @@ import Link from "next/link";
 import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
-import { User, Store, Crown, Camera, X } from "lucide-react";
+import { Store, Crown, Camera, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const GAME_CATEGORIES = ["王者荣耀", "英雄联盟", "原神", "和平精英", "蛋仔派对", "第五人格", "其他"];
-const SERVICE_TAGS = ["上分", "带飞", "教学", "陪聊", "声优", "代练"];
-
 const ROLES = [
-  { value: "PLAYER", label: "个人陪玩", icon: User, color: "pink", gradient: "from-pink-500 to-rose-500", glow: "shadow-pink-500/25", ring: "ring-pink-500/30", emoji: "🎯", desc: "展示技能，找到老板" },
-  { value: "SHOP", label: "陪玩店", icon: Store, color: "violet", gradient: "from-violet-500 to-purple-500", glow: "shadow-purple-500/25", ring: "ring-purple-500/30", emoji: "🏪", desc: "经营店铺，管理搭子" },
-  { value: "BOSS", label: "老板", icon: Crown, color: "amber", gradient: "from-amber-500 to-orange-500", glow: "shadow-amber-500/25", ring: "ring-amber-500/30", emoji: "👑", desc: "找搭子，轻松上分" },
+  { value: "SHOP", label: "陪玩店", icon: Store, color: "violet", gradient: "from-violet-500 to-purple-500", glow: "shadow-purple-500/25", ring: "ring-purple-500/30", emoji: "🏪", desc: "经营店铺，接待老板" },
+  { value: "BOSS", label: "老板", icon: Crown, color: "amber", gradient: "from-amber-500 to-orange-500", glow: "shadow-amber-500/25", ring: "ring-amber-500/30", emoji: "👑", desc: "找陪玩店，轻松上分" },
 ] as const;
 
 export default function RegisterPage() {
   const router = useRouter();
   const { register } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [role, setRole] = useState("PLAYER");
+  const [role, setRole] = useState("SHOP");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [nickname, setNickname] = useState("");
-  const [games, setGames] = useState<string[]>([]);
-  const [services, setServices] = useState<string[]>([]);
-  const [bio, setBio] = useState("");
   const [shopName, setShopName] = useState("");
   const [shopBio, setShopBio] = useState("");
   const [contactPhone, setContactPhone] = useState("");
   const [contactName, setContactName] = useState("");
 
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
-
-  const toggleGame = (g: string) => setGames((prev) => prev.includes(g) ? prev.filter((x) => x !== g) : [...prev, g]);
-  const toggleService = (s: string) => setServices((prev) => prev.includes(s) ? prev.filter((x) => x !== s) : [...prev, s]);
 
   const activeRole = ROLES.find((r) => r.value === role)!;
 
@@ -58,7 +48,7 @@ export default function RegisterPage() {
     setLoading(true);
     try {
       await register({
-        phone, password, role, nickname, games, services, bio,
+        phone, password, role, nickname,
         shopName, shopBio, contactPhone, contactName,
         avatar: avatarPreview,
       });
@@ -78,7 +68,6 @@ export default function RegisterPage() {
 
       <div className="relative w-full max-w-md">
         <div className="glass rounded-3xl p-6 sm:p-8 glow-card">
-          {/* 标题 */}
           <div className="text-center mb-6">
             <span className="text-4xl">🎮</span>
             <h1 className="text-2xl font-bold bg-gradient-to-r from-pink-400 to-purple-400 bg-clip-text text-transparent mt-2">
@@ -93,7 +82,6 @@ export default function RegisterPage() {
             </div>
           )}
 
-          {/* === 角色标签页 === */}
           <div className="flex bg-white/[0.06] border border-white/[0.08] rounded-xl p-1 mb-6">
             {ROLES.map((r) => {
               const isActive = role === r.value;
@@ -117,7 +105,6 @@ export default function RegisterPage() {
             })}
           </div>
 
-          {/* === 头像上传 === */}
           <div className="flex flex-col items-center mb-6">
             <input
               ref={fileInputRef}
@@ -166,24 +153,6 @@ export default function RegisterPage() {
             )}
           </div>
 
-          {/* === 个人陪玩 表单 === */}
-          {role === "PLAYER" && (
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <Field label="手机号" value={phone} onChange={setPhone} type="tel" placeholder="请输入手机号" />
-              <Field label="密码" value={password} onChange={setPassword} type="password" placeholder="请输入密码（至少6位）" />
-              <Field label="昵称" value={nickname} onChange={setNickname} placeholder="给自己取个名字" />
-              <TagGroup label="游戏品类（多选）" items={GAME_CATEGORIES} selected={games} onToggle={toggleGame} activeClass="border-pink-500 bg-pink-500/20 text-pink-300" />
-              <TagGroup label="服务标签（多选）" items={SERVICE_TAGS} selected={services} onToggle={toggleService} activeClass="border-purple-500 bg-purple-500/20 text-purple-300" />
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1.5">自我介绍</label>
-                <textarea value={bio} onChange={(e) => setBio(e.target.value)} placeholder="介绍一下自己，让老板更了解你~" rows={3}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 outline-none focus:border-pink-500/50 focus:ring-2 focus:ring-pink-500/20 transition resize-none" />
-              </div>
-              <SubmitButton loading={loading} gradient={activeRole.gradient} glow={activeRole.glow} emoji={activeRole.emoji} text="立即入驻" />
-            </form>
-          )}
-
-          {/* === 陪玩店 表单 === */}
           {role === "SHOP" && (
             <form onSubmit={handleSubmit} className="space-y-4">
               <Field label="手机号" value={phone} onChange={setPhone} type="tel" placeholder="请输入手机号" />
@@ -200,7 +169,6 @@ export default function RegisterPage() {
             </form>
           )}
 
-          {/* === 老板 表单 === */}
           {role === "BOSS" && (
             <form onSubmit={handleSubmit} className="space-y-4">
               <Field label="手机号" value={phone} onChange={setPhone} type="tel" placeholder="请输入手机号" />
@@ -220,8 +188,6 @@ export default function RegisterPage() {
   );
 }
 
-/* ====== 子组件 ====== */
-
 function Field({ label, value, onChange, type = "text", placeholder, required = true }: {
   label: string; value: string; onChange: (v: string) => void; type?: string; placeholder: string; required?: boolean;
 }) {
@@ -233,34 +199,6 @@ function Field({ label, value, onChange, type = "text", placeholder, required = 
         placeholder={placeholder} required={required}
         className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 outline-none focus:border-pink-500/50 focus:ring-2 focus:ring-pink-500/20 transition"
       />
-    </div>
-  );
-}
-
-function TagGroup({ label, items, selected, onToggle, activeClass }: {
-  label: string; items: string[]; selected: string[]; onToggle: (item: string) => void; activeClass: string;
-}) {
-  return (
-    <div>
-      <label className="block text-sm font-medium text-gray-300 mb-2">{label}</label>
-      <div className="flex flex-wrap gap-2">
-        {items.map((item) => {
-          const isActive = selected.includes(item);
-          return (
-            <button
-              key={item} type="button" onClick={() => onToggle(item)}
-              className={cn(
-                "px-3 py-1.5 rounded-lg text-sm border transition-all duration-200 cursor-pointer",
-                isActive
-                  ? activeClass
-                  : "border-white/10 bg-white/5 text-gray-400 hover:border-white/20 hover:bg-white/10 hover:text-gray-300"
-              )}
-            >
-              {item}
-            </button>
-          );
-        })}
-      </div>
     </div>
   );
 }

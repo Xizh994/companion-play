@@ -2,31 +2,61 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
+import AuthGuard from "@/components/AuthGuard";
+import { Crown, Store } from "lucide-react";
+
+const USER_KEY = "dazistar_user";
+
+const BOSS_NAV = [
+  { href: "/discover", label: "找陪玩店", icon: "🏪" },
+  { href: "/lobby", label: "在线陪玩", icon: "🎯" },
+  { href: "/chat", label: "消息", icon: "💬" },
+];
+
+const SHOP_NAV = [
+  { href: "/discover", label: "在线老板", icon: "👑" },
+  { href: "/chat", label: "消息", icon: "💬" },
+];
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <AuthGuard fallback={
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <span className="text-3xl animate-bounce">🎮</span>
+          <p className="text-gray-400 text-sm">验证登录状态...</p>
+        </div>
+      </div>
+    }>
+      <AppLayoutInner>{children}</AppLayoutInner>
+    </AuthGuard>
+  );
+}
+
+function AppLayoutInner({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const [loggedIn, setLoggedIn] = useState(false);
+  const [user, setUser] = useState<any>(null);
 
   useEffect(() => {
-    const token = localStorage.getItem("dazistar_token");
-    setLoggedIn(!!token);
+    const userStr = localStorage.getItem(USER_KEY);
+    if (userStr) {
+      try {
+        setUser(JSON.parse(userStr));
+      } catch {}
+    }
   }, []);
 
   const handleLogout = () => {
     localStorage.removeItem("dazistar_token");
-    localStorage.removeItem("dazistar_user");
-    setLoggedIn(false);
+    localStorage.removeItem(USER_KEY);
+    document.cookie = "dazistar_token=; path=/; max-age=0";
     router.push("/login");
   };
 
-  const navItems = [
-    { href: "/discover", label: "发现", icon: "🔍" },
-    { href: "/lobby", label: "大厅", icon: "🎯" },
-    { href: "/chat", label: "消息", icon: "💬" },
-    { href: "/profile", label: "我的", icon: "👤" },
-  ];
+  const isBoss = user?.role === "BOSS";
+  const navItems = isBoss ? BOSS_NAV : SHOP_NAV;
 
   return (
     <div className="min-h-screen">
@@ -59,14 +89,22 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             })}
           </nav>
 
-          {!loggedIn ? (
-            <div className="flex items-center gap-2">
-              <Link href="/login" className="text-sm text-gray-300 hover:text-white transition">登录</Link>
-              <Link href="/register" className="btn-gradient px-4 py-2 rounded-full text-sm font-medium">入驻</Link>
-            </div>
-          ) : (
-            <button onClick={handleLogout} className="text-sm text-gray-400 hover:text-white transition">退出</button>
-          )}
+          <div className="flex items-center gap-3">
+            {user && (
+              <span className={`flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full ${
+                isBoss
+                  ? "bg-amber-500/20 text-amber-300 border border-amber-500/30"
+                  : "bg-violet-500/20 text-violet-300 border border-violet-500/30"
+              }`}>
+                {isBoss ? <Crown className="w-3 h-3" /> : <Store className="w-3 h-3" />}
+                {isBoss ? "老板" : "陪玩店"}
+              </span>
+            )}
+            <span className="text-sm text-gray-300 hidden sm:inline">{user?.nickname || ""}</span>
+            <button onClick={handleLogout} className="text-xs text-gray-400 hover:text-red-400 transition px-2 py-1 rounded-lg hover:bg-red-500/10">
+              退出
+            </button>
+          </div>
         </div>
       </header>
 

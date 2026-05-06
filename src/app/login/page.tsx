@@ -2,11 +2,12 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { login } = useAuth();
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
@@ -19,7 +20,8 @@ export default function LoginPage() {
     setLoading(true);
     try {
       await login(phone, password);
-      router.push("/discover");
+      const redirect = searchParams.get("redirect");
+      router.push(redirect || "/discover");
     } catch (err: any) {
       setError(err.message);
     } finally {
