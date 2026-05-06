@@ -2,7 +2,11 @@
 # ================================================================
 #  搭子星 (DaziStar) — 编译与发布脚本
 #  用途: 在服务器上拉取最新代码 → 构建 → 部署
-#  使用: bash scripts/deploy.sh [--rollback]
+#  使用:
+#    bash scripts/deploy.sh             部署生产 + 测试 (两个环境)
+#    bash scripts/deploy.sh --prod      仅部署生产环境 (3000)
+#    bash scripts/deploy.sh --test      仅部署测试环境 (3001)
+#    bash scripts/deploy.sh --rollback  手动选择备份回滚
 #
 #  前置条件 (仅需一次):
 #    - Node.js 18+ / npm
@@ -20,13 +24,17 @@ PROJECT_DIR="/www/dazistar"
 BACKUP_DIR="${PROJECT_DIR}/backups"
 LOG_DIR="${PROJECT_DIR}/logs"
 ENV_FILE="${PROJECT_DIR}/.env"
-APP_NAME="dazistar"
-HEALTH_URL="http://localhost:3000"
-HEALTH_URL_2="http://localhost:3001"
+APP_NAME_PROD="dazistar"
+APP_NAME_TEST="dazistar-3001"
+HEALTH_URL_PROD="http://localhost:3000"
+HEALTH_URL_TEST="http://localhost:3001"
 HEALTH_RETRIES=12
 HEALTH_INTERVAL=3
 BUILD_TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 BUILD_LOG="${LOG_DIR}/deploy-${BUILD_TIMESTAMP}.log"
+
+# 部署目标: "both" / "prod" / "test"，由 main() 根据参数设置
+DEPLOY_TARGET="both"
 
 # 颜色输出
 RED='\033[0;31m'
@@ -196,18 +204,32 @@ deploy_pm2() {
 
   cd "$PROJECT_DIR"
 
-  local pm2_online=$(pm2 jlist 2>/dev/null | grep -c "\"name\":\"${APP_NAME}\"" || true)
+  deploy_one() {
+    local app_name=$1
+    local label=$2
 
-  if [ "$pm2_online" -gt 0 ]; then
-    info "PM2 零停机重载 (reload)..."
-    pm2 reload ecosystem.config.js --update-env 2>&1 | tee -a "$BUILD_LOG" || die "PM2 reload 失败"
-  else
-    info "首次启动 PM2 ..."
-    pm2 start ecosystem.config.js 2>&1 | tee -a "$BUILD_LOG" || die "PM2 start 失败"
-    pm2 save
-  fi
+    local pm2_online=$(pm2 jlist 2>/dev/null | grep -c "\"name\":\"${app_name}\"" || true)
 
-  ok "PM2 部署完成"
+    if [ "$pm2_online" -gt 0 ]; then
+      info "[${label}] PM2 零停机重载 ..."
+      pm2 reload "$app_name" --update-env 2>&1 | tee -a "$BUILD_LOG" || die "[${label}] PM2 reload 失败"
+    else
+      info "[${label}] 首次启动 PM2 ..."
+      pm2 start ecosystem.config.js --only "$app_name" 2>&1 | tee -a "$BUILD_LOG" || die "[${label}] PM2 start 失败"
+      pm2 save
+    fi
+
+    ok "[${label}] 部署完成"
+  }
+
+  case "$DEPLOY_TARGET" in
+    prod) deploy_one "$APP_NAME_PROD" "生产环境(3000)" ;;
+    test) deploy_one "$APP_NAME_TEST" "测试环境(3001)" ;;
+    both)
+      deploy_one "$APP_NAME_PROD" "生产环境(3000)"
+      deploy_one "$APP_NAME_TEST" "测试环境(3001)"
+      ;;
+  esac
 }
 
 # ================================================================
@@ -237,19 +259,35 @@ health_check() {
     return 1
   }
 
-  if ! check_url "$HEALTH_URL" "端口 3000"; then
-    warn "端口 3000 健康检查失败，尝试进程诊断:"
-    pm2 status "$APP_NAME" 2>&1 | tee -a "$BUILD_LOG"
-    pm2 logs "$APP_NAME" --lines 20 --nostream 2>&1 | tee -a "$BUILD_LOG"
+  health_one() {
+    local url=$1
+    local app_name=$2
+    local label=$3
+    local fatal=${4:-true}
 
-    err "健康检查失败! 正执行回滚..."
-    rollback_build
-    die "健康检查失败，已回滚到上一版本"
-  fi
+    if ! check_url "$url" "$label"; then
+      if [ "$fatal" = "true" ]; then
+        warn "${label} 健康检查失败，尝试进程诊断:"
+        pm2 status "$app_name" 2>&1 | tee -a "$BUILD_LOG"
+        pm2 logs "$app_name" --lines 20 --nostream 2>&1 | tee -a "$BUILD_LOG"
 
-  if ! check_url "$HEALTH_URL_2" "端口 3001"; then
-    warn "端口 3001 健康检查失败 (可能未配置该实例)，继续..."
-  fi
+        err "健康检查失败! 正执行回滚..."
+        rollback_build
+        die "健康检查失败，已回滚到上一版本"
+      else
+        warn "${label} 健康检查失败 (非致命)，继续..."
+      fi
+    fi
+  }
+
+  case "$DEPLOY_TARGET" in
+    prod) health_one "$HEALTH_URL_PROD" "$APP_NAME_PROD" "生产环境(3000)" "true" ;;
+    test) health_one "$HEALTH_URL_TEST" "$APP_NAME_TEST" "测试环境(3001)" "true" ;;
+    both)
+      health_one "$HEALTH_URL_PROD" "$APP_NAME_PROD" "生产环境(3000)" "true"
+      health_one "$HEALTH_URL_TEST" "$APP_NAME_TEST" "测试环境(3001)" "false"
+      ;;
+  esac
 }
 
 # ================================================================
@@ -275,8 +313,15 @@ rollback_build() {
   rm -rf "${PROJECT_DIR}/.next"
   cp -r "$latest_backup" "${PROJECT_DIR}/.next"
 
-  # 重启为旧版本
-  pm2 restart "$APP_NAME" 2>&1 | tee -a "$BUILD_LOG" || true
+  # 按部署目标重启对应 app
+  case "$DEPLOY_TARGET" in
+    prod) pm2 restart "$APP_NAME_PROD" 2>&1 | tee -a "$BUILD_LOG" || true ;;
+    test) pm2 restart "$APP_NAME_TEST" 2>&1 | tee -a "$BUILD_LOG" || true ;;
+    both)
+      pm2 restart "$APP_NAME_PROD" 2>&1 | tee -a "$BUILD_LOG" || true
+      pm2 restart "$APP_NAME_TEST" 2>&1 | tee -a "$BUILD_LOG" || true
+      ;;
+  esac
 
   warn "已回滚到上一版本，请检查应用状态"
 }
@@ -306,10 +351,18 @@ cleanup() {
 # 部署摘要
 # ================================================================
 print_summary() {
+  local target_label
+  case "$DEPLOY_TARGET" in
+    prod) target_label="生产环境 (3000)" ;;
+    test) target_label="测试环境 (3001)" ;;
+    both) target_label="生产 + 测试 (3000 & 3001)" ;;
+  esac
+
   echo ""
   echo -e "${CYAN}============================================================${NC}"
   echo -e "${GREEN}  搭子星 部署成功!${NC}"
   echo -e "${CYAN}============================================================${NC}"
+  echo -e "  目标环境: ${target_label}"
   echo -e "  提交版本: $(cd "$PROJECT_DIR" && git rev-parse --short HEAD)"
   echo -e "  分支:     $(cd "$PROJECT_DIR" && git rev-parse --abbrev-ref HEAD)"
   echo -e "  构建时间: ${BUILD_TIMESTAMP}"
@@ -317,9 +370,11 @@ print_summary() {
   echo ""
   echo -e "  常用命令:"
   echo -e "    pm2 status              查看进程状态"
-  echo -e "    pm2 logs ${APP_NAME}     查看实时日志"
+  echo -e "    pm2 logs dazistar        查看生产环境日志"
+  echo -e "    pm2 logs dazistar-3001   查看测试环境日志"
   echo -e "    pm2 monit                资源监控面板"
-  echo -e "    bash scripts/deploy.sh   重新部署"
+  echo -e "    bash scripts/deploy.sh --prod   仅部署生产"
+  echo -e "    bash scripts/deploy.sh --test   仅部署测试"
   echo ""
   echo -e "  回滚命令:"
   echo -e "    bash scripts/deploy.sh --rollback"
@@ -358,7 +413,8 @@ manual_rollback() {
 
   rm -rf "${PROJECT_DIR}/.next"
   cp -r "$selected" "${PROJECT_DIR}/.next"
-  pm2 restart "$APP_NAME" 2>&1 | tee -a "$BUILD_LOG"
+  pm2 restart "$APP_NAME_PROD" 2>&1 | tee -a "$BUILD_LOG" || true
+  pm2 restart "$APP_NAME_TEST" 2>&1 | tee -a "$BUILD_LOG" || true
 
   ok "已回滚到 $selected"
 }
@@ -369,16 +425,39 @@ manual_rollback() {
 main() {
   echo ""
   echo -e "${CYAN}╔══════════════════════════════════════════════╗${NC}"
-  echo -e "${CYAN}║        搭子星 编译与发布脚本 v1.0           ║${NC}"
+  echo -e "${CYAN}║        搭子星 编译与发布脚本 v1.1           ║${NC}"
   echo -e "${CYAN}╚══════════════════════════════════════════════╝${NC}"
 
+  # 解析参数
+  for arg in "$@"; do
+    case "$arg" in
+      --rollback)
+        DEPLOY_TARGET="rollback"
+        ;;
+      --prod)
+        DEPLOY_TARGET="prod"
+        ;;
+      --test)
+        DEPLOY_TARGET="test"
+        ;;
+      --both)
+        DEPLOY_TARGET="both"
+        ;;
+      *)
+        die "未知参数: $arg (可用: --prod, --test, --both, --rollback)"
+        ;;
+    esac
+  done
+
   # 手动回滚模式
-  if [ "${1:-}" = "--rollback" ]; then
+  if [ "$DEPLOY_TARGET" = "rollback" ]; then
     manual_rollback
     exit 0
   fi
 
-  # 正常部署流程
+  info "部署目标: ${DEPLOY_TARGET}"
+
+  # 正常部署流程 (构建共享，部署按目标分流)
   preflight_check
   pull_code
   install_deps
