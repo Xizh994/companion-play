@@ -22,6 +22,7 @@ LOG_DIR="${PROJECT_DIR}/logs"
 ENV_FILE="${PROJECT_DIR}/.env"
 APP_NAME="dazistar"
 HEALTH_URL="http://localhost:3000"
+HEALTH_URL_2="http://localhost:3001"
 HEALTH_RETRIES=12
 HEALTH_INTERVAL=3
 BUILD_TIMESTAMP=$(date +%Y%m%d_%H%M%S)
@@ -57,6 +58,9 @@ die() {
 # 1. 前置检查
 # ================================================================
 preflight_check() {
+  # 目录必须最先创建，因为 header/log 中的 tee 需要写入日志文件
+  mkdir -p "$LOG_DIR" "$BACKUP_DIR"
+
   header "1/7 前置检查"
 
   [ "$(id -u)" = "0" ] && die "请勿使用 root 用户运行，使用普通用户或 sudo"
@@ -78,7 +82,6 @@ preflight_check() {
     grep -q "JWT_SECRET" "$ENV_FILE"     || warn "JWT_SECRET 未配置 (将使用默认值，生产环境务必修改)"
   fi
 
-  mkdir -p "$LOG_DIR" "$BACKUP_DIR"
   ok "前置检查通过: Node $(node -v), npm $(npm -v), PM2 $(pm2 -v)"
 }
 
@@ -99,13 +102,16 @@ pull_code() {
   # 保存本地修改
   if ! git diff --quiet 2>/dev/null; then
     warn "检测到本地修改，执行 git stash"
-    git stash save "auto-stash-before-deploy-${BUILD_TIMESTAMP}"
+    git stash push -m "auto-stash-before-deploy-${BUILD_TIMESTAMP}"
   fi
 
   # 拉取
   git fetch origin
   local current_branch=$(git rev-parse --abbrev-ref HEAD)
   git reset --hard "origin/${current_branch}"
+
+  # 清理未跟踪文件 (如残留的构建产物)，避免干扰新构建
+  git clean -fd 2>&1 | tee -a "$BUILD_LOG" || warn "git clean 有警告，继续部署"
 
   local after_commit=$(git rev-parse --short HEAD)
   local commit_msg=$(git log -1 --pretty=%B)
@@ -210,29 +216,40 @@ deploy_pm2() {
 health_check() {
   header "6/7 健康检查"
 
-  info "等待应用就绪 (最多 ${HEALTH_RETRIES} 次, 间隔 ${HEALTH_INTERVAL}s)..."
+  check_url() {
+    local url=$1
+    local label=$2
+    info "等待 ${label} 就绪 (最多 ${HEALTH_RETRIES} 次, 间隔 ${HEALTH_INTERVAL}s)..."
 
-  for i in $(seq 1 $HEALTH_RETRIES); do
-    local http_code=$(curl -s -o /dev/null -w "%{http_code}" "$HEALTH_URL" 2>/dev/null || echo "000")
+    for i in $(seq 1 $HEALTH_RETRIES); do
+      local http_code=$(curl -s -o /dev/null -w "%{http_code}" "$url" 2>/dev/null || echo "000")
 
-    if [ "$http_code" != "000" ] && [ "$http_code" -lt 500 ]; then
-      ok "健康检查通过 (HTTP ${http_code}) — 第 ${i} 次尝试"
-      return 0
-    fi
+      if [ "$http_code" != "000" ] && [ "$http_code" -lt 500 ]; then
+        ok "${label} 健康检查通过 (HTTP ${http_code}) — 第 ${i} 次尝试"
+        return 0
+      fi
 
-    if [ "$i" -lt "$HEALTH_RETRIES" ]; then
-      sleep "$HEALTH_INTERVAL"
-    fi
-  done
+      if [ "$i" -lt "$HEALTH_RETRIES" ]; then
+        sleep "$HEALTH_INTERVAL"
+      fi
+    done
 
-  # 最后的详细诊断
-  warn "HTTP 检查失败，尝试进程诊断:"
-  pm2 status "$APP_NAME" 2>&1 | tee -a "$BUILD_LOG"
-  pm2 logs "$APP_NAME" --lines 20 --nostream 2>&1 | tee -a "$BUILD_LOG"
+    return 1
+  }
 
-  err "健康检查失败! 正执行回滚..."
-  rollback_build
-  die "健康检查失败，已回滚到上一版本"
+  if ! check_url "$HEALTH_URL" "端口 3000"; then
+    warn "端口 3000 健康检查失败，尝试进程诊断:"
+    pm2 status "$APP_NAME" 2>&1 | tee -a "$BUILD_LOG"
+    pm2 logs "$APP_NAME" --lines 20 --nostream 2>&1 | tee -a "$BUILD_LOG"
+
+    err "健康检查失败! 正执行回滚..."
+    rollback_build
+    die "健康检查失败，已回滚到上一版本"
+  fi
+
+  if ! check_url "$HEALTH_URL_2" "端口 3001"; then
+    warn "端口 3001 健康检查失败 (可能未配置该实例)，继续..."
+  fi
 }
 
 # ================================================================
