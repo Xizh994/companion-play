@@ -1,32 +1,40 @@
 module.exports = {
   apps: [
     {
-      name: 'dazistar-3000',
+      name: 'dazistar',
       cwd: '/www/dazistar',
-      script: 'node_modules/.bin/next',
-      args: 'start -p 3000',
+      script: 'server.js',
+      args: '--port 3000',
       instances: 1,
+      exec_mode: 'fork',
       autorestart: true,
       watch: false,
       max_memory_restart: '1G',
       env: {
-        NODE_ENV: 'production',
-        PORT: 3000
-      }
+        NODE_ENV: 'production'
+      },
+      error_file: '/www/dazistar/logs/dazistar-3000-err.log',
+      out_file: '/www/dazistar/logs/dazistar-3000-out.log',
+      log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
+      merge_logs: true
     },
     {
       name: 'dazistar-3001',
       cwd: '/www/dazistar',
-      script: 'node_modules/.bin/next',
-      args: 'start -p 3001',
+      script: 'server.js',
+      args: '--port 3001',
       instances: 1,
+      exec_mode: 'fork',
       autorestart: true,
       watch: false,
       max_memory_restart: '1G',
       env: {
-        NODE_ENV: 'production',
-        PORT: 3001
-      }
+        NODE_ENV: 'production'
+      },
+      error_file: '/www/dazistar/logs/dazistar-3001-err.log',
+      out_file: '/www/dazistar/logs/dazistar-3001-out.log',
+      log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
+      merge_logs: true
     }
   ]
 }

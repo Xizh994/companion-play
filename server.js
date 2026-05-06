@@ -3,8 +3,16 @@ const { parse } = require("url");
 const next = require("next");
 const { Server } = require("socket.io");
 
+function parsePort() {
+  const portArgIdx = process.argv.findIndex((a) => a === "--port" || a === "-p");
+  if (portArgIdx !== -1 && process.argv[portArgIdx + 1]) {
+    return parseInt(process.argv[portArgIdx + 1], 10);
+  }
+  return parseInt(process.env.PORT || "3000", 10);
+}
+
 const dev = process.env.NODE_ENV !== "production";
-const port = parseInt(process.env.PORT || "3000", 10);
+const port = parsePort();
 const app = next({ dev });
 const handle = app.getRequestHandler();
 
