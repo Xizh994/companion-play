@@ -104,7 +104,7 @@ pull_code() {
   local current_branch=$(git rev-parse --abbrev-ref HEAD)
   git reset --hard "origin/${current_branch}"
 
-  git clean -fd 2>&1 | tee -a "$BUILD_LOG" || warn "git clean 有警告，继续部署"
+  git clean -fd -e logs/ -e backups/ 2>&1 | tee -a "$BUILD_LOG" || warn "git clean 有警告，继续部署"
 
   local after_commit=$(git rev-parse --short HEAD)
   local commit_msg=$(git log -1 --pretty=%B)
