@@ -1,0 +1,6 @@
+# Shell scripts - force LF line endings
+*.sh text eol=lf
+
+# Makefiles
+Makefile text eol=lf
+makefile text eol=lf
