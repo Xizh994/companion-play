@@ -49,6 +49,9 @@ async function main() {
     create: {
       phone: "13800000002",
       passwordHash: password,
+      email: "boss@dazistar.com",
+      emailVerified: true,
+      hasPassword: true,
       role: "BOSS",
       nickname: "王者阿杰",
       bio: "找陪玩上分，王者荣耀重度玩家",

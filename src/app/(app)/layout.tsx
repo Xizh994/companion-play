@@ -2,21 +2,31 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import AuthGuard from "@/components/AuthGuard";
-import { Crown, Store } from "lucide-react";
+import { Crown, Store, User as UserIcon } from "lucide-react";
+import { AuthUser } from "@/hooks/useAuth";
 
 const USER_KEY = "dazistar_user";
 
-const BOSS_NAV = [
+interface NavItem {
+  href: string;
+  label: string;
+  icon: string;
+  iconComponent?: React.ComponentType<{ className?: string }>;
+}
+
+const BOSS_NAV: NavItem[] = [
   { href: "/discover", label: "找陪玩店", icon: "🏪" },
   { href: "/lobby", label: "在线陪玩", icon: "🎯" },
   { href: "/chat", label: "消息", icon: "💬" },
+  { href: "/profile", label: "我的", icon: "", iconComponent: UserIcon },
 ];
 
-const SHOP_NAV = [
+const SHOP_NAV: NavItem[] = [
   { href: "/discover", label: "在线老板", icon: "👑" },
   { href: "/chat", label: "消息", icon: "💬" },
+  { href: "/profile", label: "我的", icon: "", iconComponent: UserIcon },
 ];
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
@@ -37,16 +47,13 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 function AppLayoutInner({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const [user, setUser] = useState<any>(null);
 
-  useEffect(() => {
+  const [user] = useState<AuthUser | null>(() => {
+    if (typeof window === "undefined") return null;
     const userStr = localStorage.getItem(USER_KEY);
-    if (userStr) {
-      try {
-        setUser(JSON.parse(userStr));
-      } catch {}
-    }
-  }, []);
+    if (!userStr) return null;
+    try { return JSON.parse(userStr); } catch { return null; }
+  });
 
   const handleLogout = () => {
     localStorage.removeItem("dazistar_token");
@@ -82,7 +89,7 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
                       : "text-gray-300 hover:text-white hover:bg-white/10"
                   }`}
                 >
-                  <span>{item.icon}</span>
+                  {item.iconComponent ? <item.iconComponent className="w-4 h-4" /> : <span>{item.icon}</span>}
                   {item.label}
                 </Link>
               );
@@ -100,7 +107,9 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
                 {isBoss ? "老板" : "陪玩店"}
               </span>
             )}
-            <span className="text-sm text-gray-300 hidden sm:inline">{user?.nickname || ""}</span>
+            <Link href="/profile" className="text-sm text-gray-300 hover:text-pink-400 transition hidden sm:inline cursor-pointer">
+              {user?.nickname || ""}
+            </Link>
             <button onClick={handleLogout} className="text-xs text-gray-400 hover:text-red-400 transition px-2 py-1 rounded-lg hover:bg-red-500/10">
               退出
             </button>

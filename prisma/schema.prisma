@@ -14,16 +14,32 @@ datasource db {
 // 用户角色枚举
 // ============================================================
 enum UserRole {
-  BOSS       // 老板（普通用户）
-  PLAYER     // 个人陪玩
-  SHOP       // 陪玩店
+  BOSS
+  SHOP
+}
+
+// 验证码类型枚举
+enum VerificationCodeType {
+  SMS_REGISTER
+  SMS_LOGIN
+  EMAIL_BIND
+  EMAIL_RECOVERY
+  EMAIL_CHANGE_PWD
+  MAGIC_LINK
 }
 
 // 认证状态枚举
 enum VerificationStatus {
-  PENDING    // 待审核
-  APPROVED    // 已通过
-  REJECTED    // 已拒绝
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+// 实名认证状态枚举
+enum RealNameStatus {
+  PENDING
+  APPROVED
+  REJECTED
 }
 
 // ============================================================
@@ -31,22 +47,27 @@ enum VerificationStatus {
 // ============================================================
 model User {
   id            String    @id @default(cuid())
-  phone         String    @unique  // 手机号（登录凭证）
-  passwordHash  String    // 密码（bcrypt加密存储）
-  role          UserRole  @default(PLAYER)
+  phone         String    @unique
+  passwordHash  String?
+  email         String?   @unique
+  emailVerified Boolean   @default(false)
+  hasPassword   Boolean   @default(true)
+  role          UserRole  @default(BOSS)
   nickname      String
-  avatar        String?   // 头像URL
-  bio           String?   // 个人简介
-  status        String    @default("online") // online/offline/busy
+  avatar        String?
+  bio           String?
+  status        String    @default("online")
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
   // 关联
-  verification  Verification?
-  playerProfile PlayerProfile?
-  shopProfile   ShopProfile?
-  sentMessages  Message[]   @relation("SentMessages")
-  receivedMessages Message[] @relation("ReceivedMessages")
+  verification         Verification?
+  playerProfile        PlayerProfile?
+  shopProfile          ShopProfile?
+  realNameVerification RealNameVerification?
+  sentMessages         Message[]           @relation("SentMessages")
+  receivedMessages     Message[]           @relation("ReceivedMessages")
+  verificationCodes    VerificationCode[]
 
   @@map("users")
 }
@@ -60,22 +81,22 @@ model PlayerProfile {
   user           User               @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   // 基本信息
-  realName       String             // 真实姓名
-  idCardNumber   String             // 身份证号（加密存储）
-  idCardFront    String             // 身份证正面照
-  idCardBack     String              // 身份证背面照
-  gender         String?            // 性别
-  birthday       DateTime?          // 生日
+  realName       String
+  idCardNumber   String
+  idCardFront    String
+  idCardBack     String
+  gender         String?
+  birthday       DateTime?
 
   // 服务相关
-  gameCategories String[]           // 游戏品类，如 ["王者荣耀","英雄联盟","原神"]
-  pricePerHour   Decimal?           @db.Decimal(10,2) // 每小时价格
-  serviceTags    String[]           // 服务标签，如 ["上分","陪聊","教学"]
-  serviceDesc    String?            // 服务描述
+  gameCategories String[]
+  pricePerHour   Decimal?           @db.Decimal(10,2)
+  serviceTags    String[]
+  serviceDesc    String?
 
   // 认证状态
   verificationStatus VerificationStatus @default(PENDING)
-  verificationNotes  String?          // 审核备注
+  verificationNotes  String?
   verifiedAt         DateTime?
   verifiedBy         String?
 
@@ -94,20 +115,20 @@ model ShopProfile {
   user           User               @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   // 店铺信息
-  shopName       String             // 店铺名称
-  shopCover      String?            // 封面图
-  shopBanner     String?            // 轮播Banner图
-  shopDesc       String?            // 店铺介绍
-  shopAddress    String?            // 店铺地址
+  shopName       String
+  shopCover      String?
+  shopBanner     String?
+  shopDesc       String?
+  shopAddress    String?
 
   // 营业执照/实景照片
-  licenseType    String             // 执照类型: business_license / real_photo
-  licenseImage   String             // 执照或实景照片URL
+  licenseType    String
+  licenseImage   String
 
   // 负责人信息
-  contactName    String             // 负责人姓名
-  contactPhone   String             // 负责人电话
-  contactIdCard  String?            // 负责人身份证
+  contactName    String
+  contactPhone   String
+  contactIdCard  String?
 
   // 认证状态
   verificationStatus VerificationStatus @default(PENDING)
@@ -116,14 +137,51 @@ model ShopProfile {
   verifiedBy         String?
 
   // 店铺统计
-  playerCount    Int        @default(0)  // 旗下陪玩师数量
-  rating         Decimal?   @db.Decimal(3,2) // 平均评分
-  orderCount     Int        @default(0)  // 总接单数
+  playerCount    Int        @default(0)
+  rating         Decimal?   @db.Decimal(3,2)
+  orderCount     Int        @default(0)
 
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
   @@map("shop_profiles")
+}
+
+// ============================================================
+// 老板实名认证
+// ============================================================
+model RealNameVerification {
+  id            String          @id @default(cuid())
+  userId        String          @unique
+  user          User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  realName      String
+  idCardNumber  String
+  status        RealNameStatus  @default(PENDING)
+  notes         String?
+  submittedAt   DateTime        @default(now())
+  verifiedAt    DateTime?
+
+  @@index([status])
+  @@map("real_name_verifications")
+}
+
+// ============================================================
+// 验证码记录
+// ============================================================
+model VerificationCode {
+  id        String              @id @default(cuid())
+  userId    String?
+  user      User?               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  target    String
+  code       String
+  type      VerificationCodeType
+  expiresAt DateTime
+  used      Boolean             @default(false)
+  createdAt DateTime            @default(now())
+
+  @@index([target, type])
+  @@index([expiresAt])
+  @@map("verification_codes")
 }
 
 // ============================================================
@@ -134,10 +192,10 @@ model Verification {
   userId         String             @unique
   user           User               @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  applicantType  UserRole           // 申请人角色
+  applicantType  UserRole
   status         VerificationStatus @default(PENDING)
-  reviewer       String?            // 审核人ID
-  reviewerNotes  String?            // 审核意见
+  reviewer       String?
+  reviewerNotes  String?
   reviewedAt     DateTime?
 
   submittedAt    DateTime @default(now())
@@ -156,11 +214,11 @@ model Message {
   to          User     @relation("ReceivedMessages", fields: [toId], references: [id])
 
   // 消息类型
-  type        String   @default("text") // text/image/video/audio
-  content     String   // 文本内容或媒体URL
+  type        String   @default("text")
+  content     String
 
   // 附加数据（JSON）
-  metadata    Json?    // 存放位置、大小、时长等
+  metadata    Json?
 
   // 状态
   isRead      Boolean  @default(false)
@@ -177,7 +235,7 @@ model Message {
 // ============================================================
 model Conversation {
   id          String   @id @default(cuid())
-  participants String[] // [userId1, userId2]
+  participants String[]
   lastMessage String?
   lastMessageAt DateTime?
   createdAt   DateTime @default(now())

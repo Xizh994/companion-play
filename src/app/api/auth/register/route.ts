@@ -1,14 +1,32 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { hashPassword, signToken } from "@/lib/auth";
+import { hashPassword, signToken, verifyToken } from "@/lib/auth";
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { phone, password, role, nickname, games, services, bio, shopName, shopBio, shopCover, contactPhone, contactName } = body;
+    const {
+      phone,
+      password,
+      role,
+      nickname,
+      email,
+      phoneVerifiedToken,
+      emailVerifiedToken,
+      shopName,
+      shopBio,
+      shopCover,
+      contactPhone,
+      contactName,
+      licenseImage,
+    } = body;
 
     if (!phone || !password) {
       return NextResponse.json({ error: "手机号和密码不能为空" }, { status: 400 });
+    }
+
+    if (password.length < 6) {
+      return NextResponse.json({ error: "密码至少6位" }, { status: 400 });
     }
 
     const existing = await prisma.user.findUnique({ where: { phone } });
@@ -16,18 +34,44 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "该手机号已注册" }, { status: 409 });
     }
 
+    // 验证手机验证码 token
+    if (!phoneVerifiedToken) {
+      return NextResponse.json({ error: "请先完成手机验证" }, { status: 400 });
+    }
+    const phonePayload = verifyToken(phoneVerifiedToken);
+    if (!phonePayload) {
+      return NextResponse.json({ error: "手机验证已过期，请重新验证" }, { status: 400 });
+    }
+
+    // 邮箱绑定验证
+    if (email) {
+      const emailInUse = await prisma.user.findUnique({ where: { email } });
+      if (emailInUse) {
+        return NextResponse.json({ error: "该邮箱已被其他账号绑定" }, { status: 409 });
+      }
+      if (!emailVerifiedToken) {
+        return NextResponse.json({ error: "请先完成邮箱验证" }, { status: 400 });
+      }
+      const emailPayload = verifyToken(emailVerifiedToken);
+      if (!emailPayload) {
+        return NextResponse.json({ error: "邮箱验证已过期，请重新验证" }, { status: 400 });
+      }
+    }
+
     const user = await prisma.user.create({
       data: {
         phone,
         passwordHash: hashPassword(password),
-        role: role || "PLAYER",
+        role: role || "BOSS",
         nickname: nickname || phone.slice(-4),
-        bio: bio || "",
+        email: email || null,
+        emailVerified: !!email,
+        hasPassword: true,
         status: "online",
       },
     });
 
-    // 如果是陪玩店，创建ShopProfile
+    // 如果是店铺，创建 ShopProfile
     if (role === "SHOP" && shopName) {
       await prisma.shopProfile.create({
         data: {
@@ -37,25 +81,8 @@ export async function POST(req: NextRequest) {
           shopCover: shopCover || "",
           contactPhone: contactPhone || phone,
           contactName: contactName || "",
-          licenseType: "real_photo",
-          licenseImage: "",
-          verificationStatus: "PENDING",
-        },
-      });
-    }
-
-    // 如果是个人陪玩，创建PlayerProfile
-    if (role === "PLAYER") {
-      await prisma.playerProfile.create({
-        data: {
-          userId: user.id,
-          realName: "",
-          idCardNumber: "",
-          idCardFront: "",
-          idCardBack: "",
-          gameCategories: games || [],
-          serviceTags: services || [],
-          serviceDesc: bio || "",
+          licenseType: "business_license",
+          licenseImage: licenseImage || "",
           verificationStatus: "PENDING",
         },
       });
@@ -65,7 +92,14 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       token,
-      user: { id: user.id, phone: user.phone, role: user.role, nickname: user.nickname, bio: user.bio },
+      user: {
+        id: user.id,
+        phone: user.phone,
+        role: user.role,
+        nickname: user.nickname,
+        email: user.email,
+        avatar: user.avatar,
+      },
     });
   } catch (error: any) {
     console.error("Register error:", error);

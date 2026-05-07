@@ -16,7 +16,11 @@ export async function GET(req: NextRequest) {
 
     const user = await prisma.user.findUnique({
       where: { id: payload.userId },
-      include: { playerProfile: true, shopProfile: true },
+      include: {
+        playerProfile: true,
+        shopProfile: true,
+        realNameVerification: true,
+      },
     });
 
     if (!user) {
@@ -32,8 +36,14 @@ export async function GET(req: NextRequest) {
         avatar: user.avatar,
         bio: user.bio,
         status: user.status,
+        email: user.email,
+        emailVerified: user.emailVerified,
+        hasPassword: user.hasPassword,
         playerProfile: user.playerProfile,
         shopProfile: user.shopProfile,
+        realNameVerification: user.realNameVerification,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt,
       },
     });
   } catch {
