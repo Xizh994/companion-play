@@ -110,12 +110,27 @@ pull_code() {
   local commit_msg=$(git log -1 --pretty=%B)
 
   if [ "$before_commit" = "$after_commit" ]; then
-    ok "代码已是最新 (${after_commit})，跳过构建"
-    exit 0
+    ok "代码已是最新 (${after_commit})"
+    if [ ! -d "${PROJECT_DIR}/.next" ]; then
+      warn ".next 构建产物不存在，继续完整构建流程"
+    else
+      local commit_file="${PROJECT_DIR}/.next/BUILD_COMMIT"
+      if [ -f "$commit_file" ]; then
+        local saved_commit=$(cat "$commit_file" 2>/dev/null || echo "")
+        if [ "$saved_commit" = "$after_commit" ]; then
+          ok "构建产物匹配当前版本 (${after_commit})，跳过构建"
+          exit 0
+        else
+          warn "构建产物版本不匹配 (${saved_commit} vs ${after_commit})，继续完整构建流程"
+        fi
+      else
+        warn ".next/BUILD_COMMIT 文件不存在，继续完整构建流程"
+      fi
+    fi
+  else
+    ok "代码更新: ${before_commit} → ${after_commit}"
+    info "提交信息: ${commit_msg}"
   fi
-
-  ok "代码更新: ${before_commit} → ${after_commit}"
-  info "提交信息: ${commit_msg}"
 }
 
 # ================================================================
@@ -172,7 +187,9 @@ build_project() {
     die "构建失败，已回滚到上一版本"
   }
 
-  ok "构建完成"
+  local current_commit=$(git rev-parse --short HEAD)
+  echo "$current_commit" > "${PROJECT_DIR}/.next/BUILD_COMMIT"
+  ok "构建完成 (已记录版本: ${current_commit})"
 }
 
 # ================================================================
