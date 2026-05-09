@@ -39,16 +39,24 @@ export async function sendSmsCode(
 
   const templateCode = TEMPLATE_CODES[purpose] || TEMPLATE_CODES.login;
 
+  console.log("[SMS] 发送短信 -> phone:", phone, "code:", code, "templateCode:", templateCode);
+
   const client = createClient();
   const request = new SendSmsVerifyCodeRequest({
     signName: ALIYUN_SMS_SIGN_NAME,
     templateCode: templateCode,
     phoneNumber: phone,
-    templateParam: JSON.stringify({ code }),
+    templateParam: JSON.stringify({ code, min: "5" }), // 添加 min 参数
   });
 
   const response = await client.sendSmsVerifyCode(request);
-  return { requestId: response.body?.requestId || "" };
+  console.log("[SMS] API 响应 ->", JSON.stringify(response.body));
+
+  if (response.body?.code !== "OK") {
+    throw new Error(`短信发送失败: ${response.body?.message || response.body?.code}`);
+  }
+
+  return { requestId: response.body?.requestId || response.body?.model?.requestId || "" };
 }
 
 export async function verifySmsCode(phone: string, code: string): Promise<boolean> {
@@ -57,6 +65,8 @@ export async function verifySmsCode(phone: string, code: string): Promise<boolea
     return true;
   }
 
+  console.log("[SMS] 验证短信 -> phone:", phone, "code:", code);
+
   const client = createClient();
   const request = new CheckSmsVerifyCodeRequest({
     phoneNumber: phone,
@@ -64,6 +74,8 @@ export async function verifySmsCode(phone: string, code: string): Promise<boolea
   });
 
   const response = await client.checkSmsVerifyCode(request);
+  console.log("[SMS] 验证响应 ->", JSON.stringify(response.body));
+
   const model = response.body?.model as string | undefined;
   return model === "PASS";
 }
