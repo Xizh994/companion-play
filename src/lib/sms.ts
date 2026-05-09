@@ -35,28 +35,31 @@ function createClient(): Dypnsapi20170525 {
 
 export async function sendSmsCode(
   phone: string,
-  code: string,
+  _code: string, // 这个参数不再使用，保留兼容
   purpose: keyof typeof TEMPLATE_CODES = "login"
-): Promise<{ requestId: string }> {
+): Promise<{ requestId: string; code?: string }> {
   const env = getEnv();
   
   console.log("[SMS] 检查环境变量 -> ALIYUN_ACCESS_KEY_ID:", env.ALIYUN_ACCESS_KEY_ID ? "已设置" : "未设置");
 
   if (!env.ALIYUN_ACCESS_KEY_ID) {
-    console.log("[SMS MOCK] sendSmsCode ->", phone, code, "purpose:", purpose);
-    return { requestId: "mock-" + Date.now() };
+    const mockCode = "123456";
+    console.log("[SMS MOCK] sendSmsCode ->", phone, mockCode, "purpose:", purpose);
+    return { requestId: "mock-" + Date.now(), code: mockCode };
   }
 
   const templateCode = TEMPLATE_CODES[purpose] || TEMPLATE_CODES.login;
 
-  console.log("[SMS] 发送短信 -> phone:", phone, "code:", code, "templateCode:", templateCode);
+  console.log("[SMS] 发送短信 -> phone:", phone, "让阿里云生成验证码", "templateCode:", templateCode);
 
   const client = createClient();
   const request = new SendSmsVerifyCodeRequest({
     signName: env.ALIYUN_SMS_SIGN_NAME,
     templateCode: templateCode,
     phoneNumber: phone,
-    templateParam: JSON.stringify({ code, min: "5" }), // 添加 min 参数
+    templateParam: JSON.stringify({ code: "##code##", min: "5" }), // 让阿里云自己生成验证码
+    codeLength: 6, // 6位验证码
+    validTime: 300, // 5分钟有效期
   });
 
   const response = await client.sendSmsVerifyCode(request);
@@ -66,7 +69,13 @@ export async function sendSmsCode(
     throw new Error(`短信发送失败: ${response.body?.message || response.body?.code}`);
   }
 
-  return { requestId: response.body?.requestId || response.body?.model?.requestId || "" };
+  // 获取阿里云生成的验证码（如果有返回）
+  const generatedCode = response.body?.model?.verifyCode as string | undefined;
+
+  return { 
+    requestId: response.body?.requestId || response.body?.model?.requestId || "",
+    code: generatedCode 
+  };
 }
 
 export async function verifySmsCode(phone: string, code: string): Promise<boolean> {
@@ -88,6 +97,16 @@ export async function verifySmsCode(phone: string, code: string): Promise<boolea
   const response = await client.checkSmsVerifyCode(request);
   console.log("[SMS] 验证响应 ->", JSON.stringify(response.body));
 
-  const model = response.body?.model as string | undefined;
-  return model === "PASS";
+  // 检查阿里云返回的结果
+  const model = response.body?.model;
+  const codeResult = response.body?.code;
+  
+  console.log("[SMS] 验证详情 -> code:", codeResult, "model:", model);
+
+  // 如果 code === "OK" 或者 model === "PASS" 都算验证通过
+  if (codeResult === "OK" || model === "PASS") {
+    return true;
+  }
+
+  return false;
 }

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { sendSmsCode } from "@/lib/sms";
-import { canSendCode, createVerificationCode } from "@/lib/verification";
+import { canSendCode } from "@/lib/verification";
 
 export async function POST(req: NextRequest) {
   try {
@@ -13,15 +13,15 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "请输入正确的手机号" }, { status: 400 });
     }
 
-    const type = purpose === "login" ? "SMS_LOGIN" : ("SMS_REGISTER" as const);
-
     const { allowed, waitSeconds } = await canSendCode(phone);
     if (!allowed) {
       return NextResponse.json({ error: `请 ${waitSeconds} 秒后再试` }, { status: 429 });
     }
 
-    const code = await createVerificationCode(phone, type);
-    const { requestId } = await sendSmsCode(phone, code, purpose);
+    // 阿里云自己生成验证码，不需要我们自己生成了
+    const { requestId, code: generatedCode } = await sendSmsCode(phone, "", purpose);
+
+    console.log("[Send SMS] 发送成功，requestId:", requestId, "阿里云生成的验证码:", generatedCode);
 
     return NextResponse.json({ success: true, requestId });
   } catch (error: any) {
