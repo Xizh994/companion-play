@@ -93,12 +93,14 @@ pull_code() {
 
   cd "$PROJECT_DIR"
 
-  local before_commit=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
-
+  local had_local_modifications=false
   if ! git diff --quiet 2>/dev/null; then
+    had_local_modifications=true
     warn "检测到本地修改，执行 git stash"
     git stash push -m "auto-stash-before-deploy-${BUILD_TIMESTAMP}"
   fi
+
+  local before_commit=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
 
   git fetch origin
   local current_branch=$(git rev-parse --abbrev-ref HEAD)
@@ -109,7 +111,7 @@ pull_code() {
   local after_commit=$(git rev-parse --short HEAD)
   local commit_msg=$(git log -1 --pretty=%B)
 
-  if [ "$before_commit" = "$after_commit" ]; then
+  if [ "$before_commit" = "$after_commit" ] && [ "$had_local_modifications" = "false" ]; then
     ok "代码已是最新 (${after_commit})"
     if [ ! -d "${PROJECT_DIR}/.next" ]; then
       warn ".next 构建产物不存在，继续完整构建流程"
@@ -128,8 +130,12 @@ pull_code() {
       fi
     fi
   else
-    ok "代码更新: ${before_commit} → ${after_commit}"
-    info "提交信息: ${commit_msg}"
+    if [ "$had_local_modifications" = "true" ]; then
+      info "之前存在本地修改，即使代码已是最新也执行完整构建流程"
+    else
+      ok "代码更新: ${before_commit} → ${after_commit}"
+      info "提交信息: ${commit_msg}"
+    fi
   fi
 }
 
