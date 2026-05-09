@@ -4,7 +4,10 @@ import { canSendCode, createVerificationCode } from "@/lib/verification";
 
 export async function POST(req: NextRequest) {
   try {
-    const { phone, purpose }: { phone: string; purpose: "register" | "login" } = await req.json();
+    const { phone, purpose }: { 
+      phone: string; 
+      purpose: "register" | "login" | "changePhone" | "resetPassword" | "bindPhone" | "verifyPhone" 
+    } = await req.json();
 
     if (!phone || !/^1\d{10}$/.test(phone)) {
       return NextResponse.json({ error: "请输入正确的手机号" }, { status: 400 });
@@ -18,7 +21,7 @@ export async function POST(req: NextRequest) {
     }
 
     const code = await createVerificationCode(phone, type);
-    const { requestId } = await sendSmsCode(phone, code);
+    const { requestId } = await sendSmsCode(phone, code, purpose);
 
     return NextResponse.json({ success: true, requestId });
   } catch (error: any) {
