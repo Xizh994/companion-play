@@ -36,6 +36,7 @@ export async function POST(req: NextRequest) {
           email: user.email,
           avatar: user.avatar,
           bio: user.bio,
+          hasPassword: !!user.passwordHash,
         },
       });
     }
@@ -84,6 +85,7 @@ export async function POST(req: NextRequest) {
           email: user.email,
           avatar: user.avatar,
           bio: user.bio,
+          hasPassword: !!user.passwordHash,
         },
       });
     }
@@ -118,6 +120,7 @@ export async function POST(req: NextRequest) {
           email: user.email,
           avatar: user.avatar,
           bio: user.bio,
+          hasPassword: !!user.passwordHash,
         },
       });
     }

@@ -99,6 +99,7 @@ export async function POST(req: NextRequest) {
         nickname: user.nickname,
         email: user.email,
         avatar: user.avatar,
+        hasPassword: user.hasPassword,
       },
     });
   } catch (error: any) {
