@@ -103,8 +103,13 @@ export async function verifySmsCode(phone: string, code: string): Promise<boolea
   
   console.log("[SMS] 验证详情 -> code:", codeResult, "model:", model);
 
-  // 如果 code === "OK" 或者 model === "PASS" 都算验证通过
-  if (codeResult === "OK" || model === "PASS") {
+  // 如果 code === "OK" 就算验证通过
+  if (codeResult === "OK") {
+    return true;
+  }
+
+  // 检查 model 是否等于 "PASS"
+  if (typeof model === "string" && model === "PASS") {
     return true;
   }
 
