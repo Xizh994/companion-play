@@ -17,14 +17,13 @@ interface NavItem {
 }
 
 const BOSS_NAV: NavItem[] = [
-  { href: "/discover", label: "找陪玩店", icon: "🏪" },
-  { href: "/lobby", label: "在线陪玩", icon: "🎯" },
+  { href: "/lobby", label: "大厅", icon: "🎯" },
   { href: "/chat", label: "消息", icon: "💬" },
   { href: "/profile", label: "我的", icon: "", iconComponent: UserIcon },
 ];
 
 const SHOP_NAV: NavItem[] = [
-  { href: "/discover", label: "在线老板", icon: "👑" },
+  { href: "/lobby", label: "大厅", icon: "🎯" },
   { href: "/chat", label: "消息", icon: "💬" },
   { href: "/profile", label: "我的", icon: "", iconComponent: UserIcon },
 ];
@@ -107,9 +106,6 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
                 {isBoss ? "老板" : "陪玩店"}
               </span>
             )}
-            <button onClick={handleLogout} className="text-xs text-gray-400 hover:text-red-400 transition px-2 py-1 rounded-lg hover:bg-red-500/10">
-              退出
-            </button>
           </div>
         </div>
       </header>

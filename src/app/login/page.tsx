@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
@@ -13,6 +13,9 @@ const TABS = [
 ] as const;
 
 type TabKey = (typeof TABS)[number]["key"];
+
+const LAST_LOGIN_PHONE_KEY = "dazistar_last_login_phone";
+const LAST_LOGIN_EMAIL_KEY = "dazistar_last_login_email";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -32,6 +35,14 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [sendingMagic, setSendingMagic] = useState(false);
   const [magicSent, setMagicSent] = useState(false);
+
+  // 从 localStorage 读取上次登录的手机号和邮箱
+  useEffect(() => {
+    const lastPhone = localStorage.getItem(LAST_LOGIN_PHONE_KEY);
+    const lastEmail = localStorage.getItem(LAST_LOGIN_EMAIL_KEY);
+    if (lastPhone) setPhone(lastPhone);
+    if (lastEmail) setEmail(lastEmail);
+  }, []);
 
   const startCooldown = () => {
     setSmsCooldown(60);
@@ -78,6 +89,8 @@ export default function LoginPage() {
       if (!verifyRes.ok) throw new Error(verifyData.error);
 
       await login({ phone, loginType: "sms", smsVerifiedToken: verifyData.verifiedToken });
+      // 保存手机号到 localStorage
+      localStorage.setItem(LAST_LOGIN_PHONE_KEY, phone);
       const redirect = searchParams.get("redirect");
       router.push(redirect || "/discover");
     } catch (err) {
@@ -93,6 +106,8 @@ export default function LoginPage() {
     setLoading(true);
     try {
       await login({ phone, password, loginType: "password" });
+      // 保存手机号到 localStorage
+      localStorage.setItem(LAST_LOGIN_PHONE_KEY, phone);
       const redirect = searchParams.get("redirect");
       router.push(redirect || "/discover");
     } catch (err) {
@@ -115,6 +130,8 @@ export default function LoginPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
       setMagicSent(true);
+      // 保存邮箱到 localStorage
+      localStorage.setItem(LAST_LOGIN_EMAIL_KEY, email);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -135,6 +152,8 @@ export default function LoginPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
       setMagicSent(true);
+      // 保存邮箱到 localStorage
+      localStorage.setItem(LAST_LOGIN_EMAIL_KEY, email);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
