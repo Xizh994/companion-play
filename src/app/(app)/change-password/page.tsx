@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import { CheckCircle, Shield, ArrowLeft } from "lucide-react";
@@ -11,6 +11,7 @@ type VerifyMethod = "sms" | "email";
 export default function ChangePasswordPage() {
   const router = useRouter();
   const { user } = useAuth();
+  const isFirstTime = !user?.hasPassword;
 
   const [method, setMethod] = useState<VerifyMethod>("sms");
   const [loading, setLoading] = useState(false);
@@ -24,6 +25,17 @@ export default function ChangePasswordPage() {
   const [code, setCode] = useState("");
   const [sending, setSending] = useState(false);
   const [cooldown, setCooldown] = useState(0);
+
+  // 首次设置密码时，自动填充当前用户的手机号和邮箱
+  useEffect(() => {
+    if (isFirstTime && user) {
+      if (method === "sms" && user.phone) {
+        setTarget(user.phone);
+      } else if (method === "email" && user.email) {
+        setTarget(user.email);
+      }
+    }
+  }, [isFirstTime, user, method]);
 
   // Step 2: 新密码
   const [newPassword, setNewPassword] = useState("");
@@ -195,18 +207,34 @@ export default function ChangePasswordPage() {
                   </div>
 
                   <div className="space-y-3">
-                    <div>
-                      <label className="block text-xs text-gray-400 mb-1">
-                        {method === "sms" ? "手机号" : "绑定邮箱"}
-                      </label>
-                      <input
-                        type={method === "sms" ? "tel" : "email"}
-                        value={target}
-                        onChange={(e) => setTarget(e.target.value)}
-                        placeholder={method === "sms" ? "请输入手机号" : "请输入绑定的邮箱"}
-                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white placeholder-gray-500 outline-none focus:border-pink-500/50 focus:ring-2 focus:ring-pink-500/20 transition text-sm"
-                      />
-                    </div>
+                    {!isFirstTime && (
+                      <div>
+                        <label className="block text-xs text-gray-400 mb-1">
+                          {method === "sms" ? "手机号" : "绑定邮箱"}
+                        </label>
+                        <input
+                          type={method === "sms" ? "tel" : "email"}
+                          value={target}
+                          onChange={(e) => setTarget(e.target.value)}
+                          placeholder={method === "sms" ? "请输入手机号" : "请输入绑定的邮箱"}
+                          className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white placeholder-gray-500 outline-none focus:border-pink-500/50 focus:ring-2 focus:ring-pink-500/20 transition text-sm"
+                        />
+                      </div>
+                    )}
+                    {isFirstTime && (
+                      <div>
+                        <label className="block text-xs text-gray-400 mb-1">
+                          {method === "sms" ? "手机号" : "绑定邮箱"}
+                        </label>
+                        <div className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-gray-400 text-sm">
+                          {method === "sms" ? (
+                            user?.phone ? `${user.phone.slice(0, 3)}****${user.phone.slice(-4)}` : ""
+                          ) : (
+                            user?.email || ""
+                          )}
+                        </div>
+                      </div>
+                    )}
                     <div>
                       <label className="block text-xs text-gray-400 mb-1">验证码</label>
                       <div className="flex gap-2">

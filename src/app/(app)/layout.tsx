@@ -107,9 +107,6 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
                 {isBoss ? "老板" : "陪玩店"}
               </span>
             )}
-            <Link href="/profile" className="text-sm text-gray-300 hover:text-pink-400 transition hidden sm:inline cursor-pointer">
-              {user?.nickname || ""}
-            </Link>
             <button onClick={handleLogout} className="text-xs text-gray-400 hover:text-red-400 transition px-2 py-1 rounded-lg hover:bg-red-500/10">
               退出
             </button>
