@@ -3,6 +3,13 @@ const { parse } = require("url");
 const next = require("next");
 const { Server } = require("socket.io");
 
+// 加载环境变量
+try {
+  require("dotenv").config();
+} catch (e) {
+  // dotenv 可能没安装，忽略
+}
+
 function parsePort() {
   const portArgIdx = process.argv.findIndex((a) => a === "--port" || a === "-p");
   if (portArgIdx !== -1 && process.argv[portArgIdx + 1]) {
@@ -15,6 +22,10 @@ const dev = process.env.NODE_ENV !== "production";
 const port = parsePort();
 const app = next({ dev });
 const handle = app.getRequestHandler();
+
+// 调试：打印环境变量
+console.log("[Server] NODE_ENV:", process.env.NODE_ENV);
+console.log("[Server] ALIYUN_ACCESS_KEY_ID:", process.env.ALIYUN_ACCESS_KEY_ID ? "已设置" : "未设置");
 
 app.prepare().then(() => {
   const server = createServer((req, res) => {
