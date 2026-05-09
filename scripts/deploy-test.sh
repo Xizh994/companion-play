@@ -11,6 +11,11 @@ DEPLOY_LABEL="测试环境(3001)"
 LOG_PREFIX="deploy-test"
 ROLLBACK_APPS="$DEPLOY_APP_NAME"
 
+# 测试环境的项目目录
+PROJECT_DIR="/www/dazistar-test"
+BACKUP_DIR="${PROJECT_DIR}/backups"
+ENV_FILE="${PROJECT_DIR}/.env"
+
 source "$(dirname "$0")/_deploy_lib.sh"
 BUILD_LOG="${LOG_DIR}/${LOG_PREFIX}-${BUILD_TIMESTAMP}.log"
 

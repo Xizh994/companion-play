@@ -11,6 +11,11 @@ DEPLOY_LABEL="生产环境(3000)"
 LOG_PREFIX="deploy-prod"
 ROLLBACK_APPS="$DEPLOY_APP_NAME"
 
+# 生产环境的项目目录
+PROJECT_DIR="/www/dazistar"
+BACKUP_DIR="${PROJECT_DIR}/backups"
+ENV_FILE="${PROJECT_DIR}/.env"
+
 source "$(dirname "$0")/_deploy_lib.sh"
 BUILD_LOG="${LOG_DIR}/${LOG_PREFIX}-${BUILD_TIMESTAMP}.log"
 
