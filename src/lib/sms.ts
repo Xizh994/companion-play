@@ -3,10 +3,6 @@ import Dypnsapi20170525, {
   CheckSmsVerifyCodeRequest,
 } from "@alicloud/dypnsapi20170525";
 
-const ALIYUN_ACCESS_KEY_ID = process.env.ALIYUN_ACCESS_KEY_ID || "";
-const ALIYUN_ACCESS_KEY_SECRET = process.env.ALIYUN_ACCESS_KEY_SECRET || "";
-const ALIYUN_SMS_SIGN_NAME = process.env.ALIYUN_SMS_SIGN_NAME || "速通互联验证码";
-
 // 模板代码映射
 const TEMPLATE_CODES = {
   register: "100001", // 登录/注册模板
@@ -17,11 +13,21 @@ const TEMPLATE_CODES = {
   verifyPhone: "100005", // 验证绑定手机号模板
 };
 
+// 运行时获取环境变量
+function getEnv() {
+  return {
+    ALIYUN_ACCESS_KEY_ID: process.env.ALIYUN_ACCESS_KEY_ID || "",
+    ALIYUN_ACCESS_KEY_SECRET: process.env.ALIYUN_ACCESS_KEY_SECRET || "",
+    ALIYUN_SMS_SIGN_NAME: process.env.ALIYUN_SMS_SIGN_NAME || "速通互联验证码",
+  };
+}
+
 function createClient(): Dypnsapi20170525 {
+  const env = getEnv();
   // @ts-expect-error - runtime accepts plain object but types require toMap
   const client = new Dypnsapi20170525({
-    accessKeyId: ALIYUN_ACCESS_KEY_ID,
-    accessKeySecret: ALIYUN_ACCESS_KEY_SECRET,
+    accessKeyId: env.ALIYUN_ACCESS_KEY_ID,
+    accessKeySecret: env.ALIYUN_ACCESS_KEY_SECRET,
     endpoint: "dypnsapi.aliyuncs.com",
   });
   return client;
@@ -32,7 +38,11 @@ export async function sendSmsCode(
   code: string,
   purpose: keyof typeof TEMPLATE_CODES = "login"
 ): Promise<{ requestId: string }> {
-  if (!ALIYUN_ACCESS_KEY_ID) {
+  const env = getEnv();
+  
+  console.log("[SMS] 检查环境变量 -> ALIYUN_ACCESS_KEY_ID:", env.ALIYUN_ACCESS_KEY_ID ? "已设置" : "未设置");
+
+  if (!env.ALIYUN_ACCESS_KEY_ID) {
     console.log("[SMS MOCK] sendSmsCode ->", phone, code, "purpose:", purpose);
     return { requestId: "mock-" + Date.now() };
   }
@@ -43,7 +53,7 @@ export async function sendSmsCode(
 
   const client = createClient();
   const request = new SendSmsVerifyCodeRequest({
-    signName: ALIYUN_SMS_SIGN_NAME,
+    signName: env.ALIYUN_SMS_SIGN_NAME,
     templateCode: templateCode,
     phoneNumber: phone,
     templateParam: JSON.stringify({ code, min: "5" }), // 添加 min 参数
@@ -60,7 +70,9 @@ export async function sendSmsCode(
 }
 
 export async function verifySmsCode(phone: string, code: string): Promise<boolean> {
-  if (!ALIYUN_ACCESS_KEY_ID) {
+  const env = getEnv();
+
+  if (!env.ALIYUN_ACCESS_KEY_ID) {
     console.log("[SMS MOCK] verifySmsCode ->", phone, code, "-> OK");
     return true;
   }
