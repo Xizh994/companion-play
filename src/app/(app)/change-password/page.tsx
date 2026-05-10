@@ -8,6 +8,17 @@ import { cn } from "@/lib/utils";
 
 type VerifyMethod = "sms" | "email";
 
+function maskPhone(phone: string) {
+  if (phone.length < 7) return phone;
+  return `${phone.slice(0, 3)}****${phone.slice(-4)}`;
+}
+
+function maskEmail(email: string) {
+  const at = email.indexOf("@");
+  if (at <= 1) return email;
+  return `${email[0]}***${email.slice(at)}`;
+}
+
 export default function ChangePasswordPage() {
   const router = useRouter();
   const { user, token } = useAuth();
@@ -210,18 +221,16 @@ export default function ChangePasswordPage() {
                   </div>
 
                   <div className="space-y-3">
-                    <div>
-                      <label className="block text-xs text-gray-400 mb-1">
-                        {method === "sms" ? "手机号" : "绑定邮箱"}
-                      </label>
-                      <div className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-gray-400 text-sm">
-                        {method === "sms" ? (
-                          user?.phone ? `${user.phone.slice(0, 3)}****${user.phone.slice(-4)}` : ""
-                        ) : (
-                          user?.email || ""
-                        )}
-                      </div>
-                    </div>
+              <div>
+                <label className="block text-xs text-gray-400 mb-1">
+                  {method === "sms" ? "手机号" : "绑定邮箱"}
+                </label>
+                <div className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-gray-400 text-sm">
+                  {method === "sms"
+                    ? (user?.phone ? maskPhone(user.phone) : "")
+                    : (user?.email ? maskEmail(user.email) : "")}
+                </div>
+              </div>
                     <div>
                       <label className="block text-xs text-gray-400 mb-1">验证码</label>
                       <div className="flex gap-2">
