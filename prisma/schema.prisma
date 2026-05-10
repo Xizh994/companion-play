@@ -23,6 +23,7 @@ enum UserRole {
 enum VerificationCodeType {
   SMS_REGISTER
   SMS_LOGIN
+  SMS_RESET_PWD
   EMAIL_BIND
   EMAIL_RECOVERY
   EMAIL_CHANGE_PWD

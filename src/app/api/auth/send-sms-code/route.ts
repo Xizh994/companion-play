@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { sendSmsCode } from "@/lib/sms";
+import { prisma } from "@/lib/prisma";
 import { canSendCode } from "@/lib/verification";
 import type { VerificationCodeType } from "@prisma/client";
 
 const PURPOSE_TYPE_MAP: Record<string, VerificationCodeType> = {
   register: "SMS_REGISTER",
   login: "SMS_LOGIN",
-  resetPassword: "SMS_LOGIN",
+  resetPassword: "SMS_RESET_PWD",
   changePhone: "SMS_LOGIN",
   bindPhone: "SMS_LOGIN",
   verifyPhone: "SMS_LOGIN",
@@ -30,6 +31,15 @@ export async function POST(req: NextRequest) {
     }
 
     const { requestId, code: generatedCode } = await sendSmsCode(phone, "", purpose);
+
+    await prisma.verificationCode.create({
+      data: {
+        target: phone,
+        code: generatedCode || "000000",
+        type: smsType,
+        expiresAt: new Date(Date.now() + 5 * 60 * 1000),
+      },
+    });
 
     console.log("[Send SMS] 发送成功，requestId:", requestId, "阿里云生成的验证码:", generatedCode);
 
