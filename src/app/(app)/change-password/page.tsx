@@ -10,7 +10,7 @@ type VerifyMethod = "sms" | "email";
 
 export default function ChangePasswordPage() {
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, token } = useAuth();
   const isFirstTime = !user?.hasPassword;
 
   const [method, setMethod] = useState<VerifyMethod>("sms");
@@ -83,7 +83,7 @@ export default function ChangePasswordPage() {
     try {
       const endpoint = method === "sms" ? "/api/auth/verify-sms-code" : "/api/auth/verify-email-code";
       const body = method === "sms"
-        ? { phone: target, code, purpose: "login" }
+        ? { phone: target, code, purpose: "change_pwd" }
         : { email: target, code, purpose: "change_pwd" };
       const res = await fetch(endpoint, {
         method: "POST",
@@ -112,7 +112,10 @@ export default function ChangePasswordPage() {
     try {
       const res = await fetch("/api/auth/change-password", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
         body: JSON.stringify({
           newPassword,
           emailVerifiedToken: method === "email" ? verifiedToken : undefined,
