@@ -25,9 +25,15 @@ export async function POST(req: NextRequest) {
     }
 
     const smsType = PURPOSE_TYPE_MAP[purpose];
-    const { allowed, waitSeconds } = await canSendCode(phone, smsType);
-    if (!allowed) {
-      return NextResponse.json({ error: `请 ${waitSeconds} 秒后再试` }, { status: 429 });
+
+    const typeCheck = await canSendCode(phone, smsType);
+    if (!typeCheck.allowed) {
+      return NextResponse.json({ error: `请 ${typeCheck.waitSeconds} 秒后再试` }, { status: 429 });
+    }
+
+    const phoneCheck = await canSendCode(phone);
+    if (!phoneCheck.allowed) {
+      return NextResponse.json({ error: `请 ${phoneCheck.waitSeconds} 秒后再试` }, { status: 429 });
     }
 
     const { requestId, code: generatedCode } = await sendSmsCode(phone, "", purpose);
