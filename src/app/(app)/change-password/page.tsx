@@ -225,10 +225,15 @@ export default function ChangePasswordPage() {
                 <label className="block text-xs text-gray-400 mb-1">
                   {method === "sms" ? "手机号" : "绑定邮箱"}
                 </label>
-                <div className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-gray-400 text-sm">
+                <div className={cn(
+                  "w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm",
+                  (method === "sms" && user?.phone) || (method === "email" && user?.email)
+                    ? "text-gray-400"
+                    : "text-gray-600",
+                )}>
                   {method === "sms"
-                    ? (user?.phone ? maskPhone(user.phone) : "")
-                    : (user?.email ? maskEmail(user.email) : "")}
+                    ? (user?.phone ? maskPhone(user.phone) : "暂未绑定手机号")
+                    : (user?.email ? maskEmail(user.email) : "暂未绑定邮箱")}
                 </div>
               </div>
                     <div>
