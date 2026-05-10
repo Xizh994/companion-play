@@ -17,7 +17,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "该邮箱未绑定任何账号" }, { status: 404 });
     }
 
-    const { allowed, waitSeconds } = await canSendCode(email);
+    const { allowed, waitSeconds } = await canSendCode(email, "MAGIC_LINK");
     if (!allowed) {
       return NextResponse.json({ error: `请 ${waitSeconds} 秒后再试` }, { status: 429 });
     }

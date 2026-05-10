@@ -70,7 +70,7 @@ export default function ChangePasswordPage() {
     try {
       const endpoint = method === "sms" ? "/api/auth/send-sms-code" : "/api/auth/send-email-code";
       const body = method === "sms"
-        ? { phone: target, purpose: "login" }
+        ? { phone: target, purpose: "resetPassword" }
         : { email: target, purpose: "change_pwd" };
       const res = await fetch(endpoint, {
         method: "POST",

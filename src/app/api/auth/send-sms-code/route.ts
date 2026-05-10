@@ -1,6 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { sendSmsCode } from "@/lib/sms";
 import { canSendCode } from "@/lib/verification";
+import type { VerificationCodeType } from "@prisma/client";
+
+const PURPOSE_TYPE_MAP: Record<string, VerificationCodeType> = {
+  register: "SMS_REGISTER",
+  login: "SMS_LOGIN",
+  resetPassword: "SMS_LOGIN",
+  changePhone: "SMS_LOGIN",
+  bindPhone: "SMS_LOGIN",
+  verifyPhone: "SMS_LOGIN",
+};
 
 export async function POST(req: NextRequest) {
   try {
@@ -13,12 +23,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "请输入正确的手机号" }, { status: 400 });
     }
 
-    const { allowed, waitSeconds } = await canSendCode(phone);
+    const smsType = PURPOSE_TYPE_MAP[purpose];
+    const { allowed, waitSeconds } = await canSendCode(phone, smsType);
     if (!allowed) {
       return NextResponse.json({ error: `请 ${waitSeconds} 秒后再试` }, { status: 429 });
     }
 
-    // 阿里云自己生成验证码，不需要我们自己生成了
     const { requestId, code: generatedCode } = await sendSmsCode(phone, "", purpose);
 
     console.log("[Send SMS] 发送成功，requestId:", requestId, "阿里云生成的验证码:", generatedCode);

@@ -12,11 +12,13 @@ export function generateCode(): string {
 }
 
 export async function canSendCode(
-  target: string
+  target: string,
+  type?: VerificationCodeType
 ): Promise<{ allowed: boolean; waitSeconds: number }> {
   const recent = await prisma.verificationCode.findFirst({
     where: {
       target,
+      type: type ?? undefined,
       createdAt: { gte: new Date(Date.now() - RATE_LIMIT_SECONDS * 1000) },
     },
     orderBy: { createdAt: "desc" },

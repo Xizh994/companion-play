@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "无效的验证码用途" }, { status: 400 });
     }
 
-    const { allowed, waitSeconds } = await canSendCode(email);
+    const { allowed, waitSeconds } = await canSendCode(email, type);
     if (!allowed) {
       return NextResponse.json({ error: `请 ${waitSeconds} 秒后再试` }, { status: 429 });
     }
