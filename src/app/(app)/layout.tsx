@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
-import { useState } from "react";
+import { usePathname, useRouter, useSelectedLayoutSegment } from "next/navigation";
+import { useState, useEffect } from "react";
 import AuthGuard from "@/components/AuthGuard";
 import { Crown, Store, User as UserIcon } from "lucide-react";
 import { AuthUser } from "@/hooks/useAuth";
@@ -45,14 +45,26 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
 function AppLayoutInner({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const segment = useSelectedLayoutSegment();
   const router = useRouter();
 
-  const [user] = useState<AuthUser | null>(() => {
+  const [user, setUser] = useState<AuthUser | null>(() => {
     if (typeof window === "undefined") return null;
     const userStr = localStorage.getItem(USER_KEY);
     if (!userStr) return null;
     try { return JSON.parse(userStr); } catch { return null; }
   });
+
+  useEffect(() => {
+    const handleStorage = () => {
+      const userStr = localStorage.getItem(USER_KEY);
+      if (userStr) {
+        try { setUser(JSON.parse(userStr)); } catch {}
+      }
+    };
+    window.addEventListener("storage", handleStorage);
+    return () => window.removeEventListener("storage", handleStorage);
+  }, []);
 
   const handleLogout = () => {
     localStorage.removeItem("dazistar_token");
@@ -64,11 +76,21 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
   const isBoss = user?.role === "BOSS";
   const navItems = isBoss ? BOSS_NAV : SHOP_NAV;
 
+  const getIsActive = (href: string) => {
+    if (pathname) {
+      return pathname === href || pathname.startsWith(href + "/");
+    }
+    if (segment) {
+      return "/" + segment === href;
+    }
+    return href === "/lobby";
+  };
+
   return (
     <div className="min-h-screen">
       <header className="glass sticky top-0 z-50 border-b border-white/10">
         <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
-          <Link href="/discover" className="flex items-center gap-2 shrink-0">
+          <Link href="/lobby" className="flex items-center gap-2 shrink-0">
             <span className="text-2xl">🚀</span>
             <span className="text-xl font-bold bg-gradient-to-r from-pink-400 to-purple-400 bg-clip-text text-transparent hidden sm:inline">
               搭子星
@@ -77,7 +99,7 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
 
           <nav className="flex items-center gap-1 bg-white/5 rounded-full p-1">
             {navItems.map((item) => {
-              const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
+              const isActive = getIsActive(item.href);
               return (
                 <Link
                   key={item.href}
