@@ -26,16 +26,16 @@ export default function ChangePasswordPage() {
   const [sending, setSending] = useState(false);
   const [cooldown, setCooldown] = useState(0);
 
-  // 首次设置密码时，自动填充当前用户的手机号和邮箱
+  // 自动填充当前登录用户的手机号/邮箱
   useEffect(() => {
-    if (isFirstTime && user) {
+    if (user) {
       if (method === "sms" && user.phone) {
         setTarget(user.phone);
       } else if (method === "email" && user.email) {
         setTarget(user.email);
       }
     }
-  }, [isFirstTime, user, method]);
+  }, [user, method]);
 
   // Step 2: 新密码
   const [newPassword, setNewPassword] = useState("");
