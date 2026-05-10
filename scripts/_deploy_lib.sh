@@ -16,7 +16,7 @@ set -euo pipefail
 # ================================================================
 # 共享配置
 # ================================================================
-PROJECT_DIR="/www/dazistar"
+PROJECT_DIR="${PROJECT_DIR:-/www/dazistar}"
 BACKUP_DIR="${PROJECT_DIR}/backups"
 LOG_DIR="${PROJECT_DIR}/logs"
 ENV_FILE="${PROJECT_DIR}/.env"
