@@ -210,34 +210,18 @@ export default function ChangePasswordPage() {
                   </div>
 
                   <div className="space-y-3">
-                    {!isFirstTime && (
-                      <div>
-                        <label className="block text-xs text-gray-400 mb-1">
-                          {method === "sms" ? "手机号" : "绑定邮箱"}
-                        </label>
-                        <input
-                          type={method === "sms" ? "tel" : "email"}
-                          value={target}
-                          onChange={(e) => setTarget(e.target.value)}
-                          placeholder={method === "sms" ? "请输入手机号" : "请输入绑定的邮箱"}
-                          className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white placeholder-gray-500 outline-none focus:border-pink-500/50 focus:ring-2 focus:ring-pink-500/20 transition text-sm"
-                        />
+                    <div>
+                      <label className="block text-xs text-gray-400 mb-1">
+                        {method === "sms" ? "手机号" : "绑定邮箱"}
+                      </label>
+                      <div className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-gray-400 text-sm">
+                        {method === "sms" ? (
+                          user?.phone ? `${user.phone.slice(0, 3)}****${user.phone.slice(-4)}` : ""
+                        ) : (
+                          user?.email || ""
+                        )}
                       </div>
-                    )}
-                    {isFirstTime && (
-                      <div>
-                        <label className="block text-xs text-gray-400 mb-1">
-                          {method === "sms" ? "手机号" : "绑定邮箱"}
-                        </label>
-                        <div className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-gray-400 text-sm">
-                          {method === "sms" ? (
-                            user?.phone ? `${user.phone.slice(0, 3)}****${user.phone.slice(-4)}` : ""
-                          ) : (
-                            user?.email || ""
-                          )}
-                        </div>
-                      </div>
-                    )}
+                    </div>
                     <div>
                       <label className="block text-xs text-gray-400 mb-1">验证码</label>
                       <div className="flex gap-2">
