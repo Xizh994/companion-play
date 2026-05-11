@@ -1,0 +1,492 @@
+<style>
+/* 搭子星 注册/登录/修改密码 设计原型 v6 - 验证码即填即验 */
+  /* 全局页面导航 */
+  .global-nav { display: flex; gap: 0.5rem; margin-bottom: 1.5rem; padding: 0.5rem; background: var(--bg-tertiary); border-radius: 12px; }
+  .global-nav-btn { flex: 1; padding: 0.7rem 0.75rem; border-radius: 8px; border: none; background: transparent; color: var(--text-secondary); font-size: 0.85rem; cursor: pointer; transition: all 0.15s; }
+  .global-nav-btn:hover { background: var(--bg-secondary); }
+  .global-nav-btn.active { background: var(--accent); color: white; font-weight: 600; }
+
+  .section { display: none; }
+  .section.active { display: block; }
+
+  /* 登录页样式 */
+  .login-mockup { max-width: 420px; margin: 0 auto; }
+  .logo-area { text-align: center; margin-bottom: 2rem; }
+  .logo-area .brand { font-size: 1.6rem; font-weight: 700; background: linear-gradient(135deg, var(--accent), #5856d6); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+  .logo-area .brand-sub { font-size: 0.8rem; color: var(--text-secondary); margin-top: 0.25rem; }
+  .tab-bar { display: flex; gap: 0; margin-bottom: 1.5rem; border-bottom: 2px solid var(--border); }
+  .tab-btn { flex: 1; padding: 0.6rem 0.25rem; background: none; border: none; cursor: pointer; font-size: 0.82rem; color: var(--text-secondary); border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all 0.15s; }
+  .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); font-weight: 600; }
+  .tab-btn:hover { color: var(--text-primary); }
+  .form-group { margin-bottom: 1rem; }
+  .form-group label { display: block; font-size: 0.8rem; font-weight: 500; margin-bottom: 0.35rem; color: var(--text-secondary); }
+  .form-input { width: 100%; padding: 0.65rem 0.85rem; border: 1px solid var(--border); border-radius: 8px; font-size: 0.9rem; background: var(--bg-primary); color: var(--text-primary); outline: none; transition: border-color 0.15s; }
+  .form-input:focus { border-color: var(--accent); }
+  .phone-row { display: flex; gap: 0.5rem; }
+  .phone-row .form-input { flex: 1; }
+  .code-btn { white-space: nowrap; padding: 0.65rem 0.85rem; border: 1px solid var(--accent); border-radius: 8px; background: transparent; color: var(--accent); cursor: pointer; font-size: 0.8rem; transition: all 0.15s; }
+  .code-btn:hover { background: var(--accent); color: white; }
+  .submit-btn { width: 100%; padding: 0.75rem; background: var(--accent); color: white; border: none; border-radius: 8px; font-size: 0.95rem; cursor: pointer; font-weight: 500; margin-top: 0.5rem; transition: opacity 0.15s; }
+  .submit-btn:hover { opacity: 0.9; }
+  .divider { display: flex; align-items: center; margin: 1.25rem 0; color: var(--text-tertiary); font-size: 0.75rem; }
+  .divider::before, .divider::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+  .divider span { padding: 0 0.75rem; }
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+  .emergency-info { background: rgba(255,159,10,0.08); border: 1px solid rgba(255,159,10,0.2); border-radius: 8px; padding: 0.75rem 1rem; font-size: 0.78rem; color: var(--text-secondary); margin-bottom: 1rem; }
+  .emergency-info strong { color: var(--warning); }
+  .magic-link-hint { font-size: 0.75rem; color: var(--text-tertiary); margin-top: 0.5rem; text-align: center; }
+  .switch-hint { margin-top: 0.75rem; font-size: 0.78rem; color: var(--text-secondary); text-align: center; }
+  .switch-hint a { color: var(--accent); cursor: pointer; text-decoration: underline; }
+
+  /* 注册流程样式 */
+  .reg-mockup { max-width: 440px; margin: 0 auto; }
+  .reg-section { margin-bottom: 1.25rem; padding-bottom: 1.25rem; border-bottom: 1px solid var(--border); }
+  .reg-section:last-of-type { border-bottom: none; margin-bottom: 0.75rem; padding-bottom: 0; }
+  .reg-section-title { font-size: 0.82rem; font-weight: 600; color: var(--text-primary); margin-bottom: 0.6rem; display: flex; align-items: center; gap: 0.4rem; }
+  .reg-section-title .s-icon { font-size: 1.1rem; }
+  .role-options { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 0.25rem; }
+  .role-card { border: 2px solid var(--border); border-radius: 10px; padding: 1rem; text-align: center; cursor: pointer; transition: all 0.15s; }
+  .role-card:hover { border-color: var(--accent); }
+  .role-card.selected { border-color: var(--accent); background: var(--selected-bg); }
+  .role-card .role-icon { font-size: 1.8rem; margin-bottom: 0.4rem; }
+  .role-card .role-name { font-weight: 600; font-size: 0.9rem; }
+  .role-card .role-desc { font-size: 0.7rem; color: var(--text-secondary); margin-top: 0.2rem; }
+  .password-optional { display: flex; align-items: center; gap: 0.5rem; padding: 0.75rem; background: var(--bg-primary); border: 1px dashed var(--border); border-radius: 8px; margin-bottom: 0.25rem; cursor: pointer; font-size: 0.82rem; color: var(--text-secondary); }
+  .password-optional:hover { border-color: var(--accent); }
+  .upload-area { border: 2px dashed var(--border); border-radius: 10px; padding: 1.5rem; text-align: center; color: var(--text-secondary); cursor: pointer; margin-bottom: 0.75rem; transition: all 0.15s; }
+  .upload-area:hover { border-color: var(--accent); color: var(--accent); }
+  .upload-area .upload-icon { font-size: 2rem; margin-bottom: 0.5rem; }
+  .info-box { background: rgba(0,113,227,0.06); border: 1px solid rgba(0,113,227,0.15); border-radius: 8px; padding: 0.75rem 1rem; font-size: 0.78rem; color: var(--text-secondary); margin-bottom: 0.75rem; }
+  .info-box strong { color: var(--accent); }
+  .info-box.warn { background: rgba(255,159,10,0.06); border-color: rgba(255,159,10,0.15); }
+  .info-box.warn strong { color: var(--warning); }
+  .hint-text { font-size: 0.75rem; color: var(--text-tertiary); text-align: center; margin-top: 0.75rem; }
+  .email-note { font-size: 0.72rem; color: var(--text-tertiary); margin-top: 0.35rem; }
+  #shop-upload-section { display: none; }
+  #shop-upload-section.visible { display: block; }
+  .submit-btn:disabled, .submit-btn.disabled { background: var(--border); color: var(--text-tertiary); cursor: not-allowed; opacity: 0.7; }
+  .submit-btn.secondary { background: var(--bg-tertiary); color: var(--text-primary); }
+  .verify-btn { white-space: nowrap; padding: 0.65rem 0.85rem; border: 1px solid var(--success); border-radius: 8px; background: transparent; color: var(--success); cursor: pointer; font-size: 0.8rem; transition: all 0.15s; }
+  .verify-btn:hover { background: var(--success); color: white; }
+  .verify-btn.done { background: var(--success); color: white; cursor: default; pointer-events: none; }
+  .verified-tag { display: inline-flex; align-items: center; gap: 0.25rem; font-size: 0.75rem; color: var(--success); font-weight: 500; margin-top: 0.35rem; }
+  .verified-section { position: relative; }
+  .verified-section::after { content: '✅'; position: absolute; right: 0; top: 0; font-size: 1rem; }
+  .reg-section.verified .form-input, .reg-section.verified .code-btn { pointer-events: none; opacity: 0.55; }
+
+  /* 修改密码样式 */
+  .pwd-mockup { max-width: 420px; margin: 0 auto; }
+  .page-title { text-align: center; margin-bottom: 1.5rem; }
+  .page-title h2 { font-size: 1.3rem; margin-bottom: 0.25rem; }
+  .page-title .sub { font-size: 0.8rem; color: var(--text-secondary); }
+  .method-tabs { display: flex; background: var(--bg-primary); border-radius: 8px; padding: 3px; margin-bottom: 1.25rem; }
+  .method-tab { flex: 1; padding: 0.5rem; text-align: center; border-radius: 6px; cursor: pointer; font-size: 0.82rem; transition: all 0.15s; color: var(--text-secondary); border: none; background: none; }
+  .method-tab.active { background: var(--bg-secondary); color: var(--text-primary); font-weight: 500; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+  .method-tab .method-icon { font-size: 1rem; display: block; margin-bottom: 0.15rem; }
+  .method-tab .method-tag { font-size: 0.6rem; padding: 0.08rem 0.35rem; border-radius: 3px; margin-left: 0.25rem; }
+  .method-tab .method-tag.recommend { background: rgba(52,199,89,0.15); color: var(--success); }
+  .fallback-hint { text-align: center; margin-top: 1.25rem; padding-top: 1rem; border-top: 1px solid var(--border); }
+  .fallback-hint span { font-size: 0.78rem; color: var(--text-tertiary); }
+  .fallback-hint a { color: var(--accent); cursor: pointer; font-size: 0.78rem; }
+  .masked-phone { background: var(--bg-primary); padding: 0.5rem 0.85rem; border-radius: 6px; font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1rem; }
+  .masked-phone strong { color: var(--text-primary); letter-spacing: 0.5px; }
+  .step-label { font-size: 0.7rem; text-transform: uppercase; color: var(--text-tertiary); letter-spacing: 0.05em; margin-bottom: 0.35rem; }
+  .divider-text { display: flex; align-items: center; gap: 0.75rem; margin: 1rem 0; }
+  .divider-text::before, .divider-text::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+  .divider-text span { font-size: 0.75rem; color: var(--text-tertiary); white-space: nowrap; }
+  .success-check { text-align: center; padding: 1.5rem; }
+  .success-check .check-icon { font-size: 3rem; color: var(--success); margin-bottom: 0.75rem; }
+  .success-check h3 { font-size: 1.1rem; margin-bottom: 0.35rem; }
+  .success-check p { font-size: 0.82rem; color: var(--text-secondary); }
+</style>
+
+<div class="global-nav">
+  <button class="global-nav-btn active" onclick="switchSection('login')">🔐 登录页</button>
+  <button class="global-nav-btn" onclick="switchSection('register')">📝 注册流程</button>
+  <button class="global-nav-btn" onclick="switchSection('password')">🔑 修改密码</button>
+</div>
+
+<!-- ========== 登录页 ========== -->
+<div id="section-login" class="section active">
+  <h2>🖥️ 登录页设计原型 — 三合一登录方式</h2>
+  <p class="subtitle">短信验证码 · 密码 · 紧急登录（邮箱Magic Link），点击标签页切换查看不同登录方式</p>
+  <div class="login-mockup">
+    <div class="logo-area">
+      <div class="brand">搭子星</div>
+      <div class="brand-sub">找到你的最佳游戏搭子</div>
+    </div>
+    <div class="tab-bar">
+      <button class="tab-btn active" onclick="switchLoginTab('sms')">短信登录</button>
+      <button class="tab-btn" onclick="switchLoginTab('password')">密码登录</button>
+      <button class="tab-btn" onclick="switchLoginTab('emergency')">紧急登录</button>
+    </div>
+    <div id="login-tab-sms" class="tab-content active">
+      <div class="form-group">
+        <label>手机号</label>
+        <input class="form-input" placeholder="请输入手机号" value="13800000001">
+      </div>
+      <div class="form-group">
+        <label>验证码</label>
+        <div class="phone-row">
+          <input class="form-input" placeholder="请输入短信验证码">
+          <button class="code-btn">获取验证码</button>
+        </div>
+      </div>
+      <button class="submit-btn">登录</button>
+      <p class="switch-hint">没有账号？<a>立即注册 →</a></p>
+    </div>
+    <div id="login-tab-password" class="tab-content">
+      <div class="form-group">
+        <label>手机号</label>
+        <input class="form-input" placeholder="请输入手机号" value="13800000001">
+      </div>
+      <div class="form-group">
+        <label>密码 <span style="font-weight:400;font-size:0.75rem;color:var(--text-tertiary)">· 如已设置</span></label>
+        <input class="form-input" type="password" placeholder="请输入密码" value="123456">
+      </div>
+      <button class="submit-btn">登录</button>
+      <div class="switch-hint">
+        <a onclick="switchLoginTab('emergency')">忘记密码？使用紧急登录 →</a>
+      </div>
+      <p class="switch-hint">没有账号？<a>立即注册 →</a></p>
+    </div>
+    <div id="login-tab-emergency" class="tab-content">
+      <div class="emergency-info">
+        <strong>⚡ 紧急登录</strong> 当手机无法接收短信时使用。输入绑定的邮箱验证身份后登录。系统会检查该邮箱是否存在有效用户，不存在则提示去注册。
+      </div>
+      <div class="form-group">
+        <label>绑定邮箱</label>
+        <input class="form-input" placeholder="请输入注册时绑定的邮箱" value="user@example.com">
+      </div>
+      <div style="display:flex;gap:0.75rem;">
+        <button class="submit-btn" style="flex:1;font-size:0.85rem;">发送验证码</button>
+        <button class="submit-btn" style="flex:1;font-size:0.85rem;background:var(--bg-tertiary);color:var(--text-primary);">发送 Magic Link</button>
+      </div>
+      <p class="magic-link-hint">💡 Magic Link：点击邮件中的链接即可直接登录，更安全便捷</p>
+      <div class="divider"><span>或</span></div>
+      <p class="switch-hint"><a onclick="switchLoginTab('sms')">← 返回短信登录</a></p>
+    </div>
+  </div>
+</div>
+
+<!-- ========== 注册流程 ========== -->
+<div id="section-register" class="section">
+  <h2>📝 注册流程设计 — 一页完成注册</h2>
+  <p class="subtitle">填写完整信息即可注册，老板无需上传营业执照，店铺需提交资质材料</p>
+  <div class="reg-mockup">
+    <div class="logo-area">
+      <div class="brand">搭子星</div>
+      <div class="brand-sub">创建你的账号</div>
+    </div>
+
+    <div id="reg-phone-section" class="reg-section">
+      <div class="reg-section-title"><span class="s-icon">📱</span> 手机验证 <span id="phone-verified-tag" class="verified-tag" style="display:none">✅ 已验证</span></div>
+      <div class="form-group">
+        <label>手机号</label>
+        <input id="reg-phone" class="form-input" placeholder="请输入手机号" value="13800000001">
+      </div>
+      <div class="form-group">
+        <label>验证码</label>
+        <div class="phone-row">
+          <input id="reg-phone-code" class="form-input" placeholder="请输入短信验证码">
+          <button id="reg-phone-send-btn" class="code-btn" onclick="sendSmsCode()">获取验证码</button>
+          <button id="reg-phone-verify-btn" class="verify-btn" onclick="verifyPhone()">验证</button>
+        </div>
+        <div style="font-size:0.7rem;color:var(--text-tertiary);margin-top:0.3rem;">验证码 5 分钟有效，收到后请立即验证</div>
+      </div>
+    </div>
+
+    <div class="reg-section">
+      <div class="reg-section-title"><span class="s-icon">👤</span> 选择角色</div>
+      <div class="role-options">
+        <div class="role-card selected" onclick="selectRole(this, 'shop')">
+          <div class="role-icon">🏪</div>
+          <div class="role-name">店铺</div>
+        </div>
+        <div class="role-card" onclick="selectRole(this, 'boss')">
+          <div class="role-icon">👑</div>
+          <div class="role-name">老板</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="reg-section">
+      <div class="reg-section-title"><span class="s-icon">📝</span> 基本信息</div>
+      <div class="form-group">
+        <label>昵称</label>
+        <input class="form-input" placeholder="请输入昵称">
+      </div>
+      <div class="form-group">
+        <label>设置密码（可选）</label>
+        <div class="password-optional">
+          <span>📝</span>
+          <span>未设置密码则只能通过短信/邮箱验证码登录</span>
+        </div>
+        <input class="form-input" type="password" placeholder="请输入密码（至少6位）">
+      </div>
+    </div>
+
+    <div id="reg-email-section" class="reg-section">
+      <div class="reg-section-title"><span class="s-icon">📧</span> 绑定邮箱 <span id="email-verified-tag" class="verified-tag" style="display:none">✅ 已验证</span></div>
+      <div class="info-box warn">
+        <strong>⚠️ 注意</strong> 一个邮箱只能绑定一个账号，获取验证码时会自动检查是否已被占用。
+      </div>
+      <div class="form-group">
+        <label>邮箱地址</label>
+        <input id="reg-email" class="form-input" placeholder="请输入邮箱地址" value="user@example.com">
+        <div class="email-note">用于账号找回、紧急登录和接收重要通知</div>
+      </div>
+      <div class="form-group">
+        <label>邮箱验证码</label>
+        <div class="phone-row">
+          <input id="reg-email-code" class="form-input" placeholder="请输入验证码">
+          <button id="reg-email-send-btn" class="code-btn" onclick="sendEmailCode()">获取验证码</button>
+          <button id="reg-email-verify-btn" class="verify-btn" onclick="verifyEmail()">验证</button>
+        </div>
+        <div style="font-size:0.7rem;color:var(--text-tertiary);margin-top:0.3rem;">验证码 5 分钟有效，收到后请立即验证</div>
+      </div>
+    </div>
+
+    <div id="shop-upload-section" class="reg-section">
+      <div class="reg-section-title"><span class="s-icon">📋</span> 资质材料 <span style="font-weight:400;font-size:0.7rem;color:var(--text-tertiary)">· 仅店铺需要</span></div>
+      <div class="info-box">
+        <strong>📋 提交资质</strong> 店铺账号需上传营业执照及负责人身份证信息供系统初步校验。
+      </div>
+      <div class="form-group">
+        <label>营业执照</label>
+        <div class="upload-area">
+          <div class="upload-icon">📷</div>
+          <div>点击上传营业执照照片</div>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>负责人身份证正面</label>
+        <div class="upload-area">
+          <div class="upload-icon">📷</div>
+          <div>点击上传身份证正面照片</div>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>负责人身份证背面</label>
+        <div class="upload-area">
+          <div class="upload-icon">📷</div>
+          <div>点击上传身份证背面照片</div>
+        </div>
+      </div>
+    </div>
+
+    <button id="reg-submit-btn" class="submit-btn disabled" disabled>请先完成手机和邮箱验证</button>
+    <p class="switch-hint">已有账号？<a>立即登录 →</a></p>
+  </div>
+</div>
+
+<!-- ========== 修改密码 ========== -->
+<div id="section-password" class="section">
+  <h2>🔑 修改密码设计 — 手机优先验证</h2>
+  <p class="subtitle">优先使用手机短信验证，邮箱作为备选方案</p>
+  <div class="pwd-mockup">
+    <div class="page-title">
+      <h2>修改密码</h2>
+      <div class="sub">为保障账号安全，需先验证身份</div>
+    </div>
+
+    <div class="method-tabs">
+      <button class="method-tab active" onclick="switchPwdMethod('phone')">
+        <span class="method-icon">📱</span>
+        短信验证
+        <span class="method-tag recommend">推荐</span>
+      </button>
+      <button class="method-tab" onclick="switchPwdMethod('email')">
+        <span class="method-icon">📧</span>
+        邮箱验证
+      </button>
+    </div>
+
+    <div id="pwd-method-phone" class="tab-content active">
+      <div class="step-label">Step 1 身份验证 <span id="pwd-phone-verified-tag" class="verified-tag" style="display:none">✅ 已验证</span></div>
+      <div class="masked-phone">
+        手机号：<strong>138****0001</strong>
+      </div>
+      <div class="form-group">
+        <label>验证码</label>
+        <div class="phone-row">
+          <input id="pwd-phone-code" class="form-input" placeholder="请输入验证码">
+          <button class="code-btn">获取验证码</button>
+          <button id="pwd-phone-verify-btn" class="verify-btn" onclick="verifyPwdPhone()">验证</button>
+        </div>
+        <div style="font-size:0.7rem;color:var(--text-tertiary);margin-top:0.3rem;">验证码 5 分钟有效，收到后请立即验证</div>
+      </div>
+      <div class="divider-text"><span>Step 2 设置新密码</span></div>
+      <div class="form-group">
+        <label>新密码</label>
+        <input id="pwd-phone-new1" class="form-input" type="password" placeholder="请输入新密码（至少6位）" disabled>
+      </div>
+      <div class="form-group">
+        <label>确认新密码</label>
+        <input id="pwd-phone-new2" class="form-input" type="password" placeholder="请再次输入新密码" disabled>
+      </div>
+      <button id="pwd-phone-submit-btn" class="submit-btn disabled" disabled>确认修改</button>
+      <div class="fallback-hint">
+        <span>手机收不到验证码？</span>
+        <a onclick="switchPwdMethod('email')">使用邮箱验证 →</a>
+      </div>
+    </div>
+
+    <div id="pwd-method-email" class="tab-content">
+      <div class="step-label">Step 1 身份验证 <span id="pwd-email-verified-tag" class="verified-tag" style="display:none">✅ 已验证</span></div>
+      <div class="masked-phone">
+        邮箱：<strong>use***@example.com</strong>
+      </div>
+      <div class="form-group">
+        <label>验证码</label>
+        <div class="phone-row">
+          <input id="pwd-email-code" class="form-input" placeholder="请输入验证码">
+          <button class="code-btn">获取验证码</button>
+          <button id="pwd-email-verify-btn" class="verify-btn" onclick="verifyPwdEmail()">验证</button>
+        </div>
+        <div style="font-size:0.7rem;color:var(--text-tertiary);margin-top:0.3rem;">验证码 5 分钟有效，收到后请立即验证</div>
+      </div>
+      <div class="divider-text"><span>Step 2 设置新密码</span></div>
+      <div class="form-group">
+        <label>新密码</label>
+        <input id="pwd-email-new1" class="form-input" type="password" placeholder="请输入新密码（至少6位）" disabled>
+      </div>
+      <div class="form-group">
+        <label>确认新密码</label>
+        <input id="pwd-email-new2" class="form-input" type="password" placeholder="请再次输入新密码" disabled>
+      </div>
+      <button id="pwd-email-submit-btn" class="submit-btn disabled" disabled>确认修改</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // 切换全局页面
+  function switchSection(section) {
+    document.querySelectorAll('.global-nav-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+    event.target.classList.add('active');
+    document.getElementById('section-' + section).classList.add('active');
+  }
+
+  // 登录页切换标签
+  function switchLoginTab(tab) {
+    document.querySelectorAll('#section-login .tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('#section-login .tab-content').forEach(c => c.classList.remove('active'));
+    document.querySelector('#section-login .tab-btn[onclick*="'+tab+'"]').classList.add('active');
+    document.getElementById('login-tab-' + tab).classList.add('active');
+  }
+
+  // 选择角色 + 控制店铺上传区域显隐
+  let currentRole = 'shop';
+  function selectRole(el, role) {
+    currentRole = role;
+    document.querySelectorAll('.role-card').forEach(c => c.classList.remove('selected'));
+    el.classList.add('selected');
+    var upload = document.getElementById('shop-upload-section');
+    if (upload) {
+      upload.classList.toggle('visible', role === 'shop');
+    }
+  }
+  document.addEventListener('DOMContentLoaded', function() {
+    var upload = document.getElementById('shop-upload-section');
+    if (upload) upload.classList.add('visible');
+  });
+
+  // ====== 注册页：验证码即填即验 ======
+  var phoneVerified = false;
+  var emailVerified = false;
+
+  function checkRegSubmit() {
+    var btn = document.getElementById('reg-submit-btn');
+    if (phoneVerified && emailVerified) {
+      btn.textContent = '完成注册';
+      btn.className = 'submit-btn';
+      btn.disabled = false;
+    } else {
+      btn.textContent = '请先完成手机和邮箱验证';
+      btn.className = 'submit-btn disabled';
+      btn.disabled = true;
+    }
+  }
+
+  function sendSmsCode() {
+    var btn = document.getElementById('reg-phone-send-btn');
+    btn.textContent = '已发送';
+    btn.style.pointerEvents = 'none';
+    btn.style.opacity = '0.5';
+  }
+
+  function verifyPhone() {
+    phoneVerified = true;
+    var sec = document.getElementById('reg-phone-section');
+    sec.classList.add('verified');
+    document.getElementById('phone-verified-tag').style.display = 'inline-flex';
+    document.getElementById('reg-phone-send-btn').style.pointerEvents = 'none';
+    document.getElementById('reg-phone-send-btn').style.opacity = '0.5';
+    document.getElementById('reg-phone-verify-btn').className = 'verify-btn done';
+    document.getElementById('reg-phone-verify-btn').textContent = '✓';
+    document.getElementById('reg-phone-code').readOnly = true;
+    document.getElementById('reg-phone').readOnly = true;
+    checkRegSubmit();
+  }
+
+  function sendEmailCode() {
+    var btn = document.getElementById('reg-email-send-btn');
+    btn.textContent = '已发送';
+    btn.style.pointerEvents = 'none';
+    btn.style.opacity = '0.5';
+  }
+
+  function verifyEmail() {
+    emailVerified = true;
+    var sec = document.getElementById('reg-email-section');
+    sec.classList.add('verified');
+    document.getElementById('email-verified-tag').style.display = 'inline-flex';
+    document.getElementById('reg-email-send-btn').style.pointerEvents = 'none';
+    document.getElementById('reg-email-send-btn').style.opacity = '0.5';
+    document.getElementById('reg-email-verify-btn').className = 'verify-btn done';
+    document.getElementById('reg-email-verify-btn').textContent = '✓';
+    document.getElementById('reg-email-code').readOnly = true;
+    document.getElementById('reg-email').readOnly = true;
+    checkRegSubmit();
+  }
+
+  // ====== 修改密码页：验证码即填即验 ======
+  function verifyPwdPhone() {
+    var btn = document.getElementById('pwd-phone-verify-btn');
+    btn.className = 'verify-btn done';
+    btn.textContent = '✓';
+    document.getElementById('pwd-phone-verified-tag').style.display = 'inline-flex';
+    document.getElementById('pwd-phone-code').readOnly = true;
+    document.getElementById('pwd-phone-new1').disabled = false;
+    document.getElementById('pwd-phone-new2').disabled = false;
+    var submit = document.getElementById('pwd-phone-submit-btn');
+    submit.textContent = '确认修改';
+    submit.className = 'submit-btn';
+    submit.disabled = false;
+  }
+
+  function verifyPwdEmail() {
+    var btn = document.getElementById('pwd-email-verify-btn');
+    btn.className = 'verify-btn done';
+    btn.textContent = '✓';
+    document.getElementById('pwd-email-verified-tag').style.display = 'inline-flex';
+    document.getElementById('pwd-email-code').readOnly = true;
+    document.getElementById('pwd-email-new1').disabled = false;
+    document.getElementById('pwd-email-new2').disabled = false;
+    var submit = document.getElementById('pwd-email-submit-btn');
+    submit.textContent = '确认修改';
+    submit.className = 'submit-btn';
+    submit.disabled = false;
+  }
+
+  // 修改密码切换验证方式
+  function switchPwdMethod(method) {
+    document.querySelectorAll('.method-tab').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('#section-password .tab-content').forEach(c => c.classList.remove('active'));
+    document.querySelector('.method-tab[onclick*="'+method+'"]').classList.add('active');
+    document.getElementById('pwd-method-' + method).classList.add('active');
+  }
+</script>

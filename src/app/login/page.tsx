@@ -92,7 +92,7 @@ export default function LoginPage() {
       // 保存手机号到 localStorage
       localStorage.setItem(LAST_LOGIN_PHONE_KEY, phone);
       const redirect = searchParams.get("redirect");
-      router.push(redirect || "/discover");
+      router.push(redirect || "/lobby");
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -109,7 +109,7 @@ export default function LoginPage() {
       // 保存手机号到 localStorage
       localStorage.setItem(LAST_LOGIN_PHONE_KEY, phone);
       const redirect = searchParams.get("redirect");
-      router.push(redirect || "/discover");
+      router.push(redirect || "/lobby");
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {

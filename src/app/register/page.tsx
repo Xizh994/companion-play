@@ -179,7 +179,7 @@ export default function RegisterPage() {
         contactPhone: role === "SHOP" ? contactPhone : undefined,
         contactName: role === "SHOP" ? contactName : undefined,
       });
-      router.push("/discover");
+      router.push("/lobby");
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {

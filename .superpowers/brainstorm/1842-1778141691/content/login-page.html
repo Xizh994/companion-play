@@ -1,0 +1,130 @@
+<style>
+  .page-nav { display: flex; gap: 0.5rem; margin-bottom: 1.5rem; padding: 0.5rem; background: var(--bg-tertiary); border-radius: 12px; }
+  .page-nav-btn { flex: 1; padding: 0.5rem 0.75rem; border-radius: 8px; border: none; background: transparent; color: var(--text-secondary); font-size: 0.8rem; cursor: pointer; transition: all 0.15s; }
+  .page-nav-btn:hover { background: var(--bg-secondary); }
+  .page-nav-btn.active { background: var(--accent); color: white; font-weight: 600; }
+
+  .login-mockup { max-width: 420px; margin: 0 auto; }
+  .logo-area { text-align: center; margin-bottom: 2rem; }
+  .logo-area .brand { font-size: 1.6rem; font-weight: 700; background: linear-gradient(135deg, var(--accent), #5856d6); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+  .logo-area .brand-sub { font-size: 0.8rem; color: var(--text-secondary); margin-top: 0.25rem; }
+
+  .tab-bar { display: flex; gap: 0; margin-bottom: 1.5rem; border-bottom: 2px solid var(--border); }
+  .tab-btn { flex: 1; padding: 0.6rem 0.25rem; background: none; border: none; cursor: pointer; font-size: 0.82rem; color: var(--text-secondary); border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all 0.15s; }
+  .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); font-weight: 600; }
+  .tab-btn:hover { color: var(--text-primary); }
+
+  .form-group { margin-bottom: 1rem; }
+  .form-group label { display: block; font-size: 0.8rem; font-weight: 500; margin-bottom: 0.35rem; color: var(--text-secondary); }
+  .form-input { width: 100%; padding: 0.65rem 0.85rem; border: 1px solid var(--border); border-radius: 8px; font-size: 0.9rem; background: var(--bg-primary); color: var(--text-primary); outline: none; transition: border-color 0.15s; }
+  .form-input:focus { border-color: var(--accent); }
+
+  .phone-row { display: flex; gap: 0.5rem; }
+  .phone-row .form-input { flex: 1; }
+  .code-btn { white-space: nowrap; padding: 0.65rem 0.85rem; border: 1px solid var(--accent); border-radius: 8px; background: transparent; color: var(--accent); cursor: pointer; font-size: 0.8rem; transition: all 0.15s; }
+  .code-btn:hover { background: var(--accent); color: white; }
+  .code-btn:disabled { border-color: var(--border); color: var(--text-tertiary); cursor: not-allowed; background: transparent; }
+
+  .submit-btn { width: 100%; padding: 0.75rem; background: var(--accent); color: white; border: none; border-radius: 8px; font-size: 0.95rem; cursor: pointer; font-weight: 500; margin-top: 0.5rem; transition: opacity 0.15s; }
+  .submit-btn:hover { opacity: 0.9; }
+
+  .divider { display: flex; align-items: center; margin: 1.25rem 0; color: var(--text-tertiary); font-size: 0.75rem; }
+  .divider::before, .divider::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+  .divider span { padding: 0 0.75rem; }
+
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  .emergency-info { background: rgba(255,159,10,0.08); border: 1px solid rgba(255,159,10,0.2); border-radius: 8px; padding: 0.75rem 1rem; font-size: 0.78rem; color: var(--text-secondary); margin-bottom: 1rem; }
+  .emergency-info strong { color: var(--warning); }
+
+  .magic-link-hint { font-size: 0.75rem; color: var(--text-tertiary); margin-top: 0.5rem; text-align: center; }
+
+  .switch-hint { margin-top: 0.75rem; font-size: 0.78rem; color: var(--text-secondary); text-align: center; }
+  .switch-hint a { color: var(--accent); cursor: pointer; text-decoration: underline; }
+</style>
+
+<div class="page-nav">
+  <button class="page-nav-btn active">🔐 登录页</button>
+  <button class="page-nav-btn" onclick="window.location.href='register-flow.html'">📝 注册流程</button>
+  <button class="page-nav-btn" onclick="window.location.href='change-password.html'">🔑 修改密码</button>
+</div>
+
+<h2>🖥️ 登录页设计原型 — 三合一登录方式</h2>
+<p class="subtitle">短信验证码 · 密码 · 紧急登录（邮箱Magic Link），点击标签页切换查看不同登录方式</p>
+
+<div class="login-mockup">
+  <div class="logo-area">
+    <div class="brand">搭子星</div>
+    <div class="brand-sub">找到你的最佳游戏搭子</div>
+  </div>
+
+  <div class="tab-bar">
+    <button class="tab-btn active" onclick="switchTab('sms')">短信登录</button>
+    <button class="tab-btn" onclick="switchTab('password')">密码登录</button>
+    <button class="tab-btn" onclick="switchTab('emergency')">紧急登录</button>
+  </div>
+
+  <div id="tab-sms" class="tab-content active">
+    <div class="form-group">
+      <label>手机号</label>
+      <input class="form-input" placeholder="请输入手机号" value="13800000001">
+    </div>
+    <div class="form-group">
+      <label>验证码</label>
+      <div class="phone-row">
+        <input class="form-input" placeholder="请输入短信验证码">
+        <button class="code-btn">获取验证码</button>
+      </div>
+    </div>
+    <button class="submit-btn">登录</button>
+    <p class="switch-hint">没有账号？<a href="/register">立即注册 →</a></p>
+  </div>
+
+  <div id="tab-password" class="tab-content">
+    <div class="form-group">
+      <label>手机号</label>
+      <input class="form-input" placeholder="请输入手机号" value="13800000001">
+    </div>
+    <div class="form-group">
+      <label>密码 <span style="font-weight:400;font-size:0.75rem;color:var(--text-tertiary)">· 如已设置</span></label>
+      <input class="form-input" type="password" placeholder="请输入密码" value="123456">
+    </div>
+    <button class="submit-btn">登录</button>
+    <div class="switch-hint">
+      <a onclick="switchTab('emergency')">忘记密码？使用紧急登录 →</a>
+    </div>
+    <p class="switch-hint">没有账号？<a href="/register">立即注册 →</a></p>
+  </div>
+
+  <div id="tab-emergency" class="tab-content">
+    <div class="emergency-info">
+      <strong>⚡ 紧急登录</strong> 当手机无法接收短信时使用。通过绑定的邮箱验证身份后直接登录。
+    </div>
+
+    <div class="form-group">
+      <label>绑定邮箱</label>
+      <input class="form-input" placeholder="请输入注册时绑定的邮箱" value="user@example.com">
+    </div>
+
+    <div style="display:flex;gap:0.75rem;">
+      <button class="submit-btn" style="flex:1;font-size:0.85rem;">发送验证码</button>
+      <button class="submit-btn" style="flex:1;font-size:0.85rem;background:var(--bg-tertiary);color:var(--text-primary);">发送 Magic Link</button>
+    </div>
+
+    <p class="magic-link-hint">💡 Magic Link：点击邮件中的链接即可直接登录，更安全便捷</p>
+
+    <div class="divider"><span>或</span></div>
+
+    <p class="switch-hint"><a onclick="switchTab('sms')">← 返回短信登录</a></p>
+  </div>
+</div>
+
+<script>
+  function switchTab(tab) {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+    document.querySelector('.tab-btn[onclick*="'+tab+'"]').classList.add('active');
+    document.getElementById('tab-'+tab).classList.add('active');
+  }
+</script>

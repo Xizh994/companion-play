@@ -40,7 +40,7 @@ export async function GET(req: NextRequest) {
 
     const authToken = signToken({ userId: payload.userId, role: payload.role });
 
-    const response = NextResponse.redirect(new URL("/discover", req.url));
+    const response = NextResponse.redirect(new URL("/lobby", req.url));
     response.cookies.set("dazistar_token", authToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
