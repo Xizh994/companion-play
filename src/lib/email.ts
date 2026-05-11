@@ -4,7 +4,7 @@ const RESEND_API_KEY = process.env.RESEND_API_KEY || "";
 const EMAIL_FROM = process.env.EMAIL_FROM || "noreply@dazistar.com";
 
 function getResend(): Resend | null {
-  if (!RESEND_API_KEY) return null;
+  if (!RESEND_API_KEY || RESEND_API_KEY === "re_xxxxxxxxxxxx") return null;
   return new Resend(RESEND_API_KEY);
 }
 
@@ -14,8 +14,7 @@ export async function sendVerificationEmail(
 ): Promise<{ id: string }> {
   const resend = getResend();
   if (!resend) {
-    console.log("[EMAIL MOCK] sendVerificationEmail ->", to, code);
-    return { id: "mock-" + Date.now() };
+    throw new Error("邮件服务未配置，请在 .env 中设置 RESEND_API_KEY");
   }
 
   const { data, error } = await resend.emails.send({
@@ -35,8 +34,7 @@ export async function sendMagicLink(
 ): Promise<{ id: string }> {
   const resend = getResend();
   if (!resend) {
-    console.log("[EMAIL MOCK] sendMagicLink ->", to, token);
-    return { id: "mock-" + Date.now() };
+    throw new Error("邮件服务未配置，请在 .env 中设置 RESEND_API_KEY");
   }
 
   const magicLink = `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/api/auth/verify-magic-link?token=${token}`;

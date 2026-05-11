@@ -32,6 +32,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: true });
   } catch (error: any) {
     console.error("Send email code error:", error);
-    return NextResponse.json({ error: "发送邮箱验证码失败" }, { status: 500 });
+    return NextResponse.json({ error: error?.message || "发送邮箱验证码失败" }, { status: 500 });
   }
 }

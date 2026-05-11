@@ -41,6 +41,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: true });
   } catch (error: any) {
     console.error("Send magic link error:", error);
-    return NextResponse.json({ error: "发送失败" }, { status: 500 });
+    return NextResponse.json({ error: error?.message || "发送失败" }, { status: 500 });
   }
 }
