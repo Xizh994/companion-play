@@ -26,6 +26,7 @@ const handle = app.getRequestHandler();
 // 调试：打印环境变量
 console.log("[Server] NODE_ENV:", process.env.NODE_ENV);
 console.log("[Server] ALIYUN_ACCESS_KEY_ID:", process.env.ALIYUN_ACCESS_KEY_ID ? "已设置" : "未设置");
+console.log("[Server] ALIYUN_DM_ACCOUNT_NAME:", process.env.ALIYUN_DM_ACCOUNT_NAME ? "已设置" : "未设置");
 
 app.prepare().then(() => {
   const server = createServer((req, res) => {

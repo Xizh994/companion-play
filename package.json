@@ -11,6 +11,7 @@
     "seed": "tsx prisma/seed.ts"
   },
   "dependencies": {
+    "@alicloud/dm20151123": "^1.9.2",
     "@alicloud/dypnsapi20170525": "^2.0.0",
     "@base-ui/react": "^1.4.1",
     "@hookform/resolvers": "^5.2.2",
