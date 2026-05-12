@@ -6,13 +6,7 @@ import Image from "next/image";
 import { useAuth } from "@/hooks/useAuth";
 import { Crown, Store, Shield, Check, Clock, XCircle, Mail, Phone, Lock, Camera, ArrowLeft, X } from "lucide-react";
 import { cn } from "@/lib/utils";
-
-function maskEmail(email: string) {
-  const [name, domain] = email.split("@");
-  if (!domain) return email;
-  if (name.length <= 2) return name[0] + "***@" + domain;
-  return name.slice(0, 2) + "***@" + domain;
-}
+import { maskPhone, maskEmail } from "@/lib/mask";
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -307,7 +301,7 @@ export default function ProfilePage() {
               <Phone className="w-4 h-4 text-gray-500 shrink-0" />
               <div>
                 <p className="text-xs text-gray-500">手机号</p>
-                <p className="text-sm text-gray-200">{user.phone}</p>
+                <p className="text-sm text-gray-200">{user.phone ? maskPhone(user.phone) : "未绑定"}</p>
               </div>
             </div>
 
@@ -580,7 +574,7 @@ export default function ProfilePage() {
                   <>
                     <div className="p-3 rounded-xl bg-white/[0.03] border border-white/[0.08]">
                       <p className="text-xs text-gray-400">手机号</p>
-                      <p className="text-sm text-gray-200 mt-0.5">{user?.phone || ""}</p>
+                      <p className="text-sm text-gray-200 mt-0.5">{user?.phone ? maskPhone(user.phone) : ""}</p>
                     </div>
                     <div>
                       <label className="block text-xs text-gray-400 mb-1">短信验证码</label>
