@@ -26,7 +26,7 @@ export default function RootLayout({
           </Suspense>
         </div>
         <Toaster position="top-center" richColors />
-        <footer className="flex items-center justify-center py-3 border-t border-white/[0.06] bg-[#060612]/80 backdrop-blur-sm">
+        <footer className="flex items-center justify-center gap-4 py-3 border-t border-white/[0.06] bg-[#060612]/80 backdrop-blur-sm">
           <a
             href="https://beian.miit.gov.cn/"
             target="_blank"
@@ -35,6 +35,12 @@ export default function RootLayout({
           >
             琼ICP备2026006268号
           </a>
+          <span className="text-gray-700 text-[10px]">|</span>
+          <a href="/privacy" className="text-[11px] text-gray-500 hover:text-gray-400 transition-colors no-underline">隐私政策</a>
+          <span className="text-gray-700 text-[10px]">|</span>
+          <a href="/terms" className="text-[11px] text-gray-500 hover:text-gray-400 transition-colors no-underline">用户服务协议</a>
+          <span className="text-gray-700 text-[10px]">|</span>
+          <a href="/minors-protection" className="text-[11px] text-gray-500 hover:text-gray-400 transition-colors no-underline">未成年人保护</a>
         </footer>
       </body>
     </html>

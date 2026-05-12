@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const PUBLIC_PATHS = ["/login", "/register"];
+const PUBLIC_PATHS = ["/login", "/register", "/privacy", "/terms", "/minors-protection"];
 const PUBLIC_PREFIXES = ["/api/", "/_next/", "/shop/", "/profile/", "/favicon.ico"];
 
 function isProtected(pathname: string): boolean {

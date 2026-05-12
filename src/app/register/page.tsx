@@ -50,6 +50,8 @@ export default function RegisterPage() {
 
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
 
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
+
   const activeRole = ROLES.find((r) => r.value === role)!;
 
   const startCooldown = (setter: React.Dispatch<React.SetStateAction<number>>) => {
@@ -515,11 +517,31 @@ export default function RegisterPage() {
             </div>
           )}
 
+          {/* ====== 协议勾选 ====== */}
+          <label className="flex items-start gap-2 mt-4 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={agreedToTerms}
+              onChange={(e) => setAgreedToTerms(e.target.checked)}
+              className="mt-0.5 w-4 h-4 rounded border-white/20 bg-white/5 accent-purple-500 cursor-pointer"
+            />
+            <span className="text-xs text-gray-400 leading-relaxed">
+              我已阅读并同意{" "}
+              <Link href="/terms" target="_blank" className="text-pink-400 hover:text-pink-300 underline">
+                用户服务协议
+              </Link>
+              {" "}和{" "}
+              <Link href="/privacy" target="_blank" className="text-pink-400 hover:text-pink-300 underline">
+                隐私政策
+              </Link>
+            </span>
+          </label>
+
           {/* ====== 提交按钮 ====== */}
           <button
             type="button"
             onClick={handleSubmit}
-            disabled={!canSubmit || loading}
+            disabled={!canSubmit || !agreedToTerms || loading}
             className={cn(
               "w-full py-3 rounded-xl font-medium text-white transition-all duration-300",
               "disabled:opacity-40 disabled:cursor-not-allowed",

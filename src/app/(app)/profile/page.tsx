@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import Image from "next/image";
 import { useAuth } from "@/hooks/useAuth";
 import { Crown, Store, Shield, Check, Clock, XCircle, Mail, Phone, Lock, Camera, ArrowLeft, X } from "lucide-react";
@@ -428,6 +429,12 @@ export default function ProfilePage() {
                         <p className="text-xs text-green-400">提交成功，请等待审核</p>
                       )}
 
+                      <p className="text-[11px] text-gray-600 leading-relaxed">
+                        您的姓名和身份证号将用于实名认证，信息经加密传输和存储，仅用于身份核验。
+                        详见
+                        <Link href="/privacy" className="text-pink-500/60 hover:text-pink-400 mx-0.5 underline">隐私政策</Link>
+                      </p>
+
                       <div className="flex gap-2">
                         <button
                           onClick={handleRealNameSubmit}
@@ -457,6 +464,13 @@ export default function ProfilePage() {
           >
             退出登录
           </button>
+
+          <Link
+            href="/delete-account"
+            className="block text-center mt-3 text-xs text-gray-600 hover:text-red-400 transition-colors"
+          >
+            注销账号
+          </Link>
         </div>
       </div>
 

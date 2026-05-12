@@ -355,6 +355,14 @@ export default function LoginPage() {
               </p>
             </div>
           )}
+
+          <div className="flex items-center justify-center gap-3 mt-6 pt-4 border-t border-white/[0.06]">
+            <Link href="/privacy" className="text-xs text-gray-500 hover:text-gray-300 transition">隐私政策</Link>
+            <span className="text-gray-600 text-xs">|</span>
+            <Link href="/terms" className="text-xs text-gray-500 hover:text-gray-300 transition">用户服务协议</Link>
+            <span className="text-gray-600 text-xs">|</span>
+            <Link href="/minors-protection" className="text-xs text-gray-500 hover:text-gray-300 transition">未成年人保护</Link>
+          </div>
         </div>
       </div>
     </div>
