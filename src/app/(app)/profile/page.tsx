@@ -16,7 +16,7 @@ function maskEmail(email: string) {
 
 export default function ProfilePage() {
   const router = useRouter();
-  const { user, refreshUser, logout } = useAuth();
+  const { user, token, refreshUser, logout } = useAuth();
 
   const [showRealName, setShowRealName] = useState(false);
   const [realName, setRealName] = useState("");
@@ -165,7 +165,7 @@ export default function ProfilePage() {
     try {
       const res = await fetch("/api/auth/bind-email", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ email: newEmail, verifiedToken: emailVerifiedToken }),
       });
       const data = await res.json();
@@ -195,7 +195,7 @@ export default function ProfilePage() {
     try {
       const res = await fetch("/api/auth/change-email", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ newEmail, phoneVerifiedToken, emailVerifiedToken }),
       });
       const data = await res.json();
