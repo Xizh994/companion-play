@@ -1,3 +1,4 @@
+import "dotenv/config";
 import Dypnsapi20170525, {
   SendSmsVerifyCodeRequest,
   CheckSmsVerifyCodeRequest,

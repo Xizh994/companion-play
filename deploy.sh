@@ -81,16 +81,35 @@ fi
 echo ""
 echo "=== [6/8] 配置环境变量 ==="
 cat > /www/dazistar/.env << 'EOF'
-# 数据库
+# --- 数据库 ---
 DATABASE_URL="postgresql://dazistar:DaziStar2026!@localhost:5432/dazistar"
 
-# NextAuth
+# --- JWT 认证 ---
+JWT_SECRET="dazistar-jwt-secret-2026-please-change-in-production"
+
+# --- NextAuth ---
 NEXTAUTH_URL="https://dazistar.com"
 NEXTAUTH_SECRET="dazistar-secret-key-2026-please-change-in-production"
 
-# 应用配置
+# --- 运行环境 ---
 NODE_ENV="production"
 PORT=3000
+
+# --- 阿里云短信服务 ---
+ALIYUN_ACCESS_KEY_ID=YOUR_ALIYUN_ACCESS_KEY_ID
+ALIYUN_ACCESS_KEY_SECRET=YOUR_ALIYUN_ACCESS_KEY_SECRET
+ALIYUN_SMS_SIGN_NAME=速通互联验证码
+ALIYUN_SMS_TEMPLATE_CODE=100001
+
+# --- 阿里云邮件推送 ---
+ALIYUN_DM_ACCOUNT_NAME=noreply@dm.dazistar.com
+ALIYUN_DM_FROM_ALIAS=搭子星
+
+# --- AES 加密密钥 ---
+AES_ENCRYPT_KEY=replace-with-a-random-32-char-string
+
+# --- 应用 URL ---
+NEXT_PUBLIC_APP_URL=https://dazistar.com
 EOF
 
 echo "✓ .env 已生成"

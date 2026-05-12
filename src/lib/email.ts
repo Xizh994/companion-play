@@ -1,3 +1,4 @@
+import "dotenv/config";
 import Dm20151123, { SingleSendMailRequest } from "@alicloud/dm20151123";
 
 function getEnv() {

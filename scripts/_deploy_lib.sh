@@ -70,15 +70,52 @@ preflight_check() {
     die "Node.js 版本过低: $(node -v)，需要 >= 18"
   fi
 
-  if [ ! -f "$ENV_FILE" ]; then
-    warn ".env 文件不存在，将使用默认值，强烈建议创建:"
-    warn "  cp .env.example .env && vim .env"
-  else
-    grep -q "DATABASE_URL" "$ENV_FILE" || warn "DATABASE_URL 未配置"
-    grep -q "JWT_SECRET" "$ENV_FILE"     || warn "JWT_SECRET 未配置 (将使用默认值，生产环境务必修改)"
-  fi
+  ensure_env
 
   ok "前置检查通过: Node $(node -v), npm $(npm -v), PM2 $(pm2 -v)"
+}
+
+# ================================================================
+# 1.5 环境变量自动补齐
+#   从 .env.example 读取所有 KEY，若 .env 中缺失则自动补入
+#   本地只需维护 .env.example 并推送，服务器部署时自动合并
+# ================================================================
+ensure_env() {
+  local env_example="${PROJECT_DIR}/.env.example"
+  local env_file="$ENV_FILE"
+  local added_count=0
+
+  if [ ! -f "$env_example" ]; then
+    warn ".env.example 不存在，跳过环境变量检查"
+    return
+  fi
+
+  if [ ! -f "$env_file" ]; then
+    info ".env 不存在，从 .env.example 生成模板..."
+    cp "$env_example" "$env_file"
+    warn "已从 .env.example 生成 .env，请编辑填入真实密钥: vim $env_file"
+    return
+  fi
+
+  while IFS= read -r line || [ -n "$line" ]; do
+    [[ -z "$line" || "$line" =~ ^[[:space:]]*# ]] && continue
+
+    local key
+    key=$(echo "$line" | sed -n 's/^[[:space:]]*\([A-Z_][A-Z0-9_]*\)=.*/\1/p')
+    [ -z "$key" ] && continue
+
+    if ! grep -q "^[[:space:]]*${key}=" "$env_file" 2>/dev/null; then
+      warn "补入缺失配置: $key"
+      echo "$line" >> "$env_file"
+      added_count=$((added_count + 1))
+    fi
+  done < "$env_example"
+
+  if [ "$added_count" -gt 0 ]; then
+    warn "已从 .env.example 补入 $added_count 项缺失配置，请检查 $env_file 并填入真实值"
+  else
+    ok ".env 配置完整"
+  fi
 }
 
 # ================================================================
