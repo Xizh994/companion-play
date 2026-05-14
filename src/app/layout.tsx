@@ -16,7 +16,7 @@ export default function RootLayout({
   return (
     <html lang="zh-CN">
       <body className="min-h-screen flex flex-col">
-        <div className="flex-1">
+        <div className="flex-1 flex flex-col">
           <Suspense fallback={
             <div className="min-h-screen flex items-center justify-center">
               <span className="text-2xl animate-bounce">🎮</span>
