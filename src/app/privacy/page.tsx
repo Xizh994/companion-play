@@ -6,9 +6,6 @@ export default function PrivacyPage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#0a0a1a] via-[#0f0f2a] to-[#0a0a1a]">
       <div className="max-w-3xl mx-auto px-4 py-10">
-        <Link href="/login" className="inline-flex items-center gap-1.5 text-gray-400 hover:text-gray-200 transition mb-6 text-sm">
-          <span>←</span> <span>返回</span>
-        </Link>
 
         <div className="glass rounded-3xl p-6 sm:p-10 glow-card">
           <div className="text-center mb-8">
