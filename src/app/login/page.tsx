@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
@@ -26,23 +26,22 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const [phone, setPhone] = useState("");
+  const [phone, setPhone] = useState(() => {
+    if (typeof window !== "undefined") return localStorage.getItem(LAST_LOGIN_PHONE_KEY) || "";
+    return "";
+  });
   const [password, setPassword] = useState("");
   const [smsCode, setSmsCode] = useState("");
   const [sendingSms, setSendingSms] = useState(false);
   const [smsCooldown, setSmsCooldown] = useState(0);
 
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState(() => {
+    if (typeof window !== "undefined") return localStorage.getItem(LAST_LOGIN_EMAIL_KEY) || "";
+    return "";
+  });
   const [sendingMagic, setSendingMagic] = useState(false);
   const [magicSent, setMagicSent] = useState(false);
-
-  // 从 localStorage 读取上次登录的手机号和邮箱
-  useEffect(() => {
-    const lastPhone = localStorage.getItem(LAST_LOGIN_PHONE_KEY);
-    const lastEmail = localStorage.getItem(LAST_LOGIN_EMAIL_KEY);
-    if (lastPhone) setPhone(lastPhone);
-    if (lastEmail) setEmail(lastEmail);
-  }, []);
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
 
   const startCooldown = () => {
     setSmsCooldown(60);
@@ -76,6 +75,7 @@ export default function LoginPage() {
 
   const handleSmsLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!agreedToTerms) { setError("请先同意用户协议和隐私政策"); return; }
     if (!smsCode) { setError("请输入验证码"); return; }
     setError("");
     setLoading(true);
@@ -102,6 +102,7 @@ export default function LoginPage() {
 
   const handlePasswordLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!agreedToTerms) { setError("请先同意用户协议和隐私政策"); return; }
     setError("");
     setLoading(true);
     try {
@@ -162,7 +163,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4">
+    <div className="flex-1 flex items-center justify-center px-4 py-4">
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-gradient-to-r from-pink-500/15 to-purple-500/15 rounded-full blur-3xl" />
       </div>
@@ -237,7 +238,7 @@ export default function LoginPage() {
               </div>
               <button
                 type="submit"
-                disabled={loading}
+                disabled={loading || !agreedToTerms}
                 className="btn-gradient w-full py-3 rounded-xl font-medium disabled:opacity-50"
               >
                 {loading ? "登录中..." : "登录"}
@@ -277,7 +278,7 @@ export default function LoginPage() {
               </div>
               <button
                 type="submit"
-                disabled={loading}
+                disabled={loading || !agreedToTerms}
                 className="btn-gradient w-full py-3 rounded-xl font-medium disabled:opacity-50"
               >
                 {loading ? "登录中..." : "登录"}
@@ -356,13 +357,24 @@ export default function LoginPage() {
             </div>
           )}
 
-          <div className="flex items-center justify-center gap-3 mt-6 pt-4 border-t border-white/[0.06]">
-            <Link href="/privacy" className="text-xs text-gray-500 hover:text-gray-300 transition">隐私政策</Link>
-            <span className="text-gray-600 text-xs">|</span>
-            <Link href="/terms" className="text-xs text-gray-500 hover:text-gray-300 transition">用户服务协议</Link>
-            <span className="text-gray-600 text-xs">|</span>
-            <Link href="/minors-protection" className="text-xs text-gray-500 hover:text-gray-300 transition">未成年人保护</Link>
-          </div>
+          <label className="flex items-start gap-2 mt-5 pt-4 border-t border-white/[0.06] cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={agreedToTerms}
+              onChange={(e) => setAgreedToTerms(e.target.checked)}
+              className="mt-0.5 w-4 h-4 rounded border-white/20 bg-white/5 accent-pink-500 cursor-pointer"
+            />
+            <span className="text-xs text-gray-400 leading-relaxed">
+              我已阅读并同意{" "}
+              <Link href="/terms" target="_blank" className="text-pink-400 hover:text-pink-300 underline">
+                用户服务协议
+              </Link>
+              {" "}和{" "}
+              <Link href="/privacy" target="_blank" className="text-pink-400 hover:text-pink-300 underline">
+                隐私政策
+              </Link>
+            </span>
+          </label>
         </div>
       </div>
     </div>
