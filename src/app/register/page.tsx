@@ -37,6 +37,7 @@ export default function RegisterPage() {
   // 邮箱验证
   const [email, setEmail] = useState("");
   const [emailCode, setEmailCode] = useState("");
+  const [emailError, setEmailError] = useState("");
   const [emailSending, setEmailSending] = useState(false);
   const [emailCooldown, setEmailCooldown] = useState(0);
   const [emailVerified, setEmailVerified] = useState(false);
@@ -117,8 +118,8 @@ export default function RegisterPage() {
   };
 
   const handleSendEmailCode = async () => {
-    if (!email) { setError("请输入邮箱地址"); return; }
-    setError("");
+    if (!email) { setEmailError("请输入邮箱地址"); return; }
+    setEmailError("");
     setEmailSending(true);
     try {
       const res = await fetch("/api/auth/send-email-code", {
@@ -127,18 +128,21 @@ export default function RegisterPage() {
         body: JSON.stringify({ email, purpose: "bind" }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
+      if (!res.ok) {
+        setEmailError(data.error);
+        return;
+      }
       startCooldown(setEmailCooldown);
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+      setEmailError(err instanceof Error ? err.message : String(err));
     } finally {
       setEmailSending(false);
     }
   };
 
   const handleVerifyEmail = async () => {
-    if (!emailCode) { setError("请输入验证码"); return; }
-    setError("");
+    if (!emailCode) { setEmailError("请输入验证码"); return; }
+    setEmailError("");
     setLoading(true);
     try {
       const res = await fetch("/api/auth/verify-email-code", {
@@ -147,11 +151,14 @@ export default function RegisterPage() {
         body: JSON.stringify({ email, code: emailCode, purpose: "bind" }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
+      if (!res.ok) {
+        setEmailError(data.error);
+        return;
+      }
       setEmailVerified(true);
       setEmailVerifiedToken(data.verifiedToken);
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+      setEmailError(err instanceof Error ? err.message : String(err));
     } finally {
       setLoading(false);
     }
@@ -417,11 +424,16 @@ export default function RegisterPage() {
               <input
                 type="email"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => { setEmail(e.target.value); setEmailError(""); }}
                 placeholder="请输入邮箱地址"
                 className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white placeholder-gray-500 outline-none focus:border-pink-500/50 focus:ring-2 focus:ring-pink-500/20 transition text-sm"
               />
               <p className="text-[10px] text-gray-500 mt-1">用于账号找回、紧急登录和接收重要通知</p>
+              {emailError && (
+                <p className="text-xs text-amber-400 mt-1.5 flex items-center gap-1">
+                  <span>⚠️</span> {emailError}
+                </p>
+              )}
             </div>
             <div>
               <label className="block text-xs text-gray-400 mb-1">邮箱验证码</label>
