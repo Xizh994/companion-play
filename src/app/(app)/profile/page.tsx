@@ -1,11 +1,11 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { useAuth } from "@/hooks/useAuth";
-import { Crown, Store, Shield, Check, Clock, XCircle, Mail, Phone, Lock, Camera, ArrowLeft, X } from "lucide-react";
+import { Crown, Store, Shield, Check, Clock, XCircle, Mail, Phone, Lock, Camera, ArrowLeft, X, Pencil, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { maskPhone, maskEmail } from "@/lib/mask";
 
@@ -33,6 +33,12 @@ export default function ProfilePage() {
   const [emailCountdown, setEmailCountdown] = useState(0);
   const [emailLoading, setEmailLoading] = useState(false);
   const [emailError, setEmailError] = useState("");
+
+  const [avatarLoading, setAvatarLoading] = useState(false);
+  const [editingNickname, setEditingNickname] = useState(false);
+  const [nicknameValue, setNicknameValue] = useState(user?.nickname || "");
+  const [nicknameSaving, setNicknameSaving] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const isBinding = !user?.email;
 
@@ -62,6 +68,54 @@ export default function ProfilePage() {
     setEmailCountdown(0);
     setEmailError("");
   }, []);
+
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) { setEmailError("头像大小不能超过 5MB"); return; }
+    setAvatarLoading(true);
+    try {
+      const formData = new FormData();
+      formData.append("avatar", file);
+      const res = await fetch("/api/profile/update", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData,
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      await refreshUser();
+    } catch (err) {
+      setEmailError(err instanceof Error ? err.message : "上传失败");
+    } finally {
+      setAvatarLoading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
+  const handleSaveNickname = async () => {
+    const trimmed = nicknameValue.trim();
+    if (!trimmed) { setEmailError("昵称不能为空"); return; }
+    if (trimmed === user?.nickname) { setEditingNickname(false); return; }
+    setNicknameSaving(true);
+    try {
+      const formData = new FormData();
+      formData.append("nickname", trimmed);
+      const res = await fetch("/api/profile/update", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData,
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      await refreshUser();
+      setEditingNickname(false);
+    } catch (err) {
+      setEmailError(err instanceof Error ? err.message : "保存失败");
+    } finally {
+      setNicknameSaving(false);
+    }
+  };
 
   const handleSendPhoneCode = async () => {
     if (phoneCountdown > 0) return;
@@ -263,14 +317,58 @@ export default function ProfilePage() {
         <div className="glass rounded-3xl p-6 sm:p-8 glow-card">
           {/* Header */}
           <div className="text-center mb-8">
-            <div className="w-20 h-20 mx-auto mb-3 rounded-full bg-white/5 border-2 border-white/10 flex items-center justify-center overflow-hidden">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp,image/gif"
+              onChange={handleAvatarChange}
+              className="hidden"
+            />
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={avatarLoading}
+              className="w-20 h-20 mx-auto mb-3 rounded-full bg-white/5 border-2 border-white/10 flex items-center justify-center overflow-hidden relative group cursor-pointer disabled:cursor-wait"
+            >
               {user.avatar ? (
                 <Image src={user.avatar} alt="头像" fill className="object-cover" />
               ) : (
                 <Camera className="w-8 h-8 text-gray-600" />
               )}
-            </div>
-            <h1 className="text-xl font-bold text-white">{user.nickname}</h1>
+              <div className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                {avatarLoading ? (
+                  <Loader2 className="w-6 h-6 text-white animate-spin" />
+                ) : (
+                  <Camera className="w-6 h-6 text-white" />
+                )}
+              </div>
+            </button>
+            {editingNickname ? (
+              <div className="flex items-center justify-center gap-2">
+                <input
+                  type="text"
+                  value={nicknameValue}
+                  onChange={(e) => setNicknameValue(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter") handleSaveNickname(); if (e.key === "Escape") { setEditingNickname(false); setNicknameValue(user?.nickname || ""); } }}
+                  onBlur={handleSaveNickname}
+                  maxLength={20}
+                  className="bg-white/5 border border-pink-500/50 rounded-xl px-3 py-1 text-white text-center outline-none focus:border-pink-400 w-40 text-xl font-bold"
+                  autoFocus
+                />
+                {nicknameSaving && <Loader2 className="w-4 h-4 text-pink-400 animate-spin" />}
+              </div>
+            ) : (
+              <div className="flex items-center justify-center gap-2">
+                <h1 className="text-xl font-bold text-white">{user.nickname}</h1>
+                <button
+                  type="button"
+                  onClick={() => { setEditingNickname(true); setNicknameValue(user.nickname || ""); }}
+                  className="text-gray-500 hover:text-gray-300 transition"
+                >
+                  <Pencil className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            )}
             <div className="mt-2 flex items-center justify-center gap-2">
               <span className={cn(
                 "inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium",
