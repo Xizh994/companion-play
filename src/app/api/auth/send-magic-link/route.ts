@@ -36,11 +36,13 @@ export async function POST(req: NextRequest) {
       data: { target: magicToken },
     });
 
-    await sendMagicLink(email, magicToken);
+    const origin = req.nextUrl.origin;
+    const magicLinkUrl = `${origin}/api/auth/verify-magic-link?token=${encodeURIComponent(magicToken)}`;
+    await sendMagicLink(email, magicLinkUrl);
 
     return NextResponse.json({ success: true });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Send magic link error:", error);
-    return NextResponse.json({ error: error?.message || "发送失败" }, { status: 500 });
+    return NextResponse.json({ error: error instanceof Error ? error.message : "发送失败" }, { status: 500 });
   }
 }

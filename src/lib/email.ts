@@ -56,7 +56,7 @@ export async function sendVerificationEmail(
 
 export async function sendMagicLink(
   to: string,
-  token: string
+  magicLinkUrl: string
 ): Promise<{ id: string }> {
   const env = getEnv();
 
@@ -67,8 +67,6 @@ export async function sendMagicLink(
     throw new Error("邮件服务未配置，请在 .env 中设置 ALIYUN_DM_ACCOUNT_NAME (阿里云发信地址)");
   }
 
-  const magicLink = `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/api/auth/verify-magic-link?token=${token}`;
-
   const client = createClient();
   const request = new SingleSendMailRequest({
     accountName: env.ALIYUN_DM_ACCOUNT_NAME,
@@ -76,7 +74,7 @@ export async function sendMagicLink(
     addressType: "1",
     toAddress: to,
     subject: "搭子星 - 一键登录",
-    htmlBody: buildMagicLinkHtml(magicLink),
+    htmlBody: buildMagicLinkHtml(magicLinkUrl),
     fromAlias: env.ALIYUN_DM_FROM_ALIAS,
   });
 
