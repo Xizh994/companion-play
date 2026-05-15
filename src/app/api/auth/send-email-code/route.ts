@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { sendVerificationEmail } from "@/lib/email";
 import { canSendCode, createVerificationCode } from "@/lib/verification";
+import { prisma } from "@/lib/prisma";
 
 export async function POST(req: NextRequest) {
   try {
@@ -19,6 +20,14 @@ export async function POST(req: NextRequest) {
     const type = typeMap[purpose];
     if (!type) {
       return NextResponse.json({ error: "无效的验证码用途" }, { status: 400 });
+    }
+
+    // 如果是绑定邮箱（bind），检查邮箱是否已被占用
+    if (purpose === "bind") {
+      const existingUser = await prisma.user.findUnique({ where: { email } });
+      if (existingUser) {
+        return NextResponse.json({ error: "该邮箱已被其他账号绑定" }, { status: 409 });
+      }
     }
 
     const { allowed, waitSeconds } = await canSendCode(email, type);
