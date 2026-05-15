@@ -5,7 +5,7 @@ import { comparePassword, signToken, verifyToken } from "@/lib/auth";
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { phone, password, loginType, smsVerifiedToken, magicLinkToken } = body;
+    const { phone, email, password, loginType, smsVerifiedToken, magicLinkToken, emailVerifiedToken } = body;
 
     // 密码登录
     if (loginType === "password" || (!loginType && password)) {
@@ -125,9 +125,48 @@ export async function POST(req: NextRequest) {
       });
     }
 
+    // 邮箱验证码登录（紧急登录）
+    if (loginType === "email_code") {
+      if (!email) {
+        return NextResponse.json({ error: "邮箱不能为空" }, { status: 400 });
+      }
+
+      if (!emailVerifiedToken) {
+        return NextResponse.json({ error: "请先完成邮箱验证" }, { status: 400 });
+      }
+
+      const emailPayload = verifyToken(emailVerifiedToken);
+      if (!emailPayload) {
+        return NextResponse.json({ error: "邮箱验证已过期" }, { status: 400 });
+      }
+
+      const user = await prisma.user.findUnique({ where: { email } });
+      if (!user) {
+        return NextResponse.json({ error: "该邮箱未绑定任何账号" }, { status: 404 });
+      }
+
+      await prisma.user.update({ where: { id: user.id }, data: { status: "online" } });
+
+      const token = signToken({ userId: user.id, role: user.role });
+
+      return NextResponse.json({
+        token,
+        user: {
+          id: user.id,
+          phone: user.phone,
+          role: user.role,
+          nickname: user.nickname,
+          email: user.email,
+          avatar: user.avatar,
+          bio: user.bio,
+          hasPassword: !!user.passwordHash,
+        },
+      });
+    }
+
     return NextResponse.json({ error: "无效的登录方式" }, { status: 400 });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Login error:", error);
-    return NextResponse.json({ error: "登录失败，请稍后重试" }, { status: 500 });
+    return NextResponse.json({ error: error instanceof Error ? error.message : "登录失败，请稍后重试" }, { status: 500 });
   }
 }

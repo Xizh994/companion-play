@@ -40,7 +40,9 @@ export default function LoginPage() {
     return "";
   });
   const [sendingMagic, setSendingMagic] = useState(false);
-  const [magicSent, setMagicSent] = useState(false);
+  const [emergencyCodeSent, setEmergencyCodeSent] = useState(false);
+  const [magicLinkSent, setMagicLinkSent] = useState(false);
+  const [emergencyCode, setEmergencyCode] = useState("");
   const [agreedToTerms, setAgreedToTerms] = useState(false);
 
   const startCooldown = () => {
@@ -130,7 +132,7 @@ export default function LoginPage() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
-      setMagicSent(true);
+      setMagicLinkSent(true);
       // 保存邮箱到 localStorage
       localStorage.setItem(LAST_LOGIN_EMAIL_KEY, email);
     } catch (err) {
@@ -152,13 +154,38 @@ export default function LoginPage() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
-      setMagicSent(true);
+      setEmergencyCodeSent(true);
       // 保存邮箱到 localStorage
       localStorage.setItem(LAST_LOGIN_EMAIL_KEY, email);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
       setSendingMagic(false);
+    }
+  };
+
+  const handleEmergencyLogin = async () => {
+    if (!agreedToTerms) { setError("请先同意用户协议和隐私政策"); return; }
+    if (!emergencyCode) { setError("请输入邮箱验证码"); return; }
+    setError("");
+    setLoading(true);
+    try {
+      const verifyRes = await fetch("/api/auth/verify-email-code", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, code: emergencyCode, purpose: "recovery" }),
+      });
+      const verifyData = await verifyRes.json();
+      if (!verifyRes.ok) throw new Error(verifyData.error);
+
+      await login({ email, loginType: "email_code", emailVerifiedToken: verifyData.verifiedToken });
+      localStorage.setItem(LAST_LOGIN_EMAIL_KEY, email);
+      const redirect = searchParams.get("redirect");
+      router.push(redirect || "/lobby");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -183,7 +210,7 @@ export default function LoginPage() {
               <button
                 key={tab.key}
                 type="button"
-                onClick={() => { setActiveTab(tab.key); setError(""); setMagicSent(false); }}
+                onClick={() => { setActiveTab(tab.key); setError(""); setEmergencyCodeSent(false); setMagicLinkSent(false); setEmergencyCode(""); }}
                 className={cn(
                   "flex-1 pb-2.5 text-sm font-medium transition-all border-b-2 -mb-[1px]",
                   activeTab === tab.key
@@ -314,46 +341,97 @@ export default function LoginPage() {
                   className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 outline-none focus:border-pink-500/50 focus:ring-2 focus:ring-pink-500/20 transition"
                 />
               </div>
-              <div className="flex gap-3">
-                <button
-                  type="button"
-                  onClick={handleSendEmergencyCode}
-                  disabled={sendingMagic}
-                  className="flex-1 py-3 rounded-xl border border-pink-500/30 text-pink-400 text-sm font-medium hover:bg-pink-500/10 transition disabled:opacity-40"
-                >
-                  {sendingMagic ? "发送中..." : "发送验证码"}
-                </button>
-                <button
-                  type="button"
-                  onClick={handleSendMagicLink}
-                  disabled={sendingMagic}
-                  className="flex-1 btn-gradient py-3 rounded-xl text-sm font-medium disabled:opacity-50"
-                >
-                  {sendingMagic ? "发送中..." : "发送 Magic Link"}
-                </button>
-              </div>
-              {magicSent && (
-                <div className="p-3 bg-green-500/10 border border-green-500/20 rounded-xl text-green-400 text-sm text-center">
-                  ✅ 已发送，请查收邮件并点击链接登录
+
+              {!emergencyCodeSent && !magicLinkSent && (
+                <div className="flex gap-3">
+                  <button
+                    type="button"
+                    onClick={handleSendEmergencyCode}
+                    disabled={sendingMagic}
+                    className="flex-1 py-3 rounded-xl border border-pink-500/30 text-pink-400 text-sm font-medium hover:bg-pink-500/10 transition disabled:opacity-40"
+                  >
+                    {sendingMagic ? "发送中..." : "发送验证码"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleSendMagicLink}
+                    disabled={sendingMagic}
+                    className="flex-1 btn-gradient py-3 rounded-xl text-sm font-medium disabled:opacity-50"
+                  >
+                    {sendingMagic ? "发送中..." : "发送 Magic Link"}
+                  </button>
                 </div>
               )}
-              <p className="text-xs text-gray-500 text-center">
-                💡 Magic Link：点击邮件中的链接即可直接登录，更安全便捷
-              </p>
-              <div className="flex items-center gap-3 my-2">
-                <span className="flex-1 h-px bg-white/10" />
-                <span className="text-xs text-gray-500">或</span>
-                <span className="flex-1 h-px bg-white/10" />
-              </div>
-              <p className="text-center text-sm">
-                <button
-                  type="button"
-                  onClick={() => setActiveTab("sms")}
-                  className="text-gray-400 hover:text-gray-200 transition"
-                >
-                  ← 返回短信登录
-                </button>
-              </p>
+
+              {emergencyCodeSent && (
+                <div className="space-y-4">
+                  <div className="p-3 bg-green-500/10 border border-green-500/20 rounded-xl text-green-400 text-sm text-center">
+                    ✅ 验证码已发送，请查收邮件
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-1.5">邮箱验证码</label>
+                    <input
+                      type="text"
+                      value={emergencyCode}
+                      onChange={(e) => setEmergencyCode(e.target.value)}
+                      placeholder="请输入邮箱验证码"
+                      className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 outline-none focus:border-pink-500/50 focus:ring-2 focus:ring-pink-500/20 transition"
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleEmergencyLogin}
+                    disabled={loading || !agreedToTerms}
+                    className="btn-gradient w-full py-3 rounded-xl font-medium disabled:opacity-50"
+                  >
+                    {loading ? "登录中..." : "登录"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setEmergencyCodeSent(false); setEmergencyCode(""); }}
+                    className="w-full py-2 rounded-xl text-gray-400 text-sm hover:text-gray-200 transition"
+                  >
+                    ← 重新发送
+                  </button>
+                </div>
+              )}
+
+              {magicLinkSent && (
+                <div className="space-y-4">
+                  <div className="p-3 bg-green-500/10 border border-green-500/20 rounded-xl text-green-400 text-sm text-center">
+                    ✅ 已发送，请查收邮件并点击链接登录
+                  </div>
+                  <p className="text-xs text-gray-500 text-center">
+                    💡 Magic Link：点击邮件中的链接即可直接登录，更安全便捷
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setMagicLinkSent(false)}
+                    className="w-full py-2 rounded-xl text-gray-400 text-sm hover:text-gray-200 transition"
+                  >
+                    ← 重新发送
+                  </button>
+                </div>
+              )}
+
+              {!emergencyCodeSent && !magicLinkSent && (
+                <>
+                  <div className="flex items-center gap-3 my-2">
+                    <span className="flex-1 h-px bg-white/10" />
+                    <span className="text-xs text-gray-500">或</span>
+                    <span className="flex-1 h-px bg-white/10" />
+                  </div>
+                  <p className="text-center text-sm">
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab("sms")}
+                      className="text-gray-400 hover:text-gray-200 transition"
+                    >
+                      ← 返回短信登录
+                    </button>
+                  </p>
+                </>
+              )}
             </div>
           )}
 
