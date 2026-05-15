@@ -68,6 +68,15 @@ export default function ProfilePage() {
     return () => clearTimeout(t);
   }, [emailCountdown]);
 
+  useEffect(() => {
+    if (cropModalOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => { document.body.style.overflow = ""; };
+  }, [cropModalOpen]);
+
   const closeEmailModal = useCallback(() => {
     setEmailModalOpen(false);
     setEmailStep("enter");
@@ -173,7 +182,7 @@ export default function ProfilePage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "上传失败");
       await refreshUser();
-      setCropModalOpen(false);
+      closeCropModal();
     } catch (err) {
       setCropUploading(false);
       setProfileError(err instanceof Error ? err.message : "上传失败");
