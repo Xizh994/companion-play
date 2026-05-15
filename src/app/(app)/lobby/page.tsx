@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { GeneratedAvatar } from "@/components/GeneratedAvatar";
+import { SafeAvatar } from "@/components/GeneratedAvatar";
 import { Input } from "@/components/ui/input";
 import { useSocket } from "@/hooks/useSocket";
 import { MessageCircle, Search, Sparkles, Store, Crown } from "lucide-react";
@@ -160,7 +160,7 @@ export default function LobbyPage() {
                 <CardContent className="pt-6">
                   <div className="flex items-start gap-3 mb-3">
                     <div className="relative shrink-0">
-                      <GeneratedAvatar seed={user.shopName || user.nickname} size={48} />
+                      <SafeAvatar src={user.avatar} seed={user.shopName || user.nickname} size={48} />
                       <span className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-background ${
                         user.status === "online" ? "bg-green-500" : "bg-yellow-500"
                       }`} />

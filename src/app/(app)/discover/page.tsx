@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { GeneratedAvatar } from "@/components/GeneratedAvatar";
+import { SafeAvatar } from "@/components/GeneratedAvatar";
 import { Search, MessageCircle, Store, Users, Crown, Star, X } from "lucide-react";
 
 const TOKEN_KEY = "dazistar_token";
@@ -201,7 +201,8 @@ export default function DiscoverPage() {
                 >
                   <CardHeader className="pb-3">
                     <div className="flex items-start gap-4">
-                      <GeneratedAvatar
+                      <SafeAvatar
+                        src={shop.avatar}
                         seed={shop.shopName || shop.nickname}
                         size={48}
                       />
@@ -274,7 +275,8 @@ export default function DiscoverPage() {
                   <CardHeader className="pb-3">
                     <div className="flex items-start gap-4">
                       <div className="relative">
-                        <GeneratedAvatar
+                        <SafeAvatar
+                          src={boss.avatar}
                           seed={boss.nickname}
                           size={48}
                         />

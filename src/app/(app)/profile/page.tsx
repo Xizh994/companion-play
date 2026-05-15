@@ -42,6 +42,21 @@ export default function ProfilePage() {
   const [nicknameValue, setNicknameValue] = useState(user?.nickname || "");
   const [nicknameSaving, setNicknameSaving] = useState(false);
   const [profileError, setProfileError] = useState("");
+
+  const [phoneModalOpen, setPhoneModalOpen] = useState(false);
+  const [phoneStep, setPhoneStep] = useState<"verify-current" | "enter-new" | "verify-new">("verify-current");
+  const [newPhone, setNewPhone] = useState("");
+  const [currentPhoneCode, setCurrentPhoneCode] = useState("");
+  const [newPhoneCode, setNewPhoneCode] = useState("");
+  const [currentPhoneVerifiedToken, setCurrentPhoneVerifiedToken] = useState("");
+  const [newPhoneVerifiedToken, setNewPhoneVerifiedToken] = useState("");
+  const [currentPhoneSent, setCurrentPhoneSent] = useState(false);
+  const [newPhoneSent, setNewPhoneSent] = useState(false);
+  const [currentPhoneCountdown, setCurrentPhoneCountdown] = useState(0);
+  const [newPhoneCountdown, setNewPhoneCountdown] = useState(0);
+  const [phoneLoading, setPhoneLoading] = useState(false);
+  const [phoneError, setPhoneError] = useState("");
+
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [cropModalOpen, setCropModalOpen] = useState(false);
@@ -69,6 +84,18 @@ export default function ProfilePage() {
   }, [emailCountdown]);
 
   useEffect(() => {
+    if (currentPhoneCountdown <= 0) return;
+    const t = setTimeout(() => setCurrentPhoneCountdown((c) => c - 1), 1000);
+    return () => clearTimeout(t);
+  }, [currentPhoneCountdown]);
+
+  useEffect(() => {
+    if (newPhoneCountdown <= 0) return;
+    const t = setTimeout(() => setNewPhoneCountdown((c) => c - 1), 1000);
+    return () => clearTimeout(t);
+  }, [newPhoneCountdown]);
+
+  useEffect(() => {
     if (cropModalOpen) {
       document.body.style.overflow = "hidden";
     } else {
@@ -90,6 +117,21 @@ export default function ProfilePage() {
     setPhoneCountdown(0);
     setEmailCountdown(0);
     setEmailError("");
+  }, []);
+
+  const closePhoneModal = useCallback(() => {
+    setPhoneModalOpen(false);
+    setPhoneStep("verify-current");
+    setNewPhone("");
+    setCurrentPhoneCode("");
+    setNewPhoneCode("");
+    setCurrentPhoneVerifiedToken("");
+    setNewPhoneVerifiedToken("");
+    setCurrentPhoneSent(false);
+    setNewPhoneSent(false);
+    setCurrentPhoneCountdown(0);
+    setNewPhoneCountdown(0);
+    setPhoneError("");
   }, []);
 
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -366,6 +408,121 @@ export default function ProfilePage() {
     }
   };
 
+  const handleSendCurrentPhoneCode = async () => {
+    if (currentPhoneCountdown > 0 || !user?.phone) return;
+    setPhoneError("");
+    setPhoneLoading(true);
+    try {
+      const res = await fetch("/api/auth/send-sms-code", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone: user.phone, purpose: "changePhone" }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setCurrentPhoneSent(true);
+      setCurrentPhoneCountdown(60);
+    } catch (err) {
+      setPhoneError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setPhoneLoading(false);
+    }
+  };
+
+  const handleVerifyCurrentPhone = async () => {
+    if (!currentPhoneCode || !user?.phone) { setPhoneError("请输入短信验证码"); return; }
+    setPhoneError("");
+    setPhoneLoading(true);
+    try {
+      const res = await fetch("/api/auth/verify-sms-code", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone: user.phone, code: currentPhoneCode }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setCurrentPhoneVerifiedToken(data.verifiedToken);
+      setPhoneStep("enter-new");
+    } catch (err) {
+      setPhoneError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setPhoneLoading(false);
+    }
+  };
+
+  const handleSendNewPhoneCode = async () => {
+    if (newPhoneCountdown > 0) return;
+    if (!newPhone || !/^1\d{10}$/.test(newPhone)) { setPhoneError("请输入正确的手机号"); return; }
+    setPhoneError("");
+    setPhoneLoading(true);
+    try {
+      const res = await fetch("/api/auth/send-sms-code", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone: newPhone, purpose: "changePhone" }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setNewPhoneSent(true);
+      setNewPhoneCountdown(60);
+    } catch (err) {
+      setPhoneError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setPhoneLoading(false);
+    }
+  };
+
+  const handleVerifyNewPhone = async () => {
+    if (!newPhoneCode) { setPhoneError("请输入验证码"); return; }
+    setPhoneError("");
+    setPhoneLoading(true);
+    try {
+      const res = await fetch("/api/auth/verify-sms-code", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone: newPhone, code: newPhoneCode }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setNewPhoneVerifiedToken(data.verifiedToken);
+      setPhoneStep("verify-new");
+    } catch (err) {
+      setPhoneError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setPhoneLoading(false);
+    }
+  };
+
+  const handleSubmitPhoneChange = async () => {
+    if (!currentPhoneVerifiedToken) {
+      setPhoneError("当前手机验证已过期，请重新验证");
+      setPhoneStep("verify-current");
+      return;
+    }
+    if (!newPhoneVerifiedToken) {
+      setPhoneError("新手机验证已过期，请重新验证");
+      setPhoneStep("enter-new");
+      return;
+    }
+    setPhoneError("");
+    setPhoneLoading(true);
+    try {
+      const res = await fetch("/api/auth/change-phone", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ newPhone, currentPhoneVerifiedToken, newPhoneVerifiedToken }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      await refreshUser();
+      closePhoneModal();
+    } catch (err) {
+      setPhoneError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setPhoneLoading(false);
+    }
+  };
+
   if (!user) return null;
 
   const rn = user.realNameVerification;
@@ -506,9 +663,32 @@ export default function ProfilePage() {
 
             <div className="flex items-center gap-3">
               <Phone className="w-4 h-4 text-gray-500 shrink-0" />
-              <div>
+              <div className="flex-1 min-w-0">
                 <p className="text-xs text-gray-500">手机号</p>
-                <p className="text-sm text-gray-200">{user.phone ? maskPhone(user.phone) : "未绑定"}</p>
+                <div className="flex items-center gap-2">
+                  <p className="text-sm text-gray-200">
+                    {user.phone ? maskPhone(user.phone) : "未绑定"}
+                  </p>
+                  <button
+                    onClick={() => {
+                      setPhoneStep("verify-current");
+                      setCurrentPhoneCode("");
+                      setCurrentPhoneSent(false);
+                      setCurrentPhoneCountdown(0);
+                      setCurrentPhoneVerifiedToken("");
+                      setNewPhone("");
+                      setNewPhoneCode("");
+                      setNewPhoneSent(false);
+                      setNewPhoneCountdown(0);
+                      setNewPhoneVerifiedToken("");
+                      setPhoneError("");
+                      setPhoneModalOpen(true);
+                    }}
+                    className="text-xs text-pink-400 hover:text-pink-300 shrink-0"
+                  >
+                    更换
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -987,6 +1167,166 @@ export default function ProfilePage() {
 
             {emailError && (
               <p className="mt-3 text-xs text-red-400">{emailError}</p>
+            )}
+          </div>
+        </div>
+      )}
+      {phoneModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
+          <div className="w-full max-w-sm bg-[#12122a] border border-white/10 rounded-2xl p-6 shadow-2xl">
+            <div className="flex items-center justify-between mb-5">
+              <h3 className="text-white font-semibold">更换手机号</h3>
+              <button onClick={closePhoneModal} className="text-gray-400 hover:text-gray-200">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              {phoneStep === "verify-current" && (
+                <>
+                  <div className="p-3 rounded-xl bg-amber-500/5 border border-amber-500/15">
+                    <p className="text-xs text-amber-400">⚠️ 更换手机号后，下次登录请使用新号码</p>
+                  </div>
+                  <div className="p-3 rounded-xl bg-white/[0.03] border border-white/[0.08]">
+                    <p className="text-xs text-gray-400">当前手机号</p>
+                    <p className="text-sm text-gray-200 mt-0.5">{user?.phone ? maskPhone(user.phone) : ""}</p>
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-400 mb-1">短信验证码</label>
+                    <input
+                      type="text"
+                      maxLength={6}
+                      value={currentPhoneCode}
+                      onChange={(e) => setCurrentPhoneCode(e.target.value.replace(/\D/g, ""))}
+                      placeholder="请输入短信验证码"
+                      className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white placeholder-gray-500 outline-none focus:border-pink-500/50 transition text-sm"
+                    />
+                    <p className="text-[10px] text-gray-500 mt-1">向当前手机号发送验证码，验证身份</p>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={handleSendCurrentPhoneCode}
+                      disabled={phoneLoading || currentPhoneCountdown > 0}
+                      className="flex-1 py-2.5 rounded-xl border border-white/10 text-gray-400 text-sm hover:border-white/20 transition disabled:opacity-40"
+                    >
+                      {currentPhoneSent ? (currentPhoneCountdown > 0 ? `${currentPhoneCountdown}秒后重发` : "重新发送") : "发送验证码"}
+                    </button>
+                    <button
+                      onClick={handleVerifyCurrentPhone}
+                      disabled={phoneLoading || currentPhoneCode.length < 6}
+                      className="flex-1 py-2.5 rounded-xl border border-pink-500/30 text-pink-400 text-sm font-medium hover:bg-pink-500/10 transition disabled:opacity-40"
+                    >
+                      {phoneLoading ? "验证中..." : "验证手机"}
+                    </button>
+                  </div>
+                  <button
+                    onClick={closePhoneModal}
+                    className="w-full py-2.5 rounded-xl border border-white/10 text-gray-400 text-sm hover:border-white/20 transition"
+                  >
+                    取消
+                  </button>
+                </>
+              )}
+
+              {phoneStep === "enter-new" && (
+                <>
+                  <div className="p-3 rounded-xl bg-green-500/10 border border-green-500/20">
+                    <p className="text-xs text-green-400">✓ 当前手机验证通过</p>
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-400 mb-1">新手机号</label>
+                    <input
+                      type="tel"
+                      maxLength={11}
+                      value={newPhone}
+                      onChange={(e) => setNewPhone(e.target.value.replace(/\D/g, ""))}
+                      placeholder="请输入新手机号"
+                      className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white placeholder-gray-500 outline-none focus:border-pink-500/50 transition text-sm"
+                    />
+                  </div>
+                  {newPhoneSent && (
+                    <div>
+                      <label className="block text-xs text-gray-400 mb-1">新手机验证码</label>
+                      <input
+                        type="text"
+                        maxLength={6}
+                        value={newPhoneCode}
+                        onChange={(e) => setNewPhoneCode(e.target.value.replace(/\D/g, ""))}
+                        placeholder="请输入短信验证码"
+                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white placeholder-gray-500 outline-none focus:border-pink-500/50 transition text-sm"
+                      />
+                    </div>
+                  )}
+                  <div className="flex gap-2">
+                    {!newPhoneSent ? (
+                      <button
+                        onClick={handleSendNewPhoneCode}
+                        disabled={phoneLoading || newPhone.length < 11}
+                        className="flex-1 py-2.5 rounded-xl border border-pink-500/30 text-pink-400 text-sm font-medium hover:bg-pink-500/10 transition disabled:opacity-40"
+                      >
+                        {phoneLoading ? "发送中..." : newPhoneCountdown > 0 ? `${newPhoneCountdown}秒后重发` : "发送验证码"}
+                      </button>
+                    ) : (
+                      <button
+                        onClick={handleVerifyNewPhone}
+                        disabled={phoneLoading || newPhoneCode.length < 6}
+                        className="flex-1 py-2.5 rounded-xl border border-pink-500/30 text-pink-400 text-sm font-medium hover:bg-pink-500/10 transition disabled:opacity-40"
+                      >
+                        {phoneLoading ? "验证中..." : "验证新手机"}
+                      </button>
+                    )}
+                  </div>
+                  <button
+                    onClick={() => {
+                      setPhoneStep("verify-current");
+                      setNewPhone("");
+                      setNewPhoneCode("");
+                      setNewPhoneSent(false);
+                      setNewPhoneCountdown(0);
+                      setNewPhoneVerifiedToken("");
+                    }}
+                    className="w-full py-2.5 rounded-xl border border-white/10 text-gray-400 text-sm hover:border-white/20 transition"
+                  >
+                    返回上一步
+                  </button>
+                </>
+              )}
+
+              {phoneStep === "verify-new" && (
+                <>
+                  <div className="p-3 rounded-xl bg-green-500/10 border border-green-500/20">
+                    <p className="text-xs text-green-400">✓ 当前手机验证通过</p>
+                  </div>
+                  <div className="p-3 rounded-xl bg-green-500/10 border border-green-500/20">
+                    <p className="text-xs text-green-400">✓ 新手机号 {newPhone} 验证通过</p>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => {
+                        setPhoneStep("enter-new");
+                        setNewPhoneCode("");
+                        setNewPhoneSent(false);
+                        setNewPhoneCountdown(0);
+                        setNewPhoneVerifiedToken("");
+                      }}
+                      className="flex-1 py-2.5 rounded-xl border border-white/10 text-gray-400 text-sm hover:border-white/20 transition"
+                    >
+                      返回修改
+                    </button>
+                    <button
+                      onClick={handleSubmitPhoneChange}
+                      disabled={phoneLoading}
+                      className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-pink-500 to-purple-500 text-white text-sm font-medium hover:opacity-90 transition disabled:opacity-40"
+                    >
+                      {phoneLoading ? "更换中..." : "确认更换"}
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+
+            {phoneError && (
+              <p className="mt-3 text-xs text-red-400">{phoneError}</p>
             )}
           </div>
         </div>
