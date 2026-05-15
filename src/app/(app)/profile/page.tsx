@@ -133,6 +133,12 @@ export default function ProfilePage() {
     setCropDragging(false);
   };
 
+  const handleCropWheel = (e: React.WheelEvent) => {
+    e.preventDefault();
+    const delta = e.deltaY > 0 ? -0.05 : 0.05;
+    setCropScale((s) => Math.max(MIN_SCALE, Math.min(MAX_SCALE, s + delta)));
+  };
+
   const applyCropAndUpload = async () => {
     if (!cropImage) return;
     setCropUploading(true);
@@ -151,7 +157,7 @@ export default function ProfilePage() {
       const scaledH = cropImage.height * cropScale;
       const dx = cropOffset.x - (scaledW - CROP_SIZE) / 2;
       const dy = cropOffset.y - (scaledH - CROP_SIZE) / 2;
-      ctx.drawImage(cropImage, -dx, -dy, scaledW, scaledH);
+      ctx.drawImage(cropImage, dx, dy, scaledW, scaledH);
 
       const blob = await new Promise<Blob>((resolve, reject) => {
         canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("裁剪失败"))), "image/jpeg", 0.9);
@@ -677,6 +683,7 @@ export default function ProfilePage() {
             onTouchStart={handleCropTouchStart}
             onTouchMove={handleCropTouchMove}
             onTouchEnd={handleCropMouseUp}
+            onWheel={handleCropWheel}
           >
             <div
               className="absolute cursor-grab active:cursor-grabbing"
