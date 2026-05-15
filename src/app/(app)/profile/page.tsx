@@ -96,13 +96,13 @@ export default function ProfilePage() {
   }, [newPhoneCountdown]);
 
   useEffect(() => {
-    if (cropModalOpen) {
+    if (cropModalOpen || emailModalOpen || phoneModalOpen) {
       document.body.style.overflow = "hidden";
     } else {
       document.body.style.overflow = "";
     }
     return () => { document.body.style.overflow = ""; };
-  }, [cropModalOpen]);
+  }, [cropModalOpen, emailModalOpen, phoneModalOpen]);
 
   const closeEmailModal = useCallback(() => {
     setEmailModalOpen(false);
