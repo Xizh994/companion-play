@@ -16,6 +16,8 @@ export default function RegisterPage() {
   const router = useRouter();
   const { register } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const shopCoverInputRef = useRef<HTMLInputElement>(null);
+  const licenseInputRef = useRef<HTMLInputElement>(null);
 
   const [role, setRole] = useState("SHOP");
   const [loading, setLoading] = useState(false);
@@ -48,6 +50,8 @@ export default function RegisterPage() {
   const [shopBio, setShopBio] = useState("");
   const [contactPhone, setContactPhone] = useState("");
   const [contactName, setContactName] = useState("");
+  const [shopCoverPreview, setShopCoverPreview] = useState<string | null>(null);
+  const [licensePreview, setLicensePreview] = useState<string | null>(null);
 
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
 
@@ -71,6 +75,26 @@ export default function RegisterPage() {
     if (file.size > 5 * 1024 * 1024) { setError("头像大小不能超过 5MB"); return; }
     const reader = new FileReader();
     reader.onload = () => setAvatarPreview(reader.result as string);
+    reader.readAsDataURL(file);
+    e.target.value = "";
+  };
+
+  const handleShopCoverChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) { setError("封面大小不能超过 5MB"); return; }
+    const reader = new FileReader();
+    reader.onload = () => setShopCoverPreview(reader.result as string);
+    reader.readAsDataURL(file);
+    e.target.value = "";
+  };
+
+  const handleLicenseChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 10 * 1024 * 1024) { setError("营业执照大小不能超过 10MB"); return; }
+    const reader = new FileReader();
+    reader.onload = () => setLicensePreview(reader.result as string);
     reader.readAsDataURL(file);
     e.target.value = "";
   };
@@ -185,8 +209,10 @@ export default function RegisterPage() {
         emailVerifiedToken: email ? emailVerifiedToken : undefined,
         shopName: role === "SHOP" ? shopName : undefined,
         shopBio: role === "SHOP" ? shopBio : undefined,
+        shopCover: role === "SHOP" ? shopCoverPreview : undefined,
         contactPhone: role === "SHOP" ? contactPhone : undefined,
         contactName: role === "SHOP" ? contactName : undefined,
+        licenseImage: role === "SHOP" ? licensePreview : undefined,
       });
       router.push("/lobby");
     } catch (err) {
@@ -524,6 +550,80 @@ export default function RegisterPage() {
                     placeholder="负责人真实姓名"
                     className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white placeholder-gray-500 outline-none focus:border-purple-500/50 focus:ring-2 focus:ring-purple-500/20 transition text-sm"
                   />
+                </div>
+
+                <div>
+                  <label className="block text-xs text-gray-400 mb-1">
+                    营业执照 <span className="text-red-400">*</span>
+                  </label>
+                  <input
+                    ref={licenseInputRef}
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp"
+                    className="hidden"
+                    onChange={handleLicenseChange}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => licenseInputRef.current?.click()}
+                    className={cn(
+                      "w-full border-2 border-dashed rounded-xl p-4 flex flex-col items-center gap-1.5 transition-all duration-300",
+                      licensePreview
+                        ? "border-purple-500/40 bg-purple-500/5"
+                        : "border-white/10 bg-white/[0.02] hover:border-purple-400/40 hover:bg-white/[0.05]"
+                    )}
+                  >
+                    {licensePreview ? (
+                      <div className="relative w-full">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={licensePreview} alt="营业执照预览" className="w-full h-28 object-contain rounded-lg" />
+                        <span className="text-[10px] text-purple-400 mt-1 block text-center">点击重新上传</span>
+                      </div>
+                    ) : (
+                      <>
+                        <span className="text-2xl">📄</span>
+                        <span className="text-xs text-gray-400">上传营业执照照片</span>
+                        <span className="text-[10px] text-gray-500">支持 PNG / JPG / WebP，不超过 10MB</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+
+                <div>
+                  <label className="block text-xs text-gray-400 mb-1">
+                    店铺封面 <span className="text-gray-500 font-normal">（可选）</span>
+                  </label>
+                  <input
+                    ref={shopCoverInputRef}
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp"
+                    className="hidden"
+                    onChange={handleShopCoverChange}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => shopCoverInputRef.current?.click()}
+                    className={cn(
+                      "w-full border-2 border-dashed rounded-xl p-4 flex flex-col items-center gap-1.5 transition-all duration-300",
+                      shopCoverPreview
+                        ? "border-purple-500/40 bg-purple-500/5"
+                        : "border-white/10 bg-white/[0.02] hover:border-purple-400/40 hover:bg-white/[0.05]"
+                    )}
+                  >
+                    {shopCoverPreview ? (
+                      <div className="relative w-full">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={shopCoverPreview} alt="店铺封面预览" className="w-full h-28 object-cover rounded-lg" />
+                        <span className="text-[10px] text-purple-400 mt-1 block text-center">点击重新上传</span>
+                      </div>
+                    ) : (
+                      <>
+                        <span className="text-2xl">🖼️</span>
+                        <span className="text-xs text-gray-400">上传店铺封面图</span>
+                        <span className="text-[10px] text-gray-500">支持 PNG / JPG / WebP，不超过 5MB</span>
+                      </>
+                    )}
+                  </button>
                 </div>
               </div>
             </div>

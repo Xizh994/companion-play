@@ -61,8 +61,10 @@ export interface RegisterFormData {
   emailVerifiedToken?: string;
   shopName?: string;
   shopBio?: string;
+  shopCover?: string | null;
   contactPhone?: string;
   contactName?: string;
+  licenseImage?: string | null;
 }
 
 export function useAuth() {
