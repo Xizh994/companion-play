@@ -3,7 +3,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import Image from "next/image";
 import { useAuth } from "@/hooks/useAuth";
 import { Crown, Store, Shield, Check, Clock, XCircle, Mail, Phone, Lock, Camera, ArrowLeft, X, Pencil, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -38,6 +37,7 @@ export default function ProfilePage() {
   const [editingNickname, setEditingNickname] = useState(false);
   const [nicknameValue, setNicknameValue] = useState(user?.nickname || "");
   const [nicknameSaving, setNicknameSaving] = useState(false);
+  const [profileError, setProfileError] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const isBinding = !user?.email;
@@ -72,7 +72,8 @@ export default function ProfilePage() {
   const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > 5 * 1024 * 1024) { setEmailError("头像大小不能超过 5MB"); return; }
+    if (file.size > 5 * 1024 * 1024) { setProfileError("头像大小不能超过 5MB"); return; }
+    setProfileError("");
     setAvatarLoading(true);
     try {
       const formData = new FormData();
@@ -83,10 +84,10 @@ export default function ProfilePage() {
         body: formData,
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
+      if (!res.ok) throw new Error(data.error || "上传失败");
       await refreshUser();
     } catch (err) {
-      setEmailError(err instanceof Error ? err.message : "上传失败");
+      setProfileError(err instanceof Error ? err.message : "上传失败");
     } finally {
       setAvatarLoading(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
@@ -95,8 +96,9 @@ export default function ProfilePage() {
 
   const handleSaveNickname = async () => {
     const trimmed = nicknameValue.trim();
-    if (!trimmed) { setEmailError("昵称不能为空"); return; }
+    if (!trimmed) { setProfileError("昵称不能为空"); return; }
     if (trimmed === user?.nickname) { setEditingNickname(false); return; }
+    setProfileError("");
     setNicknameSaving(true);
     try {
       const formData = new FormData();
@@ -107,11 +109,11 @@ export default function ProfilePage() {
         body: formData,
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
+      if (!res.ok) throw new Error(data.error || "保存失败");
       await refreshUser();
       setEditingNickname(false);
     } catch (err) {
-      setEmailError(err instanceof Error ? err.message : "保存失败");
+      setProfileError(err instanceof Error ? err.message : "保存失败");
     } finally {
       setNicknameSaving(false);
     }
@@ -315,6 +317,11 @@ export default function ProfilePage() {
         </button>
 
         <div className="glass rounded-3xl p-6 sm:p-8 glow-card">
+          {profileError && (
+            <div className="mb-4 p-3 bg-red-500/10 border border-red-500/30 rounded-xl text-red-400 text-sm text-center">
+              {profileError}
+            </div>
+          )}
           {/* Header */}
           <div className="text-center mb-8">
             <input
@@ -331,7 +338,7 @@ export default function ProfilePage() {
               className="w-20 h-20 mx-auto mb-3 rounded-full bg-white/5 border-2 border-white/10 flex items-center justify-center overflow-hidden relative group cursor-pointer disabled:cursor-wait"
             >
               {user.avatar ? (
-                <Image src={user.avatar} alt="头像" fill className="object-cover" />
+                <img src={user.avatar} alt="头像" className="w-full h-full object-cover" />
               ) : (
                 <Camera className="w-8 h-8 text-gray-600" />
               )}

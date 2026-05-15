@@ -5,7 +5,7 @@ import { writeFile, mkdir } from "fs/promises";
 import path from "path";
 import crypto from "crypto";
 
-const UPLOAD_DIR = path.join(process.cwd(), "public", "uploads", "avatars");
+const UPLOAD_DIR = path.join(process.cwd(), "data", "uploads", "avatars");
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 
@@ -61,7 +61,7 @@ export async function POST(req: NextRequest) {
       const buffer = Buffer.from(await avatarFile.arrayBuffer());
       await writeFile(path.join(UPLOAD_DIR, filename), buffer);
 
-      updateData.avatar = `/uploads/avatars/${filename}`;
+      updateData.avatar = `/api/uploads/avatars/${filename}`;
     }
 
     if (Object.keys(updateData).length === 0) {
