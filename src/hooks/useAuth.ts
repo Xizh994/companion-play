@@ -71,7 +71,7 @@ export function useAuth() {
   const [loading] = useState(false);
 
   const login = useCallback(
-    async (params: { phone?: string; email?: string; password?: string; loginType?: "password" | "sms" | "magic_link" | "email_code"; smsVerifiedToken?: string; magicLinkToken?: string; emailVerifiedToken?: string }) => {
+    async (params: { phone?: string; email?: string; password?: string; loginType?: "password" | "sms" | "email_code"; smsVerifiedToken?: string; emailVerifiedToken?: string }) => {
       const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },

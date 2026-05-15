@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useEffect, useRef } from "react";
+import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
@@ -24,20 +24,7 @@ export default function LoginPage() {
 
   const [activeTab, setActiveTab] = useState<TabKey>("sms");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(() => {
-    if (typeof window === "undefined") return "";
-    const errorType = searchParams.get("error");
-    if (!errorType) return "";
-    const messages: Record<string, string> = {
-      invalid_link: "登录链接无效",
-      expired_link: "登录链接已过期",
-      used_link: "登录链接已被使用",
-      link_failed: "登录链接验证失败",
-    };
-    const msg = messages[errorType] || "登录链接验证失败，请重新发送";
-    setTimeout(() => window.history.replaceState({}, "", "/login"), 0);
-    return msg;
-  });
+  const [error, setError] = useState("");
 
   const [phone, setPhone] = useState(() => {
     if (typeof window !== "undefined") return localStorage.getItem(LAST_LOGIN_PHONE_KEY) || "";
@@ -54,33 +41,8 @@ export default function LoginPage() {
   });
   const [sendingMagic, setSendingMagic] = useState(false);
   const [emergencyCodeSent, setEmergencyCodeSent] = useState(false);
-  const [magicLinkSent, setMagicLinkSent] = useState(false);
   const [emergencyCode, setEmergencyCode] = useState("");
   const [agreedToTerms, setAgreedToTerms] = useState(false);
-
-  const initialMagicToken = typeof window !== "undefined" ? searchParams.get("magic_token") : null;
-  const [magicProcessing, setMagicProcessing] = useState(!!initialMagicToken);
-  const magicTokenRef = useRef(initialMagicToken);
-
-  useEffect(() => {
-    const token = magicTokenRef.current;
-    if (!token) return;
-    magicTokenRef.current = null;
-
-    login({ loginType: "magic_link", magicLinkToken: token })
-      .then(() => {
-        window.history.replaceState({}, "", "/login");
-        const redirect = searchParams.get("redirect");
-        router.push(redirect || "/lobby");
-      })
-      .catch((err) => {
-        setError(err instanceof Error ? err.message : "Magic Link 登录失败");
-        window.history.replaceState({}, "", "/login");
-      })
-      .finally(() => {
-        setMagicProcessing(false);
-      });
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const startCooldown = () => {
     setSmsCooldown(60);
@@ -157,28 +119,6 @@ export default function LoginPage() {
     }
   };
 
-  const handleSendMagicLink = async () => {
-    if (!email) { setError("请输入邮箱地址"); return; }
-    setError("");
-    setSendingMagic(true);
-    try {
-      const res = await fetch("/api/auth/send-magic-link", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
-      setMagicLinkSent(true);
-      // 保存邮箱到 localStorage
-      localStorage.setItem(LAST_LOGIN_EMAIL_KEY, email);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
-    } finally {
-      setSendingMagic(false);
-    }
-  };
-
   const handleSendEmergencyCode = async () => {
     if (!email) { setError("请输入邮箱地址"); return; }
     setError("");
@@ -232,15 +172,6 @@ export default function LoginPage() {
         <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-gradient-to-r from-pink-500/15 to-purple-500/15 rounded-full blur-3xl" />
       </div>
 
-      {magicProcessing && (
-        <div className="relative w-full max-w-md glass rounded-3xl p-8 glow-card text-center">
-          <span className="text-4xl animate-bounce inline-block">📧</span>
-          <p className="text-gray-300 mt-4">正在验证登录链接...</p>
-          <p className="text-gray-500 text-sm mt-1">请稍候</p>
-        </div>
-      )}
-
-      {!magicProcessing && (
       <div className="relative w-full max-w-md">
         <div className="glass rounded-3xl p-6 sm:p-8 glow-card">
           <div className="text-center mb-6">
@@ -256,7 +187,7 @@ export default function LoginPage() {
               <button
                 key={tab.key}
                 type="button"
-                onClick={() => { setActiveTab(tab.key); setError(""); setEmergencyCodeSent(false); setMagicLinkSent(false); setEmergencyCode(""); }}
+                onClick={() => { setActiveTab(tab.key); setError(""); setEmergencyCodeSent(false); setEmergencyCode(""); }}
                 className={cn(
                   "flex-1 pb-2.5 text-sm font-medium transition-all border-b-2 -mb-[1px]",
                   activeTab === tab.key
@@ -388,25 +319,15 @@ export default function LoginPage() {
                 />
               </div>
 
-              {!emergencyCodeSent && !magicLinkSent && (
-                <div className="flex gap-3">
-                  <button
-                    type="button"
-                    onClick={handleSendEmergencyCode}
-                    disabled={sendingMagic}
-                    className="flex-1 py-3 rounded-xl border border-pink-500/30 text-pink-400 text-sm font-medium hover:bg-pink-500/10 transition disabled:opacity-40"
-                  >
-                    {sendingMagic ? "发送中..." : "发送验证码"}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleSendMagicLink}
-                    disabled={sendingMagic}
-                    className="flex-1 btn-gradient py-3 rounded-xl text-sm font-medium disabled:opacity-50"
-                  >
-                    {sendingMagic ? "发送中..." : "发送 Magic Link"}
-                  </button>
-                </div>
+              {!emergencyCodeSent && (
+                <button
+                  type="button"
+                  onClick={handleSendEmergencyCode}
+                  disabled={sendingMagic}
+                  className="w-full py-3 rounded-xl border border-pink-500/30 text-pink-400 text-sm font-medium hover:bg-pink-500/10 transition disabled:opacity-40"
+                >
+                  {sendingMagic ? "发送中..." : "发送验证码"}
+                </button>
               )}
 
               {emergencyCodeSent && (
@@ -442,25 +363,7 @@ export default function LoginPage() {
                 </div>
               )}
 
-              {magicLinkSent && (
-                <div className="space-y-4">
-                  <div className="p-3 bg-green-500/10 border border-green-500/20 rounded-xl text-green-400 text-sm text-center">
-                    ✅ 已发送，请查收邮件并点击链接登录
-                  </div>
-                  <p className="text-xs text-gray-500 text-center">
-                    💡 Magic Link：点击邮件中的链接即可直接登录，更安全便捷
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => setMagicLinkSent(false)}
-                    className="w-full py-2 rounded-xl text-gray-400 text-sm hover:text-gray-200 transition"
-                  >
-                    ← 重新发送
-                  </button>
-                </div>
-              )}
-
-              {!emergencyCodeSent && !magicLinkSent && (
+              {!emergencyCodeSent && (
                 <>
                   <div className="flex items-center gap-3 my-2">
                     <span className="flex-1 h-px bg-white/10" />
@@ -501,7 +404,6 @@ export default function LoginPage() {
           </label>
         </div>
       </div>
-      )}
     </div>
   );
 }

@@ -5,7 +5,7 @@ import { comparePassword, signToken, verifyToken } from "@/lib/auth";
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { phone, email, password, loginType, smsVerifiedToken, magicLinkToken, emailVerifiedToken } = body;
+    const { phone, email, password, loginType, smsVerifiedToken, emailVerifiedToken } = body;
 
     // 密码登录
     if (loginType === "password" || (!loginType && password)) {
@@ -72,41 +72,6 @@ export async function POST(req: NextRequest) {
       } else {
         await prisma.user.update({ where: { id: user.id }, data: { status: "online" } });
       }
-
-      const token = signToken({ userId: user.id, role: user.role });
-
-      return NextResponse.json({
-        token,
-        user: {
-          id: user.id,
-          phone: user.phone,
-          role: user.role,
-          nickname: user.nickname,
-          email: user.email,
-          avatar: user.avatar,
-          bio: user.bio,
-          hasPassword: !!user.passwordHash,
-        },
-      });
-    }
-
-    // Magic Link 登录
-    if (loginType === "magic_link") {
-      if (!magicLinkToken) {
-        return NextResponse.json({ error: "无效的登录链接" }, { status: 400 });
-      }
-
-      const magicPayload = verifyToken(magicLinkToken);
-      if (!magicPayload) {
-        return NextResponse.json({ error: "登录链接已过期" }, { status: 401 });
-      }
-
-      const user = await prisma.user.findUnique({ where: { id: magicPayload.userId } });
-      if (!user) {
-        return NextResponse.json({ error: "用户不存在" }, { status: 404 });
-      }
-
-      await prisma.user.update({ where: { id: user.id }, data: { status: "online" } });
 
       const token = signToken({ userId: user.id, role: user.role });
 
