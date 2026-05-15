@@ -313,14 +313,6 @@ export default function ProfilePage() {
                 <div className="flex items-center gap-2">
                   <p className="text-sm text-gray-200 truncate">
                     {user.email ? maskEmail(user.email) : "未绑定"}
-                    {user.email && (
-                      <span className={cn(
-                        "ml-1 text-xs",
-                        user.emailVerified ? "text-green-400" : "text-amber-400"
-                      )}>
-                        {user.emailVerified ? "✓ 已验证" : "未验证"}
-                      </span>
-                    )}
                   </p>
                   <button
                     onClick={() => {
