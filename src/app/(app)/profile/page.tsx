@@ -4,9 +4,14 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/hooks/useAuth";
-import { Crown, Store, Shield, Check, Clock, XCircle, Mail, Phone, Lock, Camera, ArrowLeft, X, Pencil, Loader2 } from "lucide-react";
+import { Crown, Store, Shield, Check, Clock, XCircle, Mail, Phone, Lock, Camera, ArrowLeft, X, Pencil, Loader2, ZoomIn, ZoomOut } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { maskPhone, maskEmail } from "@/lib/mask";
+
+const CROP_SIZE = 280;
+const MIN_SCALE = 0.5;
+const MAX_SCALE = 3;
+const ALLOWED_FILE_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -33,12 +38,21 @@ export default function ProfilePage() {
   const [emailLoading, setEmailLoading] = useState(false);
   const [emailError, setEmailError] = useState("");
 
-  const [avatarLoading, setAvatarLoading] = useState(false);
   const [editingNickname, setEditingNickname] = useState(false);
   const [nicknameValue, setNicknameValue] = useState(user?.nickname || "");
   const [nicknameSaving, setNicknameSaving] = useState(false);
   const [profileError, setProfileError] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const [cropModalOpen, setCropModalOpen] = useState(false);
+  const [cropImageSrc, setCropImageSrc] = useState("");
+  const [cropImage, setCropImage] = useState<HTMLImageElement | null>(null);
+  const [cropScale, setCropScale] = useState(1);
+  const [cropOffset, setCropOffset] = useState({ x: 0, y: 0 });
+  const [cropDragging, setCropDragging] = useState(false);
+  const [cropDragStart, setCropDragStart] = useState({ x: 0, y: 0 });
+  const [cropUploading, setCropUploading] = useState(false);
+  const cropContainerRef = useRef<HTMLDivElement>(null);
 
   const isBinding = !user?.email;
 
@@ -69,15 +83,82 @@ export default function ProfilePage() {
     setEmailError("");
   }, []);
 
-  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     if (file.size > 5 * 1024 * 1024) { setProfileError("头像大小不能超过 5MB"); return; }
+    if (!ALLOWED_FILE_TYPES.includes(file.type)) { setProfileError("仅支持 JPG/PNG/WebP/GIF 格式"); return; }
     setProfileError("");
-    setAvatarLoading(true);
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        setCropImage(img);
+        setCropImageSrc(reader.result as string);
+        const scale = Math.min(CROP_SIZE / img.width, CROP_SIZE / img.height, 1);
+        setCropScale(scale);
+        setCropOffset({ x: 0, y: 0 });
+        setCropModalOpen(true);
+      };
+      img.src = reader.result as string;
+    };
+    reader.readAsDataURL(file);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const handleCropMouseDown = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setCropDragging(true);
+    setCropDragStart({ x: e.clientX - cropOffset.x, y: e.clientY - cropOffset.y });
+  };
+
+  const handleCropTouchStart = (e: React.TouchEvent) => {
+    if (e.touches.length !== 1) return;
+    setCropDragging(true);
+    setCropDragStart({ x: e.touches[0].clientX - cropOffset.x, y: e.touches[0].clientY - cropOffset.y });
+  };
+
+  const handleCropMouseMove = (e: React.MouseEvent) => {
+    if (!cropDragging) return;
+    setCropOffset({ x: e.clientX - cropDragStart.x, y: e.clientY - cropDragStart.y });
+  };
+
+  const handleCropTouchMove = (e: React.TouchEvent) => {
+    if (!cropDragging || e.touches.length !== 1) return;
+    setCropOffset({ x: e.touches[0].clientX - cropDragStart.x, y: e.touches[0].clientY - cropDragStart.y });
+  };
+
+  const handleCropMouseUp = () => {
+    setCropDragging(false);
+  };
+
+  const applyCropAndUpload = async () => {
+    if (!cropImage) return;
+    setCropUploading(true);
     try {
+      const canvas = document.createElement("canvas");
+      canvas.width = CROP_SIZE;
+      canvas.height = CROP_SIZE;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) throw new Error("无法创建画布");
+
+      ctx.beginPath();
+      ctx.arc(CROP_SIZE / 2, CROP_SIZE / 2, CROP_SIZE / 2, 0, Math.PI * 2);
+      ctx.clip();
+
+      const scaledW = cropImage.width * cropScale;
+      const scaledH = cropImage.height * cropScale;
+      const dx = cropOffset.x - (scaledW - CROP_SIZE) / 2;
+      const dy = cropOffset.y - (scaledH - CROP_SIZE) / 2;
+      ctx.drawImage(cropImage, -dx, -dy, scaledW, scaledH);
+
+      const blob = await new Promise<Blob>((resolve, reject) => {
+        canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("裁剪失败"))), "image/jpeg", 0.9);
+      });
+
       const formData = new FormData();
-      formData.append("avatar", file);
+      formData.append("avatar", blob, "avatar.jpg");
       const res = await fetch("/api/profile/update", {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` },
@@ -86,13 +167,23 @@ export default function ProfilePage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "上传失败");
       await refreshUser();
+      setCropModalOpen(false);
     } catch (err) {
+      setCropUploading(false);
       setProfileError(err instanceof Error ? err.message : "上传失败");
-    } finally {
-      setAvatarLoading(false);
-      if (fileInputRef.current) fileInputRef.current.value = "";
+      setCropModalOpen(false);
     }
   };
+
+  const closeCropModal = () => {
+    setCropModalOpen(false);
+    setCropImage(null);
+    setCropImageSrc("");
+    setCropUploading(false);
+  };
+
+  const handleCropZoomIn = () => setCropScale((s) => Math.min(s + 0.1, MAX_SCALE));
+  const handleCropZoomOut = () => setCropScale((s) => Math.max(s - 0.1, MIN_SCALE));
 
   const handleSaveNickname = async () => {
     const trimmed = nicknameValue.trim();
@@ -334,8 +425,7 @@ export default function ProfilePage() {
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              disabled={avatarLoading}
-              className="w-20 h-20 mx-auto mb-3 rounded-full bg-white/5 border-2 border-white/10 flex items-center justify-center overflow-hidden relative group cursor-pointer disabled:cursor-wait"
+              className="w-20 h-20 mx-auto mb-3 rounded-full bg-white/5 border-2 border-white/10 flex items-center justify-center overflow-hidden relative group cursor-pointer"
             >
               {user.avatar ? (
                 <img src={user.avatar} alt="头像" className="w-full h-full object-cover" />
@@ -343,11 +433,7 @@ export default function ProfilePage() {
                 <Camera className="w-8 h-8 text-gray-600" />
               )}
               <div className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                {avatarLoading ? (
-                  <Loader2 className="w-6 h-6 text-white animate-spin" />
-                ) : (
-                  <Camera className="w-6 h-6 text-white" />
-                )}
+                <Camera className="w-6 h-6 text-white" />
               </div>
             </button>
             {editingNickname ? (
@@ -570,6 +656,96 @@ export default function ProfilePage() {
           </Link>
         </div>
       </div>
+
+      {cropModalOpen && cropImageSrc && (
+        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/80 select-none">
+          <div className="flex items-center justify-between w-full max-w-md px-6 py-4">
+            <h3 className="text-white font-semibold text-lg">裁剪头像</h3>
+            <button onClick={closeCropModal} className="text-gray-400 hover:text-gray-200">
+              <X className="w-6 h-6" />
+            </button>
+          </div>
+
+          <div
+            ref={cropContainerRef}
+            className="relative overflow-hidden rounded-full touch-none"
+            style={{ width: CROP_SIZE, height: CROP_SIZE }}
+            onMouseDown={handleCropMouseDown}
+            onMouseMove={handleCropMouseMove}
+            onMouseUp={handleCropMouseUp}
+            onMouseLeave={handleCropMouseUp}
+            onTouchStart={handleCropTouchStart}
+            onTouchMove={handleCropTouchMove}
+            onTouchEnd={handleCropMouseUp}
+          >
+            <div
+              className="absolute cursor-grab active:cursor-grabbing"
+              style={{
+                width: cropImage ? cropImage.width * cropScale : 0,
+                height: cropImage ? cropImage.height * cropScale : 0,
+                left: cropOffset.x - ((cropImage ? cropImage.width * cropScale : 0) - CROP_SIZE) / 2,
+                top: cropOffset.y - ((cropImage ? cropImage.height * cropScale : 0) - CROP_SIZE) / 2,
+              }}
+            >
+              <img src={cropImageSrc} alt="" className="w-full h-full pointer-events-none" draggable={false} />
+            </div>
+            <div className="absolute inset-0 rounded-full border-2 border-white/40 shadow-[0_0_0_9999px_rgba(0,0,0,0.5)] pointer-events-none" />
+          </div>
+
+          <p className="text-gray-400 text-xs mt-4 mb-2">拖拽图片调整位置</p>
+
+          <div className="flex items-center gap-3 mb-6">
+            <button
+              type="button"
+              onClick={handleCropZoomOut}
+              disabled={cropScale <= MIN_SCALE}
+              className="p-2 rounded-lg bg-white/10 hover:bg-white/20 transition disabled:opacity-30"
+            >
+              <ZoomOut className="w-5 h-5 text-white" />
+            </button>
+            <input
+              type="range"
+              min={MIN_SCALE * 10}
+              max={MAX_SCALE * 10}
+              step={1}
+              value={Math.round(cropScale * 10)}
+              onChange={(e) => setCropScale(Number(e.target.value) / 10)}
+              className="w-32 accent-pink-500"
+            />
+            <button
+              type="button"
+              onClick={handleCropZoomIn}
+              disabled={cropScale >= MAX_SCALE}
+              className="p-2 rounded-lg bg-white/10 hover:bg-white/20 transition disabled:opacity-30"
+            >
+              <ZoomIn className="w-5 h-5 text-white" />
+            </button>
+          </div>
+
+          <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={closeCropModal}
+              disabled={cropUploading}
+              className="px-8 py-2.5 rounded-xl border border-white/20 text-gray-300 text-sm font-medium hover:border-white/30 transition disabled:opacity-40"
+            >
+              取消
+            </button>
+            <button
+              type="button"
+              onClick={applyCropAndUpload}
+              disabled={cropUploading}
+              className="px-8 py-2.5 rounded-xl bg-gradient-to-r from-pink-500 to-purple-500 text-white text-sm font-medium hover:opacity-90 transition disabled:opacity-40 flex items-center gap-2"
+            >
+              {cropUploading ? (
+                <><Loader2 className="w-4 h-4 animate-spin" /> 上传中...</>
+              ) : (
+                "确认"
+              )}
+            </button>
+          </div>
+        </div>
+      )}
 
       {emailModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
