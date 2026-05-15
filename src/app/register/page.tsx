@@ -48,8 +48,8 @@ export default function RegisterPage() {
   // 店铺信息
   const [shopName, setShopName] = useState("");
   const [shopBio, setShopBio] = useState("");
-  const [contactPhone, setContactPhone] = useState("");
   const [contactName, setContactName] = useState("");
+  const [contactIdCard, setContactIdCard] = useState("");
   const [shopCoverPreview, setShopCoverPreview] = useState<string | null>(null);
   const [licensePreview, setLicensePreview] = useState<string | null>(null);
 
@@ -210,8 +210,8 @@ export default function RegisterPage() {
         shopName: role === "SHOP" ? shopName : undefined,
         shopBio: role === "SHOP" ? shopBio : undefined,
         shopCover: role === "SHOP" ? shopCoverPreview : undefined,
-        contactPhone: role === "SHOP" ? contactPhone : undefined,
         contactName: role === "SHOP" ? contactName : undefined,
+        contactIdCard: role === "SHOP" ? contactIdCard : undefined,
         licenseImage: role === "SHOP" ? licensePreview : undefined,
       });
       router.push("/lobby");
@@ -399,6 +399,7 @@ export default function RegisterPage() {
                   placeholder="给自己取个名字"
                   className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white placeholder-gray-500 outline-none focus:border-pink-500/50 focus:ring-2 focus:ring-pink-500/20 transition text-sm"
                 />
+                <p className="text-[10px] text-gray-500 mt-1">在聊天和个人主页中显示的个人名称</p>
               </div>
 
               <div>
@@ -520,6 +521,7 @@ export default function RegisterPage() {
                     placeholder="给你的店铺取个名字"
                     className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white placeholder-gray-500 outline-none focus:border-purple-500/50 focus:ring-2 focus:ring-purple-500/20 transition text-sm"
                   />
+                  <p className="text-[10px] text-gray-500 mt-1">在发现页和列表中展示的品牌名称</p>
                 </div>
                 <div>
                   <label className="block text-xs text-gray-400 mb-1">店铺简介</label>
@@ -531,16 +533,16 @@ export default function RegisterPage() {
                     className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white placeholder-gray-500 outline-none focus:border-purple-500/50 focus:ring-2 focus:ring-purple-500/20 transition resize-none text-sm"
                   />
                 </div>
-                <div>
-                  <label className="block text-xs text-gray-400 mb-1">联系电话</label>
-                  <input
-                    type="tel"
-                    value={contactPhone}
-                    onChange={(e) => setContactPhone(e.target.value)}
-                    placeholder="店铺联系电话"
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white placeholder-gray-500 outline-none focus:border-purple-500/50 focus:ring-2 focus:ring-purple-500/20 transition text-sm"
-                  />
+                <div className="p-2.5 bg-white/[0.03] border border-white/[0.06] rounded-lg text-xs text-gray-400">
+                  <span className="text-gray-300">📞 店铺联系电话：</span>
+                  {phoneVerified ? (
+                    <span className="text-purple-400 font-medium">{phone}</span>
+                  ) : (
+                    <span className="text-gray-500">请先完成上方手机验证</span>
+                  )}
+                  <span className="text-gray-500 ml-1">（使用注册手机号）</span>
                 </div>
+
                 <div>
                   <label className="block text-xs text-gray-400 mb-1">负责人姓名</label>
                   <input
@@ -550,6 +552,21 @@ export default function RegisterPage() {
                     placeholder="负责人真实姓名"
                     className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white placeholder-gray-500 outline-none focus:border-purple-500/50 focus:ring-2 focus:ring-purple-500/20 transition text-sm"
                   />
+                </div>
+
+                <div>
+                  <label className="block text-xs text-gray-400 mb-1">
+                    负责人身份证号 <span className="text-red-400">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={contactIdCard}
+                    onChange={(e) => setContactIdCard(e.target.value)}
+                    placeholder="请输入负责人身份证号"
+                    maxLength={18}
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white placeholder-gray-500 outline-none focus:border-purple-500/50 focus:ring-2 focus:ring-purple-500/20 transition text-sm"
+                  />
+                  <p className="text-[10px] text-gray-500 mt-1">用于实名认证校验，加密存储不会泄露</p>
                 </div>
 
                 <div>

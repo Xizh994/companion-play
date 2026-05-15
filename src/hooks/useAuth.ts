@@ -62,8 +62,8 @@ export interface RegisterFormData {
   shopName?: string;
   shopBio?: string;
   shopCover?: string | null;
-  contactPhone?: string;
   contactName?: string;
+  contactIdCard?: string;
   licenseImage?: string | null;
 }
 

@@ -16,8 +16,8 @@ export async function POST(req: NextRequest) {
       shopName,
       shopBio,
       shopCover,
-      contactPhone,
       contactName,
+      contactIdCard,
       licenseImage,
     } = body;
 
@@ -79,8 +79,9 @@ export async function POST(req: NextRequest) {
           shopName,
           shopDesc: shopBio || "",
           shopCover: shopCover || "",
-          contactPhone: contactPhone || phone,
+          contactPhone: phone,
           contactName: contactName || "",
+          contactIdCard: contactIdCard || null,
           licenseType: "business_license",
           licenseImage: licenseImage || "",
           verificationStatus: "PENDING",
