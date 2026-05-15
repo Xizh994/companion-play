@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
@@ -24,7 +24,20 @@ export default function LoginPage() {
 
   const [activeTab, setActiveTab] = useState<TabKey>("sms");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setError] = useState(() => {
+    if (typeof window === "undefined") return "";
+    const errorType = searchParams.get("error");
+    if (!errorType) return "";
+    const messages: Record<string, string> = {
+      invalid_link: "登录链接无效",
+      expired_link: "登录链接已过期",
+      used_link: "登录链接已被使用",
+      link_failed: "登录链接验证失败",
+    };
+    const msg = messages[errorType] || "登录链接验证失败，请重新发送";
+    setTimeout(() => window.history.replaceState({}, "", "/login"), 0);
+    return msg;
+  });
 
   const [phone, setPhone] = useState(() => {
     if (typeof window !== "undefined") return localStorage.getItem(LAST_LOGIN_PHONE_KEY) || "";
@@ -44,6 +57,30 @@ export default function LoginPage() {
   const [magicLinkSent, setMagicLinkSent] = useState(false);
   const [emergencyCode, setEmergencyCode] = useState("");
   const [agreedToTerms, setAgreedToTerms] = useState(false);
+
+  const initialMagicToken = typeof window !== "undefined" ? searchParams.get("magic_token") : null;
+  const [magicProcessing, setMagicProcessing] = useState(!!initialMagicToken);
+  const magicTokenRef = useRef(initialMagicToken);
+
+  useEffect(() => {
+    const token = magicTokenRef.current;
+    if (!token) return;
+    magicTokenRef.current = null;
+
+    login({ loginType: "magic_link", magicLinkToken: token })
+      .then(() => {
+        window.history.replaceState({}, "", "/login");
+        const redirect = searchParams.get("redirect");
+        router.push(redirect || "/lobby");
+      })
+      .catch((err) => {
+        setError(err instanceof Error ? err.message : "Magic Link 登录失败");
+        window.history.replaceState({}, "", "/login");
+      })
+      .finally(() => {
+        setMagicProcessing(false);
+      });
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const startCooldown = () => {
     setSmsCooldown(60);
@@ -195,6 +232,15 @@ export default function LoginPage() {
         <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-gradient-to-r from-pink-500/15 to-purple-500/15 rounded-full blur-3xl" />
       </div>
 
+      {magicProcessing && (
+        <div className="relative w-full max-w-md glass rounded-3xl p-8 glow-card text-center">
+          <span className="text-4xl animate-bounce inline-block">📧</span>
+          <p className="text-gray-300 mt-4">正在验证登录链接...</p>
+          <p className="text-gray-500 text-sm mt-1">请稍候</p>
+        </div>
+      )}
+
+      {!magicProcessing && (
       <div className="relative w-full max-w-md">
         <div className="glass rounded-3xl p-6 sm:p-8 glow-card">
           <div className="text-center mb-6">
@@ -455,6 +501,7 @@ export default function LoginPage() {
           </label>
         </div>
       </div>
+      )}
     </div>
   );
 }

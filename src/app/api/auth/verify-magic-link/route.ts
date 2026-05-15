@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { verifyToken, signToken } from "@/lib/auth";
+import { verifyToken } from "@/lib/auth";
 
 export async function GET(req: NextRequest) {
   try {
@@ -38,19 +38,8 @@ export async function GET(req: NextRequest) {
       data: { status: "online" },
     });
 
-    const authToken = signToken({ userId: payload.userId, role: payload.role });
-
-    const response = NextResponse.redirect(new URL("/lobby", req.url));
-    response.cookies.set("dazistar_token", authToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      path: "/",
-      maxAge: 7 * 24 * 60 * 60,
-    });
-
-    return response;
-  } catch (error: any) {
+    return NextResponse.redirect(new URL(`/login?magic_token=${encodeURIComponent(token)}`, req.url));
+  } catch (error: unknown) {
     console.error("Verify magic link error:", error);
     return NextResponse.redirect(new URL("/login?error=link_failed", req.url));
   }
