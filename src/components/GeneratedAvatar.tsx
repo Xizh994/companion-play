@@ -51,7 +51,7 @@ export function GeneratedAvatar({
     <img
       src={url}
       alt=""
-      className={cn("shrink-0 drop-shadow-md", className)}
+      className={cn("shrink-0 drop-shadow-md rounded-full", className)}
       style={{ width: size, height: size }}
       loading="lazy"
     />
@@ -81,7 +81,7 @@ export function SafeAvatar({
       <img
         src={src}
         alt={alt}
-        className={cn("object-cover shrink-0 drop-shadow-md", className)}
+        className={cn("object-cover shrink-0 drop-shadow-md rounded-full", className)}
         style={{ width: size, height: size }}
         onError={() => setImgError(true)}
       />
