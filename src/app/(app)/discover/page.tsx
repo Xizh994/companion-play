@@ -2,12 +2,12 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { SafeAvatar } from "@/components/GeneratedAvatar";
-import { Search, MessageCircle, Store, Users, Crown, Star, X } from "lucide-react";
+import { Search, MessageCircle, Store, Crown, X } from "lucide-react";
 
 const TOKEN_KEY = "dazistar_token";
 const USER_KEY = "dazistar_user";
@@ -193,53 +193,22 @@ export default function DiscoverPage() {
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
               {filteredShops.map((shop) => (
-                <Card
+                <Link
                   key={shop.id}
-                  className="group hover:border-purple-500/50 transition-all duration-300 bg-white/5 backdrop-blur-sm border-white/10"
+                  href={`/shop/${shop.id}`}
+                  className="glass rounded-xl p-5 flex flex-col items-center gap-3 text-center hover:border-purple-500/30 hover:bg-white/[0.06] hover:-translate-y-1 hover:shadow-lg hover:shadow-purple-500/5 transition-all duration-300 cursor-pointer"
                 >
-                  <CardHeader className="pb-3">
-                    <div className="flex items-start gap-4">
-                      <SafeAvatar
-                        src={shop.avatar}
-                        seed={shop.shopName || shop.nickname}
-                        size={48}
-                      />
-                      <div className="flex-1 min-w-0">
-                        <CardTitle className="text-lg group-hover:text-purple-400 transition-colors truncate">
-                          {shop.shopName || shop.nickname}
-                        </CardTitle>
-                        <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
-                          {shop.shopDesc || shop.bio || "暂无简介"}
-                        </p>
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex items-center gap-4 mb-4 text-sm text-gray-400">
-                      <div className="flex items-center gap-1">
-                        <Users className="h-4 w-4" />
-                        <span>{shop.playerCount} 陪玩师</span>
-                      </div>
-                      {shop.rating && (
-                        <div className="flex items-center gap-1 text-yellow-400">
-                          <Star className="h-4 w-4 fill-yellow-400" />
-                          <span>{shop.rating}</span>
-                        </div>
-                      )}
-                      <span>{shop.orderCount} 单</span>
-                    </div>
-                    <Button
-                      onClick={() => handleChat(shop)}
-                      className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
-                      size="sm"
-                    >
-                      <MessageCircle className="h-4 w-4 mr-2" />
-                      联系店铺
-                    </Button>
-                  </CardContent>
-                </Card>
+                  <SafeAvatar
+                    src={shop.avatar}
+                    seed={shop.shopName || shop.nickname}
+                    size={56}
+                  />
+                  <span className="text-sm font-medium text-white line-clamp-1 w-full">
+                    {shop.shopName || shop.nickname}
+                  </span>
+                </Link>
               ))}
             </div>
           )}
