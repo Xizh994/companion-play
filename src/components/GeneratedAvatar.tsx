@@ -1,4 +1,5 @@
 "use client";
+import { useState } from "react";
 import { cn } from "@/lib/utils";
 
 /** 16 种纯正面表情组合 — 无负面情绪 */
@@ -73,13 +74,16 @@ export function SafeAvatar({
   className?: string;
   alt?: string;
 }) {
-  if (src) {
+  const [imgError, setImgError] = useState(false);
+
+  if (src && !imgError) {
     return (
       <img
         src={src}
         alt={alt}
         className={cn("object-cover shrink-0 drop-shadow-md", className)}
         style={{ width: size, height: size }}
+        onError={() => setImgError(true)}
       />
     );
   }
