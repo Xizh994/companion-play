@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { hashPassword, signToken, verifyToken } from "@/lib/auth";
+import { generateAvatarUrl } from "@/lib/avatar";
 
 export async function POST(req: NextRequest) {
   try {
@@ -10,6 +11,7 @@ export async function POST(req: NextRequest) {
       password,
       role,
       nickname,
+      avatar,
       email,
       phoneVerifiedToken,
       emailVerifiedToken,
@@ -58,12 +60,18 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    const finalNickname = nickname || phone.slice(-4);
+    const avatarUrl = typeof avatar === "string" && avatar.length > 0
+      ? avatar
+      : generateAvatarUrl(finalNickname);
+
     const user = await prisma.user.create({
       data: {
         phone,
         passwordHash: hashPassword(password),
         role: role || "BOSS",
-        nickname: nickname || phone.slice(-4),
+        nickname: finalNickname,
+        avatar: avatarUrl,
         email: email || null,
         emailVerified: !!email,
         hasPassword: true,

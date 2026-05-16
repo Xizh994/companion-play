@@ -1,34 +1,7 @@
 "use client";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
-
-/** 16 种纯正面表情组合 — 无负面情绪 */
-const POSITIVE_COMBOS = [
-  { mouth: "smile", eyes: "happy" },
-  { mouth: "twinkle", eyes: "default" },
-  { mouth: "tongue", eyes: "wink" },
-  { mouth: "eating", eyes: "default" },
-  { mouth: "smile", eyes: "winkWacky" },
-  { mouth: "twinkle", eyes: "happy" },
-  { mouth: "smile", eyes: "surprised" },
-  { mouth: "default", eyes: "happy" },
-  { mouth: "tongue", eyes: "default" },
-  { mouth: "smile", eyes: "wink" },
-  { mouth: "twinkle", eyes: "squint" },
-  { mouth: "eating", eyes: "happy" },
-  { mouth: "smile", eyes: "squint" },
-  { mouth: "default", eyes: "wink" },
-  { mouth: "tongue", eyes: "surprised" },
-  { mouth: "twinkle", eyes: "wink" },
-];
-
-function hashCode(s: string): number {
-  let h = 0;
-  for (let i = 0; i < s.length; i++) {
-    h = ((h << 5) - h + s.charCodeAt(i)) | 0;
-  }
-  return h;
-}
+import { generateAvatarUrl } from "@/lib/avatar";
 
 /**
  * 透明背景 DiceBear 卡通头像 — 无形状无边框，像贴纸一样融入页面
@@ -43,9 +16,7 @@ export function GeneratedAvatar({
   size?: number;
   className?: string;
 }) {
-  const idx = Math.abs(hashCode(seed)) % POSITIVE_COMBOS.length;
-  const { mouth, eyes } = POSITIVE_COMBOS[idx];
-  const url = `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(seed)}&mouth=${mouth}&eyes=${eyes}&backgroundColor=transparent`;
+  const url = generateAvatarUrl(seed);
 
   return (
     <img
