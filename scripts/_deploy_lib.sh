@@ -223,6 +223,9 @@ build_project() {
     echo "$backup_path" > "${BACKUP_DIR}/latest.txt"
   fi
 
+  info "清除旧构建产物，确保全量构建..."
+  rm -rf "${PROJECT_DIR}/.next"
+
   info "Next.js 构建 (这可能需要几分钟)..."
   npm run build 2>&1 | tee -a "$BUILD_LOG" || {
     err "构建失败! 正恢复旧构建产物..."
