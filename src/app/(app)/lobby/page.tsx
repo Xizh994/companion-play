@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -152,6 +153,21 @@ export default function LobbyPage() {
             <p className="text-lg text-muted-foreground">
               {isBoss ? "暂无在线陪玩店" : "暂无在线老板"}
             </p>
+          </div>
+        ) : isBoss ? (
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+            {filtered.map((user) => (
+              <Link
+                key={user.id}
+                href={`/shop/${user.id}`}
+                className="glass rounded-xl p-5 flex flex-col items-center gap-3 text-center hover:border-purple-500/30 hover:bg-white/[0.06] hover:-translate-y-1 hover:shadow-lg hover:shadow-purple-500/5 transition-all duration-300 cursor-pointer"
+              >
+                <SafeAvatar src={user.avatar} seed={user.shopName || user.nickname} size={56} />
+                <span className="text-sm font-medium text-white line-clamp-1 w-full">
+                  {user.shopName || user.nickname}
+                </span>
+              </Link>
+            ))}
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
