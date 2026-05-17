@@ -13,6 +13,16 @@ const MIN_SCALE = 0.5;
 const MAX_SCALE = 3;
 const ALLOWED_FILE_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
 
+function formatLicenseType(raw: unknown): string {
+  if (typeof raw !== "string") return "营业执照";
+  switch (raw) {
+    case "business_license": return "营业执照";
+    case "individual_biz": return "个体工商户";
+    case "org_code": return "组织机构代码证";
+    default: return raw;
+  }
+}
+
 export default function ProfilePage() {
   const router = useRouter();
   const { user, token, refreshUser, logout } = useAuth();
@@ -1154,7 +1164,7 @@ export default function ProfilePage() {
                   )}>
                     {sp.verificationStatus === "APPROVED" ? "已认证" :
                      sp.verificationStatus === "REJECTED" ? "未通过" :
-                     "待认证"}
+                     "未核验"}
                   </span>
                 )}
               </div>
@@ -1175,7 +1185,7 @@ export default function ProfilePage() {
                     )}>
                       {sp.verificationStatus === "APPROVED" && "✅ 认证已通过 · 阿里云企业要素核验一致"}
                       {sp.verificationStatus === "REJECTED" && "❌ 认证未通过 · 请核实企业信息后重新提交"}
-                      {sp.verificationStatus === "PENDING" && "⏳ 认证待处理 · 企业信息已提交，等待核验"}
+                      {sp.verificationStatus === "PENDING" && "⏳ 未核验 · 企业信息已提交，尚未调用阿里云核验"}
                     </p>
                     {typeof sp.verifiedAt === "string" && sp.verifiedAt && (
                       <p className="text-[10px] text-gray-500 mt-1">
@@ -1194,7 +1204,7 @@ export default function ProfilePage() {
                       </div>
                       <div>
                         <span className="text-gray-500">核验类型：</span>
-                        <span className="text-gray-300">{typeof sp.licenseType === "string" ? sp.licenseType : "营业执照"}</span>
+                        <span className="text-gray-300">{formatLicenseType(sp.licenseType)}</span>
                       </div>
                       <div className="col-span-2">
                         <span className="text-gray-500">企业名称：</span>
