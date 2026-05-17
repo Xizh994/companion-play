@@ -1,14 +1,16 @@
 "use client";
 
 import { useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 
 export default function ChatRedirectPage() {
+  const params = useParams();
   const router = useRouter();
 
   useEffect(() => {
-    router.replace("/chat");
-  }, [router]);
+    const id = params.id as string;
+    router.replace(`/chat?conv=${id}`);
+  }, [params.id, router]);
 
   return null;
 }

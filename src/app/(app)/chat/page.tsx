@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useSocket } from "@/hooks/useSocket";
 import { GeneratedAvatar, SafeAvatar } from "@/components/GeneratedAvatar";
 import { Trash2 } from "lucide-react";
@@ -54,6 +54,7 @@ export default function ChatListPage() {
   }, []);
 
   const { socket, connected } = useSocket(currentUser?.id || null);
+  const searchParams = useSearchParams();
 
   // 获取会话列表
   const fetchConversations = useCallback(async () => {
@@ -101,6 +102,18 @@ export default function ChatListPage() {
     if (currentUser?.id) fetchConversations();
   }, [currentUser?.id]);
 
+  // 从 URL 参数自动选中会话
+  useEffect(() => {
+    const convId = searchParams.get("conv");
+    if (!convId || conversations.length === 0 || selectedId === convId) return;
+    const exists = conversations.some((c) => c.id === convId);
+    if (exists) {
+      setSelectedId(convId);
+      fetchMessages(convId);
+      socket?.emit("join_chat", convId);
+    }
+  }, [searchParams, conversations, selectedId, fetchMessages, socket]);
+
   // Socket 监听新消息
   useEffect(() => {
     if (!socket || !currentUser?.id) return;
@@ -115,8 +128,8 @@ export default function ChatListPage() {
   const handleSelectConv = (convId: string) => {
     setSelectedId(convId);
     fetchMessages(convId);
-    // 加入 Socket 房间
     socket?.emit("join_chat", convId);
+    router.replace(`/chat?conv=${convId}`, { scroll: false });
   };
 
   const handleSend = async () => {
@@ -154,6 +167,7 @@ export default function ChatListPage() {
       if (selectedId === convId) {
         setSelectedId(null);
         setMessages([]);
+        router.replace("/chat", { scroll: false });
       }
     }
   };
