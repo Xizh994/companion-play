@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/hooks/useAuth";
-import { Crown, Store, Shield, Check, Clock, XCircle, Mail, Phone, Lock, Camera, ArrowLeft, X, Pencil, Loader2, ZoomIn, ZoomOut } from "lucide-react";
+import { Crown, Store, Shield, Check, Clock, XCircle, Mail, Phone, Lock, Camera, ArrowLeft, X, Pencil, Loader2, ZoomIn, ZoomOut, MapPin, User, PhoneCall, FileText, BadgeCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { maskPhone, maskEmail } from "@/lib/mask";
 
@@ -42,6 +42,37 @@ export default function ProfilePage() {
   const [nicknameValue, setNicknameValue] = useState(user?.nickname || "");
   const [nicknameSaving, setNicknameSaving] = useState(false);
   const [profileError, setProfileError] = useState("");
+
+  const sp = user?.shopProfile as Record<string, unknown> | null | undefined;
+  const [editingShopField, setEditingShopField] = useState<string | null>(null);
+  const [shopNameValue, setShopNameValue] = useState((sp?.shopName as string) || "");
+  const [shopDescValue, setShopDescValue] = useState((sp?.shopDesc as string) || "");
+  const [shopAddressValue, setShopAddressValue] = useState((sp?.shopAddress as string) || "");
+  const [shopContactNameValue, setShopContactNameValue] = useState((sp?.contactName as string) || "");
+  const [shopContactPhoneValue, setShopContactPhoneValue] = useState((sp?.contactPhone as string) || "");
+  const [shopInfoSaving, setShopInfoSaving] = useState(false);
+
+  const saveShopField = async (field: string, value: string) => {
+    setShopInfoSaving(true);
+    setProfileError("");
+    try {
+      const formData = new FormData();
+      formData.append(field, value);
+      const res = await fetch("/api/profile/update", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData,
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "保存失败");
+      await refreshUser();
+      setEditingShopField(null);
+    } catch (err) {
+      setProfileError(err instanceof Error ? err.message : "保存失败");
+    } finally {
+      setShopInfoSaving(false);
+    }
+  };
 
   const [phoneModalOpen, setPhoneModalOpen] = useState(false);
   const [phoneStep, setPhoneStep] = useState<"verify-current" | "enter-new" | "verify-new">("verify-current");
@@ -831,6 +862,203 @@ export default function ProfilePage() {
                     </div>
                   )}
                 </>
+              )}
+            </div>
+          )}
+
+          {/* Shop Basic Info (SHOP only) */}
+          {user.role === "SHOP" && (
+            <div className="mb-6 p-4 bg-white/[0.03] border border-white/[0.08] rounded-2xl">
+              <div className="flex items-center gap-2 mb-3">
+                <Store className="w-4 h-4 text-violet-400" />
+                <h2 className="text-sm font-semibold text-gray-300">店铺信息</h2>
+                {shopInfoSaving && <Loader2 className="w-3.5 h-3.5 text-violet-400 animate-spin" />}
+              </div>
+              <div className="space-y-3">
+                {/* Shop Name */}
+                <div className="flex items-center gap-3">
+                  <FileText className="w-4 h-4 text-gray-500 shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs text-gray-500">店铺名称</p>
+                    {editingShopField === "shopName" ? (
+                      <input
+                        type="text"
+                        value={shopNameValue}
+                        onChange={(e) => setShopNameValue(e.target.value)}
+                        onKeyDown={(e) => { if (e.key === "Enter") saveShopField("shopName", shopNameValue.trim()); if (e.key === "Escape") { setEditingShopField(null); setShopNameValue((sp?.shopName as string) || ""); } }}
+                        onBlur={() => saveShopField("shopName", shopNameValue.trim())}
+                        maxLength={30}
+                        className="bg-white/5 border border-violet-500/50 rounded-lg px-2 py-1 text-sm text-white outline-none w-full mt-0.5"
+                        autoFocus
+                      />
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm text-gray-200">{sp?.shopName ? (sp.shopName as string) : "未设置"}</p>
+                        <button onClick={() => { setShopNameValue((sp?.shopName as string) || ""); setEditingShopField("shopName"); }} className="text-gray-500 hover:text-gray-300">
+                          <Pencil className="w-3 h-3" />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Description */}
+                <div className="flex items-start gap-3">
+                  <FileText className="w-4 h-4 text-gray-500 shrink-0 mt-1" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs text-gray-500">店铺简介</p>
+                    {editingShopField === "shopDesc" ? (
+                      <textarea
+                        value={shopDescValue}
+                        onChange={(e) => setShopDescValue(e.target.value)}
+                        onKeyDown={(e) => { if (e.key === "Escape") { setEditingShopField(null); setShopDescValue((sp?.shopDesc as string) || ""); } }}
+                        onBlur={() => saveShopField("shopDesc", shopDescValue.trim())}
+                        maxLength={200}
+                        rows={2}
+                        className="bg-white/5 border border-violet-500/50 rounded-lg px-2 py-1 text-sm text-white outline-none w-full mt-0.5 resize-none"
+                        autoFocus
+                      />
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm text-gray-200 truncate">{sp?.shopDesc ? (sp.shopDesc as string) : "未设置"}</p>
+                        <button onClick={() => { setShopDescValue((sp?.shopDesc as string) || ""); setEditingShopField("shopDesc"); }} className="text-gray-500 hover:text-gray-300 shrink-0">
+                          <Pencil className="w-3 h-3" />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Address */}
+                <div className="flex items-center gap-3">
+                  <MapPin className="w-4 h-4 text-gray-500 shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs text-gray-500">经营地址</p>
+                    {editingShopField === "shopAddress" ? (
+                      <input
+                        type="text"
+                        value={shopAddressValue}
+                        onChange={(e) => setShopAddressValue(e.target.value)}
+                        onKeyDown={(e) => { if (e.key === "Enter") saveShopField("shopAddress", shopAddressValue.trim()); if (e.key === "Escape") { setEditingShopField(null); setShopAddressValue((sp?.shopAddress as string) || ""); } }}
+                        onBlur={() => saveShopField("shopAddress", shopAddressValue.trim())}
+                        maxLength={100}
+                        className="bg-white/5 border border-violet-500/50 rounded-lg px-2 py-1 text-sm text-white outline-none w-full mt-0.5"
+                        autoFocus
+                      />
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm text-gray-200 truncate">{sp?.shopAddress ? (sp.shopAddress as string) : "未设置"}</p>
+                        <button onClick={() => { setShopAddressValue((sp?.shopAddress as string) || ""); setEditingShopField("shopAddress"); }} className="text-gray-500 hover:text-gray-300 shrink-0">
+                          <Pencil className="w-3 h-3" />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Contact Name */}
+                <div className="flex items-center gap-3">
+                  <User className="w-4 h-4 text-gray-500 shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs text-gray-500">负责人</p>
+                    {editingShopField === "contactName" ? (
+                      <input
+                        type="text"
+                        value={shopContactNameValue}
+                        onChange={(e) => setShopContactNameValue(e.target.value)}
+                        onKeyDown={(e) => { if (e.key === "Enter") saveShopField("contactName", shopContactNameValue.trim()); if (e.key === "Escape") { setEditingShopField(null); setShopContactNameValue((sp?.contactName as string) || ""); } }}
+                        onBlur={() => saveShopField("contactName", shopContactNameValue.trim())}
+                        maxLength={20}
+                        className="bg-white/5 border border-violet-500/50 rounded-lg px-2 py-1 text-sm text-white outline-none w-full mt-0.5"
+                        autoFocus
+                      />
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm text-gray-200">{sp?.contactName ? (sp.contactName as string) : "未设置"}</p>
+                        <button onClick={() => { setShopContactNameValue((sp?.contactName as string) || ""); setEditingShopField("contactName"); }} className="text-gray-500 hover:text-gray-300">
+                          <Pencil className="w-3 h-3" />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Contact Phone */}
+                <div className="flex items-center gap-3">
+                  <PhoneCall className="w-4 h-4 text-gray-500 shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs text-gray-500">联系电话</p>
+                    {editingShopField === "contactPhone" ? (
+                      <input
+                        type="tel"
+                        value={shopContactPhoneValue}
+                        onChange={(e) => setShopContactPhoneValue(e.target.value.replace(/\D/g, "").slice(0, 11))}
+                        onKeyDown={(e) => { if (e.key === "Enter") saveShopField("contactPhone", shopContactPhoneValue); if (e.key === "Escape") { setEditingShopField(null); setShopContactPhoneValue((sp?.contactPhone as string) || ""); } }}
+                        onBlur={() => saveShopField("contactPhone", shopContactPhoneValue)}
+                        maxLength={11}
+                        className="bg-white/5 border border-violet-500/50 rounded-lg px-2 py-1 text-sm text-white outline-none w-full mt-0.5"
+                        autoFocus
+                      />
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm text-gray-200">{sp?.contactPhone ? maskPhone(sp.contactPhone as string) : "未设置"}</p>
+                        <button onClick={() => { setShopContactPhoneValue((sp?.contactPhone as string) || ""); setEditingShopField("contactPhone"); }} className="text-gray-500 hover:text-gray-300">
+                          <Pencil className="w-3 h-3" />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Shop Certification Status (SHOP only) */}
+          {user.role === "SHOP" && (
+            <div className="mb-6 p-4 bg-white/[0.03] border border-white/[0.08] rounded-2xl">
+              <div className="flex items-center gap-2 mb-3">
+                <BadgeCheck className="w-4 h-4 text-violet-400" />
+                <h2 className="text-sm font-semibold text-gray-300">店铺认证</h2>
+              </div>
+
+              {sp ? (
+                <div className={cn(
+                  "p-3 rounded-xl text-sm",
+                  sp.verificationStatus === "APPROVED" ? "bg-green-500/10 border border-green-500/20" :
+                  sp.verificationStatus === "REJECTED" ? "bg-red-500/10 border border-red-500/20" :
+                  "bg-amber-500/10 border border-amber-500/20"
+                )}>
+                  <p className={cn(
+                    "text-xs",
+                    sp.verificationStatus === "APPROVED" ? "text-green-400" :
+                    sp.verificationStatus === "REJECTED" ? "text-red-400" :
+                    "text-amber-400"
+                  )}>
+                    {sp.verificationStatus === "APPROVED" && "✅ 店铺认证已通过"}
+                    {sp.verificationStatus === "REJECTED" && "❌ 店铺认证未通过"}
+                    {sp.verificationStatus === "PENDING" && "⏳ 店铺认证审核中，请耐心等待"}
+                  </p>
+                  {typeof sp.licenseType === "string" && (
+                    <p className="text-xs text-gray-400 mt-1">
+                      证件类型：{sp.licenseType}
+                    </p>
+                  )}
+                  {typeof sp.verificationNotes === "string" && sp.verificationNotes && (
+                    <p className="text-xs text-gray-500 mt-1">
+                      审核备注：{sp.verificationNotes}
+                    </p>
+                  )}
+                  {typeof sp.verifiedAt === "string" && sp.verifiedAt && (
+                    <p className="text-xs text-gray-500 mt-1">
+                      认证时间：{new Date(sp.verifiedAt).toLocaleDateString("zh-CN")}
+                    </p>
+                  )}
+                </div>
+              ) : (
+                <div className="p-3 rounded-xl bg-gray-500/5 border border-white/[0.06]">
+                  <p className="text-xs text-gray-500">尚未提交店铺认证资料</p>
+                  <p className="text-xs text-gray-600 mt-1">请前往设置提交营业执照等认证材料</p>
+                </div>
               )}
             </div>
           )}

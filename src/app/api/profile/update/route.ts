@@ -33,7 +33,14 @@ export async function POST(req: NextRequest) {
     const nickname = formData.get("nickname") as string | null;
     const avatarFile = formData.get("avatar") as File | null;
 
+    const shopName = formData.get("shopName") as string | null;
+    const shopDesc = formData.get("shopDesc") as string | null;
+    const shopAddress = formData.get("shopAddress") as string | null;
+    const contactName = formData.get("contactName") as string | null;
+    const contactPhone = formData.get("contactPhone") as string | null;
+
     const updateData: Record<string, unknown> = {};
+    const shopUpdateData: Record<string, unknown> = {};
 
     if (nickname !== null && nickname !== undefined) {
       const trimmed = nickname.trim();
@@ -64,14 +71,53 @@ export async function POST(req: NextRequest) {
       updateData.avatar = `/api/uploads/avatars/${filename}`;
     }
 
-    if (Object.keys(updateData).length === 0) {
+    if (shopName !== null) {
+      const trimmed = shopName.trim();
+      if (!trimmed) {
+        return NextResponse.json({ error: "店铺名称不能为空" }, { status: 400 });
+      }
+      shopUpdateData.shopName = trimmed;
+    }
+    if (shopDesc !== null) {
+      shopUpdateData.shopDesc = shopDesc.trim() || null;
+    }
+    if (shopAddress !== null) {
+      shopUpdateData.shopAddress = shopAddress.trim() || null;
+    }
+    if (contactName !== null) {
+      const trimmed = contactName.trim();
+      if (!trimmed) {
+        return NextResponse.json({ error: "联系人姓名不能为空" }, { status: 400 });
+      }
+      shopUpdateData.contactName = trimmed;
+    }
+    if (contactPhone !== null) {
+      const trimmed = contactPhone.trim();
+      if (!trimmed) {
+        return NextResponse.json({ error: "联系电话不能为空" }, { status: 400 });
+      }
+      if (!/^1\d{10}$/.test(trimmed)) {
+        return NextResponse.json({ error: "联系电话格式不正确" }, { status: 400 });
+      }
+      shopUpdateData.contactPhone = trimmed;
+    }
+
+    if (Object.keys(updateData).length === 0 && Object.keys(shopUpdateData).length === 0) {
       return NextResponse.json({ error: "没有要更新的内容" }, { status: 400 });
     }
 
     const user = await prisma.user.update({
       where: { id: payload.userId },
       data: updateData,
+      include: { shopProfile: true, playerProfile: true, realNameVerification: true },
     });
+
+    if (Object.keys(shopUpdateData).length > 0 && user.shopProfile) {
+      await prisma.shopProfile.update({
+        where: { userId: payload.userId },
+        data: shopUpdateData,
+      });
+    }
 
     return NextResponse.json({
       success: true,
@@ -85,6 +131,8 @@ export async function POST(req: NextRequest) {
         emailVerified: user.emailVerified,
         bio: user.bio,
         hasPassword: user.hasPassword,
+        shopProfile: user.shopProfile,
+        realNameVerification: user.realNameVerification,
       },
     });
   } catch (error: unknown) {
