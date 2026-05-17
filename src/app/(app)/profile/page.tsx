@@ -48,9 +48,24 @@ export default function ProfilePage() {
   const [shopNameValue, setShopNameValue] = useState((sp?.shopName as string) || "");
   const [shopDescValue, setShopDescValue] = useState((sp?.shopDesc as string) || "");
   const [shopAddressValue, setShopAddressValue] = useState((sp?.shopAddress as string) || "");
-  const [shopContactNameValue, setShopContactNameValue] = useState((sp?.contactName as string) || "");
-  const [shopContactPhoneValue, setShopContactPhoneValue] = useState((sp?.contactPhone as string) || "");
   const [shopInfoSaving, setShopInfoSaving] = useState(false);
+
+  const [contactNameModalOpen, setContactNameModalOpen] = useState(false);
+  const [contactNamePicked, setContactNamePicked] = useState("");
+  const [contactNameRealName, setContactNameRealName] = useState("");
+  const [contactNameIdCard, setContactNameIdCard] = useState("");
+  const [contactNameVerifying, setContactNameVerifying] = useState(false);
+  const [contactNameError, setContactNameError] = useState("");
+  const [contactNameDone, setContactNameDone] = useState(false);
+
+  const [contactPhoneModalOpen, setContactPhoneModalOpen] = useState(false);
+  const [contactPhonePicked, setContactPhonePicked] = useState("");
+  const [contactPhoneCode, setContactPhoneCode] = useState("");
+  const [contactPhoneSent, setContactPhoneSent] = useState(false);
+  const [contactPhoneCountdown, setContactPhoneCountdown] = useState(0);
+  const [contactPhoneVerifiedToken, setContactPhoneVerifiedToken] = useState("");
+  const [contactPhoneLoading, setContactPhoneLoading] = useState(false);
+  const [contactPhoneError, setContactPhoneError] = useState("");
 
   const saveShopField = async (field: string, value: string) => {
     setShopInfoSaving(true);
@@ -73,6 +88,135 @@ export default function ProfilePage() {
       setShopInfoSaving(false);
     }
   };
+
+  const openContactNameModal = () => {
+    setContactNamePicked((sp?.contactName as string) || "");
+    setContactNameRealName("");
+    setContactNameIdCard("");
+    setContactNameError("");
+    setContactNameDone(false);
+    setContactNameModalOpen(true);
+  };
+
+  const handleSubmitContactName = async () => {
+    setContactNameError("");
+    const picked = contactNamePicked.trim();
+    if (!picked) { setContactNameError("请输入新负责人姓名"); return; }
+    if (!contactNameRealName) { setContactNameError("请输入您的真实姓名"); return; }
+    if (!contactNameIdCard) { setContactNameError("请输入您的身份证号"); return; }
+    if (!/^\d{17}[\dXx]$/.test(contactNameIdCard)) { setContactNameError("身份证号格式不正确"); return; }
+
+    setContactNameVerifying(true);
+    try {
+      const res = await fetch("/api/auth/verify-identity", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ realName: contactNameRealName, idCardNumber: contactNameIdCard }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "身份核验失败");
+
+      const formData = new FormData();
+      formData.append("contactName", picked);
+      const saveRes = await fetch("/api/profile/update", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData,
+      });
+      const saveData = await saveRes.json();
+      if (!saveRes.ok) throw new Error(saveData.error || "保存失败");
+
+      await refreshUser();
+      setContactNameDone(true);
+    } catch (err) {
+      setContactNameError(err instanceof Error ? err.message : "操作失败");
+    } finally {
+      setContactNameVerifying(false);
+    }
+  };
+
+  const openContactPhoneModal = () => {
+    setContactPhonePicked("");
+    setContactPhoneCode("");
+    setContactPhoneSent(false);
+    setContactPhoneCountdown(0);
+    setContactPhoneVerifiedToken("");
+    setContactPhoneError("");
+    setContactPhoneModalOpen(true);
+  };
+
+  const handleSendContactPhoneCode = async () => {
+    if (contactPhoneCountdown > 0) return;
+    const picked = contactPhonePicked.trim();
+    if (!picked || !/^1\d{10}$/.test(picked)) { setContactPhoneError("请输入正确的手机号"); return; }
+    setContactPhoneError("");
+    setContactPhoneLoading(true);
+    try {
+      const res = await fetch("/api/auth/send-sms-code", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone: picked, purpose: "changePhone" }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setContactPhoneSent(true);
+      setContactPhoneCountdown(60);
+    } catch (err) {
+      setContactPhoneError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setContactPhoneLoading(false);
+    }
+  };
+
+  const handleVerifyContactPhone = async () => {
+    if (!contactPhoneCode) { setContactPhoneError("请输入验证码"); return; }
+    setContactPhoneError("");
+    setContactPhoneLoading(true);
+    try {
+      const res = await fetch("/api/auth/verify-sms-code", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone: contactPhonePicked, code: contactPhoneCode }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setContactPhoneVerifiedToken(data.verifiedToken);
+    } catch (err) {
+      setContactPhoneError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setContactPhoneLoading(false);
+    }
+  };
+
+  const handleSubmitContactPhone = async () => {
+    if (!contactPhoneVerifiedToken) { setContactPhoneError("验证已过期，请重新验证"); return; }
+    setContactPhoneError("");
+    setContactPhoneLoading(true);
+    try {
+      const formData = new FormData();
+      formData.append("contactPhone", contactPhonePicked);
+      const res = await fetch("/api/profile/update", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData,
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "保存失败");
+      await refreshUser();
+      setContactPhoneModalOpen(false);
+    } catch (err) {
+      setContactPhoneError(err instanceof Error ? err.message : "保存失败");
+    } finally {
+      setContactPhoneLoading(false);
+    }
+  };
+
+  // contact phone countdown
+  useEffect(() => {
+    if (contactPhoneCountdown <= 0) return;
+    const t = setTimeout(() => setContactPhoneCountdown((c) => c - 1), 1000);
+    return () => clearTimeout(t);
+  }, [contactPhoneCountdown]);
 
   const [phoneModalOpen, setPhoneModalOpen] = useState(false);
   const [phoneStep, setPhoneStep] = useState<"verify-current" | "enter-new" | "verify-new">("verify-current");
@@ -129,13 +273,13 @@ export default function ProfilePage() {
   }, [newPhoneCountdown]);
 
   useEffect(() => {
-    if (cropModalOpen || emailModalOpen || phoneModalOpen) {
+    if (cropModalOpen || emailModalOpen || phoneModalOpen || contactNameModalOpen || contactPhoneModalOpen) {
       document.body.style.overflow = "hidden";
     } else {
       document.body.style.overflow = "";
     }
     return () => { document.body.style.overflow = ""; };
-  }, [cropModalOpen, emailModalOpen, phoneModalOpen]);
+  }, [cropModalOpen, emailModalOpen, phoneModalOpen, contactNameModalOpen, contactPhoneModalOpen]);
 
   const closeEmailModal = useCallback(() => {
     setEmailModalOpen(false);
@@ -963,25 +1107,15 @@ export default function ProfilePage() {
                   <User className="w-4 h-4 text-gray-500 shrink-0" />
                   <div className="flex-1 min-w-0">
                     <p className="text-xs text-gray-500">负责人</p>
-                    {editingShopField === "contactName" ? (
-                      <input
-                        type="text"
-                        value={shopContactNameValue}
-                        onChange={(e) => setShopContactNameValue(e.target.value)}
-                        onKeyDown={(e) => { if (e.key === "Enter") saveShopField("contactName", shopContactNameValue.trim()); if (e.key === "Escape") { setEditingShopField(null); setShopContactNameValue((sp?.contactName as string) || ""); } }}
-                        onBlur={() => saveShopField("contactName", shopContactNameValue.trim())}
-                        maxLength={20}
-                        className="bg-white/5 border border-violet-500/50 rounded-lg px-2 py-1 text-sm text-white outline-none w-full mt-0.5"
-                        autoFocus
-                      />
-                    ) : (
-                      <div className="flex items-center gap-2">
-                        <p className="text-sm text-gray-200">{sp?.contactName ? (sp.contactName as string) : "未设置"}</p>
-                        <button onClick={() => { setShopContactNameValue((sp?.contactName as string) || ""); setEditingShopField("contactName"); }} className="text-gray-500 hover:text-gray-300">
-                          <Pencil className="w-3 h-3" />
-                        </button>
-                      </div>
-                    )}
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm text-gray-200">{sp?.contactName ? (sp.contactName as string) : "未设置"}</p>
+                      <button
+                        onClick={openContactNameModal}
+                        className="text-xs text-violet-400 hover:text-violet-300 shrink-0"
+                      >
+                        更换
+                      </button>
+                    </div>
                   </div>
                 </div>
 
@@ -990,25 +1124,15 @@ export default function ProfilePage() {
                   <PhoneCall className="w-4 h-4 text-gray-500 shrink-0" />
                   <div className="flex-1 min-w-0">
                     <p className="text-xs text-gray-500">联系电话</p>
-                    {editingShopField === "contactPhone" ? (
-                      <input
-                        type="tel"
-                        value={shopContactPhoneValue}
-                        onChange={(e) => setShopContactPhoneValue(e.target.value.replace(/\D/g, "").slice(0, 11))}
-                        onKeyDown={(e) => { if (e.key === "Enter") saveShopField("contactPhone", shopContactPhoneValue); if (e.key === "Escape") { setEditingShopField(null); setShopContactPhoneValue((sp?.contactPhone as string) || ""); } }}
-                        onBlur={() => saveShopField("contactPhone", shopContactPhoneValue)}
-                        maxLength={11}
-                        className="bg-white/5 border border-violet-500/50 rounded-lg px-2 py-1 text-sm text-white outline-none w-full mt-0.5"
-                        autoFocus
-                      />
-                    ) : (
-                      <div className="flex items-center gap-2">
-                        <p className="text-sm text-gray-200">{sp?.contactPhone ? maskPhone(sp.contactPhone as string) : "未设置"}</p>
-                        <button onClick={() => { setShopContactPhoneValue((sp?.contactPhone as string) || ""); setEditingShopField("contactPhone"); }} className="text-gray-500 hover:text-gray-300">
-                          <Pencil className="w-3 h-3" />
-                        </button>
-                      </div>
-                    )}
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm text-gray-200">{sp?.contactPhone ? maskPhone(sp.contactPhone as string) : "未设置"}</p>
+                      <button
+                        onClick={openContactPhoneModal}
+                        className="text-xs text-violet-400 hover:text-violet-300 shrink-0"
+                      >
+                        更换
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -1037,14 +1161,9 @@ export default function ProfilePage() {
                     "text-amber-400"
                   )}>
                     {sp.verificationStatus === "APPROVED" && "✅ 店铺认证已通过"}
-                    {sp.verificationStatus === "REJECTED" && "❌ 店铺认证未通过"}
+                    {sp.verificationStatus === "REJECTED" && "❌ 店铺认证未通过，请重新提交认证资料"}
                     {sp.verificationStatus === "PENDING" && "⏳ 店铺认证审核中，请耐心等待"}
                   </p>
-                  {typeof sp.licenseType === "string" && (
-                    <p className="text-xs text-gray-400 mt-1">
-                      证件类型：{sp.licenseType}
-                    </p>
-                  )}
                   {typeof sp.verificationNotes === "string" && sp.verificationNotes && (
                     <p className="text-xs text-gray-500 mt-1">
                       审核备注：{sp.verificationNotes}
@@ -1558,6 +1677,194 @@ export default function ProfilePage() {
             {phoneError && (
               <p className="mt-3 text-xs text-red-400">{phoneError}</p>
             )}
+          </div>
+        </div>
+      )}
+      {contactNameModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
+          <div className="w-full max-w-sm bg-[#12122a] border border-white/10 rounded-2xl p-6 shadow-2xl">
+            <div className="flex items-center justify-between mb-5">
+              <h3 className="text-white font-semibold">更换负责人</h3>
+              <button onClick={() => setContactNameModalOpen(false)} className="text-gray-400 hover:text-gray-200">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {contactNameDone ? (
+              <div className="space-y-4">
+                <div className="p-3 rounded-xl bg-green-500/10 border border-green-500/20">
+                  <p className="text-xs text-green-400">✅ 负责人已更新为 {contactNamePicked}</p>
+                </div>
+                <button
+                  onClick={() => setContactNameModalOpen(false)}
+                  className="w-full py-2.5 rounded-xl bg-gradient-to-r from-violet-500 to-purple-500 text-white text-sm font-medium hover:opacity-90 transition"
+                >
+                  完成
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="p-3 rounded-xl bg-amber-500/5 border border-amber-500/15">
+                  <p className="text-xs text-amber-400">⚠️ 更换负责人需要进行本人实名认证</p>
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-400 mb-1">新负责人姓名</label>
+                  <input
+                    type="text"
+                    value={contactNamePicked}
+                    onChange={(e) => setContactNamePicked(e.target.value)}
+                    placeholder="请输入新负责人姓名"
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white placeholder-gray-500 outline-none focus:border-violet-500/50 transition text-sm"
+                  />
+                </div>
+                <div className="border-t border-white/[0.06] pt-4">
+                  <p className="text-xs text-gray-500 mb-3">请填写您的真实身份信息进行核验</p>
+                  <div>
+                    <label className="block text-xs text-gray-400 mb-1">您的真实姓名</label>
+                    <input
+                      type="text"
+                      value={contactNameRealName}
+                      onChange={(e) => setContactNameRealName(e.target.value)}
+                      placeholder="请输入真实姓名"
+                      className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white placeholder-gray-500 outline-none focus:border-violet-500/50 transition text-sm"
+                    />
+                  </div>
+                  <div className="mt-3">
+                    <label className="block text-xs text-gray-400 mb-1">您的身份证号</label>
+                    <input
+                      type="text"
+                      value={contactNameIdCard}
+                      onChange={(e) => setContactNameIdCard(e.target.value)}
+                      placeholder="请输入身份证号"
+                      className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white placeholder-gray-500 outline-none focus:border-violet-500/50 transition text-sm"
+                    />
+                    <p className="text-[10px] text-gray-500 mt-1">身份证号经 AES-256 加密后存储，仅用于身份核验</p>
+                  </div>
+                </div>
+
+                {contactNameError && (
+                  <p className="text-xs text-red-400">{contactNameError}</p>
+                )}
+
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setContactNameModalOpen(false)}
+                    className="flex-1 py-2.5 rounded-xl border border-white/10 text-gray-400 text-sm hover:border-white/20 transition"
+                  >
+                    取消
+                  </button>
+                  <button
+                    onClick={handleSubmitContactName}
+                    disabled={contactNameVerifying}
+                    className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-violet-500 to-purple-500 text-white text-sm font-medium hover:opacity-90 transition disabled:opacity-40"
+                  >
+                    {contactNameVerifying ? "提交中..." : "提交核验并保存"}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+      {contactPhoneModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
+          <div className="w-full max-w-sm bg-[#12122a] border border-white/10 rounded-2xl p-6 shadow-2xl">
+            <div className="flex items-center justify-between mb-5">
+              <h3 className="text-white font-semibold">更换联系电话</h3>
+              <button onClick={() => setContactPhoneModalOpen(false)} className="text-gray-400 hover:text-gray-200">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div className="p-3 rounded-xl bg-amber-500/5 border border-amber-500/15">
+                <p className="text-xs text-amber-400">⚠️ 更换联系电话将影响店铺的联系方式，需短信验证</p>
+              </div>
+              <div>
+                <label className="block text-xs text-gray-400 mb-1">新的联系电话</label>
+                <input
+                  type="tel"
+                  maxLength={11}
+                  value={contactPhonePicked}
+                  onChange={(e) => setContactPhonePicked(e.target.value.replace(/\D/g, "").slice(0, 11))}
+                  placeholder="请输入新的联系电话"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white placeholder-gray-500 outline-none focus:border-violet-500/50 transition text-sm"
+                />
+              </div>
+
+              {contactPhoneSent && !contactPhoneVerifiedToken && (
+                <div>
+                  <label className="block text-xs text-gray-400 mb-1">短信验证码</label>
+                  <input
+                    type="text"
+                    maxLength={6}
+                    value={contactPhoneCode}
+                    onChange={(e) => setContactPhoneCode(e.target.value.replace(/\D/g, ""))}
+                    placeholder="6位验证码"
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white placeholder-gray-500 outline-none focus:border-violet-500/50 transition text-sm"
+                  />
+                </div>
+              )}
+
+              {contactPhoneVerifiedToken && (
+                <div className="p-3 rounded-xl bg-green-500/10 border border-green-500/20">
+                  <p className="text-xs text-green-400">✓ 手机号 {contactPhonePicked} 验证通过</p>
+                </div>
+              )}
+
+              {contactPhoneError && (
+                <p className="text-xs text-red-400">{contactPhoneError}</p>
+              )}
+
+              {!contactPhoneVerifiedToken ? (
+                <div className="flex gap-2">
+                  {!contactPhoneSent ? (
+                    <button
+                      onClick={handleSendContactPhoneCode}
+                      disabled={contactPhoneLoading || contactPhonePicked.length < 11}
+                      className="flex-1 py-2.5 rounded-xl border border-violet-500/30 text-violet-400 text-sm font-medium hover:bg-violet-500/10 transition disabled:opacity-40"
+                    >
+                      {contactPhoneLoading ? "发送中..." : contactPhoneCountdown > 0 ? `${contactPhoneCountdown}秒后重发` : "发送验证码"}
+                    </button>
+                  ) : (
+                    <button
+                      onClick={handleVerifyContactPhone}
+                      disabled={contactPhoneLoading || contactPhoneCode.length < 6}
+                      className="flex-1 py-2.5 rounded-xl border border-violet-500/30 text-violet-400 text-sm font-medium hover:bg-violet-500/10 transition disabled:opacity-40"
+                    >
+                      {contactPhoneLoading ? "验证中..." : "验证手机"}
+                    </button>
+                  )}
+                  <button
+                    onClick={() => setContactPhoneModalOpen(false)}
+                    className="flex-1 py-2.5 rounded-xl border border-white/10 text-gray-400 text-sm hover:border-white/20 transition"
+                  >
+                    取消
+                  </button>
+                </div>
+              ) : (
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => {
+                      setContactPhoneCode("");
+                      setContactPhoneSent(false);
+                      setContactPhoneCountdown(0);
+                      setContactPhoneVerifiedToken("");
+                    }}
+                    className="flex-1 py-2.5 rounded-xl border border-white/10 text-gray-400 text-sm hover:border-white/20 transition"
+                  >
+                    重新验证
+                  </button>
+                  <button
+                    onClick={handleSubmitContactPhone}
+                    disabled={contactPhoneLoading}
+                    className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-violet-500 to-purple-500 text-white text-sm font-medium hover:opacity-90 transition disabled:opacity-40"
+                  >
+                    {contactPhoneLoading ? "保存中..." : "确认更换"}
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}
