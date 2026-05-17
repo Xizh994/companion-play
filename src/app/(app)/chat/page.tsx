@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useSocket } from "@/hooks/useSocket";
 import { GeneratedAvatar, SafeAvatar } from "@/components/GeneratedAvatar";
+import { Trash2 } from "lucide-react";
 import dynamic from "next/dynamic";
 
 const EmojiPicker = dynamic(() => import("emoji-picker-react"), { ssr: false });
@@ -21,6 +22,7 @@ interface ChatUser {
   nickname: string;
   avatar: string | null;
   status: string;
+  role: string;
 }
 
 interface ChatMessage {
@@ -73,7 +75,10 @@ export default function ChatListPage() {
           const ur = await fetch(`/api/users?id=${uid}`, { headers: { Authorization: `Bearer ${token}` } });
           if (ur.ok) {
             const ud = await ur.json();
-            if (ud.users?.[0]) setContacts((prev) => ({ ...prev, [uid]: ud.users[0] }));
+            if (ud.users?.[0]) {
+              const u = ud.users[0];
+              setContacts((prev) => ({ ...prev, [uid]: { id: u.id, nickname: u.nickname, avatar: u.avatar, status: u.status, role: u.role } }));
+            }
           }
         } catch {}
       }
@@ -136,6 +141,23 @@ export default function ChatListPage() {
     }
   };
 
+  const handleDeleteConv = async (convId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!confirm("确定删除该会话？聊天记录将保留，重新发起聊天后可查看。")) return;
+    const token = localStorage.getItem(TOKEN_KEY);
+    const res = await fetch(`/api/conversations/${convId}`, {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (res.ok) {
+      setConversations((prev) => prev.filter((c) => c.id !== convId));
+      if (selectedId === convId) {
+        setSelectedId(null);
+        setMessages([]);
+      }
+    }
+  };
+
   const onEmojiClick = (emojiData: { emoji: string }) => {
     setInput((prev) => prev + emojiData.emoji);
   };
@@ -146,7 +168,8 @@ export default function ChatListPage() {
 
   const selectedConv = conversations.find((c) => c.id === selectedId);
   const otherUserId = selectedConv ? getOtherParticipantId(selectedConv) : null;
-  const contact = otherUserId ? (contacts[otherUserId] || { id: otherUserId, nickname: "用户", avatar: null, status: "offline" }) : null;
+  const contact = otherUserId ? (contacts[otherUserId] || { id: otherUserId, nickname: "用户", avatar: null, status: "offline", role: "BOSS" }) : null;
+  const isBossViewingShop = currentUser?.role === "BOSS" && contact?.role === "SHOP";
 
   return (
     <div className="h-[calc(100vh-64px)] flex">
@@ -161,12 +184,12 @@ export default function ChatListPage() {
             const otherId = getOtherParticipantId(conv);
             const u = contacts[otherId];
             return (
-              <button
+              <div
                 key={conv.id}
-                onClick={() => handleSelectConv(conv.id)}
-                className={`w-full text-left flex items-center gap-3 px-4 py-3 hover:bg-white/5 transition border-b border-white/5 ${
+                className={`relative group w-full text-left flex items-center gap-3 px-4 py-3 hover:bg-white/5 transition border-b border-white/5 cursor-pointer ${
                   selectedId === conv.id ? "bg-white/10" : ""
                 }`}
+                onClick={() => handleSelectConv(conv.id)}
               >
                 <div className="relative shrink-0">
                   <SafeAvatar src={u?.avatar} seed={otherId} size={48} alt={u?.nickname || "用户"} />
@@ -183,7 +206,14 @@ export default function ChatListPage() {
                   </div>
                   <p className="text-sm text-gray-400 truncate mt-0.5">{conv.lastMessage || "暂无消息"}</p>
                 </div>
-              </button>
+                <button
+                  onClick={(e) => handleDeleteConv(conv.id, e)}
+                  className="shrink-0 w-8 h-8 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 hover:bg-red-500/20 hover:text-red-400 text-gray-500 transition-all"
+                  title="删除会话"
+                >
+                  <Trash2 size={16} />
+                </button>
+              </div>
             );
           })}
         </div>
@@ -193,7 +223,17 @@ export default function ChatListPage() {
       {selectedConv && contact ? (
         <div className="flex-1 flex flex-col">
           <div className="glass border-b border-white/10 px-4 py-3 flex items-center gap-3">
-            <SafeAvatar src={contact.avatar} seed={contact.id} size={40} alt={contact.nickname} />
+            {isBossViewingShop ? (
+              <button
+                onClick={() => router.push(`/shop/${contact.id}`)}
+                className="shrink-0 hover:opacity-80 transition-opacity"
+                title="查看店铺详情"
+              >
+                <SafeAvatar src={contact.avatar} seed={contact.id} size={40} alt={contact.nickname} />
+              </button>
+            ) : (
+              <SafeAvatar src={contact.avatar} seed={contact.id} size={40} alt={contact.nickname} />
+            )}
             <div>
               <h2 className="font-bold text-white">{contact.nickname}</h2>
               <p className="text-xs text-gray-400">ID: {contact.id.slice(-6)}</p>
