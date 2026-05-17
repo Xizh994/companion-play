@@ -102,6 +102,8 @@ export default function ProfilePage() {
 
   const isBinding = !user?.email;
 
+  useEffect(() => { refreshUser(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   useEffect(() => {
     if (phoneCountdown <= 0) return;
     const t = setTimeout(() => setPhoneCountdown((c) => c - 1), 1000);
