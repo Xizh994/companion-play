@@ -1145,40 +1145,119 @@ export default function ProfilePage() {
               <div className="flex items-center gap-2 mb-3">
                 <BadgeCheck className="w-4 h-4 text-violet-400" />
                 <h2 className="text-sm font-semibold text-gray-300">店铺认证</h2>
+                {sp && (
+                  <span className={cn(
+                    "inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium",
+                    sp.verificationStatus === "APPROVED" ? "bg-green-500/10 text-green-400" :
+                    sp.verificationStatus === "REJECTED" ? "bg-red-500/10 text-red-400" :
+                    "bg-amber-500/10 text-amber-400"
+                  )}>
+                    {sp.verificationStatus === "APPROVED" ? "已认证" :
+                     sp.verificationStatus === "REJECTED" ? "未通过" :
+                     "待认证"}
+                  </span>
+                )}
               </div>
 
               {sp ? (
-                <div className={cn(
-                  "p-3 rounded-xl text-sm",
-                  sp.verificationStatus === "APPROVED" ? "bg-green-500/10 border border-green-500/20" :
-                  sp.verificationStatus === "REJECTED" ? "bg-red-500/10 border border-red-500/20" :
-                  "bg-amber-500/10 border border-amber-500/20"
-                )}>
-                  <p className={cn(
-                    "text-xs",
-                    sp.verificationStatus === "APPROVED" ? "text-green-400" :
-                    sp.verificationStatus === "REJECTED" ? "text-red-400" :
-                    "text-amber-400"
+                <div className="space-y-3">
+                  <div className={cn(
+                    "p-3 rounded-xl",
+                    sp.verificationStatus === "APPROVED" ? "bg-green-500/10 border border-green-500/20" :
+                    sp.verificationStatus === "REJECTED" ? "bg-red-500/10 border border-red-500/20" :
+                    "bg-amber-500/10 border border-amber-500/20"
                   )}>
-                    {sp.verificationStatus === "APPROVED" && "✅ 店铺认证已通过"}
-                    {sp.verificationStatus === "REJECTED" && "❌ 店铺认证未通过，请重新提交认证资料"}
-                    {sp.verificationStatus === "PENDING" && "⏳ 店铺认证审核中，请耐心等待"}
-                  </p>
-                  {typeof sp.verificationNotes === "string" && sp.verificationNotes && (
-                    <p className="text-xs text-gray-500 mt-1">
-                      审核备注：{sp.verificationNotes}
+                    <p className={cn(
+                      "text-xs font-medium",
+                      sp.verificationStatus === "APPROVED" ? "text-green-400" :
+                      sp.verificationStatus === "REJECTED" ? "text-red-400" :
+                      "text-amber-400"
+                    )}>
+                      {sp.verificationStatus === "APPROVED" && "✅ 认证已通过 · 阿里云企业要素核验一致"}
+                      {sp.verificationStatus === "REJECTED" && "❌ 认证未通过 · 请核实企业信息后重新提交"}
+                      {sp.verificationStatus === "PENDING" && "⏳ 认证待处理 · 企业信息已提交，等待核验"}
                     </p>
+                    {typeof sp.verifiedAt === "string" && sp.verifiedAt && (
+                      <p className="text-[10px] text-gray-500 mt-1">
+                        认证通过时间：{new Date(sp.verifiedAt).toLocaleString("zh-CN")}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* 认证详情 */}
+                  <div className="p-3 rounded-xl bg-white/[0.02] border border-white/[0.05] space-y-2">
+                    <p className="text-[10px] text-gray-500 font-medium">认证详情</p>
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                      <div>
+                        <span className="text-gray-500">核验方式：</span>
+                        <span className="text-gray-300">阿里云企业要素核验</span>
+                      </div>
+                      <div>
+                        <span className="text-gray-500">核验类型：</span>
+                        <span className="text-gray-300">{typeof sp.licenseType === "string" ? sp.licenseType : "营业执照"}</span>
+                      </div>
+                      <div className="col-span-2">
+                        <span className="text-gray-500">企业名称：</span>
+                        <span className="text-gray-300">{typeof sp.shopName === "string" ? sp.shopName : "—"}</span>
+                      </div>
+                      <div className="col-span-2">
+                        <span className="text-gray-500">负责人：</span>
+                        <span className="text-gray-300">
+                          {typeof sp.contactName === "string" ? sp.contactName : "—"}
+                          {typeof sp.contactIdCard === "string" && sp.contactIdCard ? (
+                            <span className="text-gray-500"> · 身份证已提交</span>
+                          ) : null}
+                        </span>
+                      </div>
+                    </div>
+
+                    {typeof sp.verificationNotes === "string" && sp.verificationNotes && (
+                      <div className="pt-2 border-t border-white/[0.04]">
+                        <p className="text-[10px] text-gray-500">核验结果详情</p>
+                        <p className="text-xs text-gray-400 mt-0.5 leading-relaxed">{sp.verificationNotes}</p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* 营业执照预览 */}
+                  {typeof sp.licenseImage === "string" && sp.licenseImage && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (typeof sp.licenseImage === "string" && sp.licenseImage) {
+                          window.open(sp.licenseImage, "_blank");
+                        }
+                      }}
+                      className="w-full rounded-xl overflow-hidden border border-white/[0.06] hover:border-violet-500/30 transition group"
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={sp.licenseImage as string}
+                        alt="营业执照"
+                        className="w-full h-28 object-contain bg-black/30 group-hover:opacity-90 transition-opacity"
+                        onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
+                      />
+                      <p className="text-[10px] text-gray-400 py-1.5 group-hover:text-violet-400 transition">
+                        点击查看营业执照原图
+                      </p>
+                    </button>
                   )}
-                  {typeof sp.verifiedAt === "string" && sp.verifiedAt && (
-                    <p className="text-xs text-gray-500 mt-1">
-                      认证时间：{new Date(sp.verifiedAt).toLocaleDateString("zh-CN")}
-                    </p>
+
+                  {sp.verificationStatus === "REJECTED" && (
+                    <button
+                      type="button"
+                      className="w-full py-2.5 rounded-xl border border-violet-500/30 text-violet-400 text-sm font-medium hover:bg-violet-500/10 transition"
+                    >
+                      重新提交认证资料
+                    </button>
                   )}
                 </div>
               ) : (
                 <div className="p-3 rounded-xl bg-gray-500/5 border border-white/[0.06]">
                   <p className="text-xs text-gray-500">尚未提交店铺认证资料</p>
-                  <p className="text-xs text-gray-600 mt-1">请前往设置提交营业执照等认证材料</p>
+                  <p className="text-xs text-gray-600 mt-1">
+                    店铺认证通过阿里云企业要素核验，验证营业执照真实性及法人信息一致性，认证结果实时返回。
+                  </p>
                 </div>
               )}
             </div>
