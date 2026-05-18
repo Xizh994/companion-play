@@ -1,7 +1,15 @@
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 
-const JWT_SECRET = process.env.JWT_SECRET || "dazistar-jwt-secret-2026";
+function resolveJwtSecret(): string {
+  if (process.env.JWT_SECRET) return process.env.JWT_SECRET;
+  if (process.env.NODE_ENV === "production") {
+    throw new Error("生产环境必须设置 JWT_SECRET 环境变量");
+  }
+  return "dazistar-jwt-secret-dev-only";
+}
+
+const JWT_SECRET = resolveJwtSecret();
 
 export function hashPassword(password: string): string {
   return bcrypt.hashSync(password, 10);

@@ -9,9 +9,22 @@ export async function GET(req: NextRequest) {
 
     const url = new URL(req.url);
     const userId = url.searchParams.get("id");
+    const idsParam = url.searchParams.get("ids");
     const role = url.searchParams.get("role");
     const game = url.searchParams.get("game");
     const search = url.searchParams.get("search");
+
+    if (idsParam) {
+      const ids = idsParam.split(",").map((s) => s.trim()).filter(Boolean);
+      if (ids.length === 0) {
+        return NextResponse.json({ users: [] });
+      }
+      const users = await prisma.user.findMany({
+        where: { id: { in: ids.slice(0, 50) } },
+        include: { playerProfile: true, shopProfile: true },
+      });
+      return NextResponse.json({ users: users.map(formatUser) });
+    }
 
     if (userId) {
       const user = await prisma.user.findUnique({

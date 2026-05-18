@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { verifyToken, getTokenFromRequest } from "@/lib/auth";
+import { emitNewMessage } from "@/lib/socket-emit";
 
 export async function GET(req: NextRequest, context: { params: Promise<{ id: string }> }) {
   try {
@@ -55,6 +56,16 @@ export async function POST(req: NextRequest, context: { params: Promise<{ id: st
     await prisma.conversation.update({
       where: { id },
       data: { lastMessage: content, lastMessageAt: new Date(), updatedAt: new Date() },
+    });
+
+    emitNewMessage(id, {
+      id: message.id,
+      content: message.content,
+      fromId: message.fromId,
+      toId: message.toId,
+      type: message.type,
+      createdAt: message.createdAt.toISOString(),
+      isRead: message.isRead,
     });
 
     return NextResponse.json({ message });

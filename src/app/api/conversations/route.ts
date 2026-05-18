@@ -14,7 +14,21 @@ export async function GET(req: NextRequest) {
       orderBy: { updatedAt: "desc" },
     });
 
-    return NextResponse.json({ conversations });
+    const withUnread = await Promise.all(
+      conversations.map(async (conv) => {
+        const otherIds = conv.participants.filter((p) => p !== payload.userId);
+        const unreadCount = await prisma.message.count({
+          where: {
+            toId: payload.userId,
+            fromId: { in: otherIds },
+            isRead: false,
+          },
+        });
+        return { ...conv, unreadCount };
+      })
+    );
+
+    return NextResponse.json({ conversations: withUnread });
   } catch {
     return NextResponse.json({ error: "获取会话列表失败" }, { status: 500 });
   }

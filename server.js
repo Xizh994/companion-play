@@ -39,6 +39,9 @@ app.prepare().then(() => {
     pingTimeout: 60000,
   });
 
+  // 供 API Routes 推送实时消息（与 src/lib/socket-emit.ts 共用 global）
+  global.__dazistar_io = io;
+
   const onlineUsers = new Map();
 
   io.on("connection", (socket) => {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useSocket } from "@/hooks/useSocket";
 import { GeneratedAvatar, SafeAvatar } from "@/components/GeneratedAvatar";
@@ -15,6 +15,7 @@ interface ConversationItem {
   lastMessage: string | null;
   lastMessageAt: string | null;
   updatedAt: string;
+  unreadCount?: number;
 }
 
 interface ChatUser {
@@ -37,6 +38,10 @@ interface ChatMessage {
 const TOKEN_KEY = "dazistar_token";
 const USER_KEY = "dazistar_user";
 
+function authHeaders(token: string | null): HeadersInit {
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
 export default function ChatListPage() {
   const router = useRouter();
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -45,85 +50,164 @@ export default function ChatListPage() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [showEmoji, setShowEmoji] = useState(false);
-  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [currentUser, setCurrentUser] = useState<{ id: string; role?: string } | null>(null);
+  const selectedIdRef = useRef<string | null>(null);
+  const contactsRef = useRef<Record<string, ChatUser>>({});
+
+  useEffect(() => {
+    selectedIdRef.current = selectedId;
+  }, [selectedId]);
+
+  useEffect(() => {
+    contactsRef.current = contacts;
+  }, [contacts]);
 
   useEffect(() => {
     const userStr = localStorage.getItem(USER_KEY);
-    if (!userStr) { router.push("/login"); return; }
-    setCurrentUser(JSON.parse(userStr));
-  }, []);
+    if (!userStr) {
+      router.push("/login");
+      return;
+    }
+    try {
+      setCurrentUser(JSON.parse(userStr));
+    } catch {
+      router.push("/login");
+    }
+  }, [router]);
 
   const { socket, connected } = useSocket(currentUser?.id || null);
   const searchParams = useSearchParams();
 
-  // 获取会话列表
+  const loadContacts = useCallback(async (userIds: string[]) => {
+    const token = localStorage.getItem(TOKEN_KEY);
+    const missing = userIds.filter((id) => !contactsRef.current[id]);
+    if (!token || missing.length === 0) return;
+
+    try {
+      const res = await fetch(`/api/users?ids=${missing.join(",")}`, {
+        headers: authHeaders(token),
+      });
+      if (!res.ok) return;
+      const data = await res.json();
+      const next: Record<string, ChatUser> = {};
+      for (const u of data.users || []) {
+        next[u.id] = {
+          id: u.id,
+          nickname: u.nickname,
+          avatar: u.avatar,
+          status: u.status,
+          role: u.role,
+        };
+      }
+      setContacts((prev) => ({ ...prev, ...next }));
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  const markConversationRead = useCallback(async (convId: string) => {
+    const token = localStorage.getItem(TOKEN_KEY);
+    await fetch(`/api/conversations/${convId}/read`, {
+      method: "POST",
+      headers: authHeaders(token),
+    });
+    setConversations((prev) =>
+      prev.map((c) => (c.id === convId ? { ...c, unreadCount: 0 } : c))
+    );
+  }, []);
+
   const fetchConversations = useCallback(async () => {
     const token = localStorage.getItem(TOKEN_KEY);
     const res = await fetch("/api/conversations", {
-      headers: { Authorization: `Bearer ${token}` },
+      headers: authHeaders(token),
     });
-    if (res.ok) {
-      const data = await res.json();
-      setConversations(data.conversations);
-      // 加载所有联系人信息
-      const userIds = new Set<string>();
-      data.conversations.forEach((c: ConversationItem) => c.participants.forEach((p) => userIds.add(p)));
-      userIds.delete(currentUser?.id);
-      // 批量获取用户信息
-      const token = localStorage.getItem(TOKEN_KEY);
-      for (const uid of userIds) {
-        try {
-          const ur = await fetch(`/api/users?id=${uid}`, { headers: { Authorization: `Bearer ${token}` } });
-          if (ur.ok) {
-            const ud = await ur.json();
-            if (ud.users?.[0]) {
-              const u = ud.users[0];
-              setContacts((prev) => ({ ...prev, [uid]: { id: u.id, nickname: u.nickname, avatar: u.avatar, status: u.status, role: u.role } }));
-            }
-          }
-        } catch {}
-      }
-    }
-  }, [currentUser?.id]);
+    if (!res.ok) return;
+    const data = await res.json();
+    setConversations(data.conversations);
+    const userIds = new Set<string>();
+    data.conversations.forEach((c: ConversationItem) =>
+      c.participants.forEach((p) => {
+        if (p !== currentUser?.id) userIds.add(p);
+      })
+    );
+    await loadContacts(Array.from(userIds));
+  }, [currentUser?.id, loadContacts]);
 
-  // 获取消息
-  const fetchMessages = useCallback(async (convId: string) => {
-    const token = localStorage.getItem(TOKEN_KEY);
-    const res = await fetch(`/api/conversations/${convId}/messages`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    if (res.ok) {
-      const data = await res.json();
-      setMessages(data.messages.map((m: any) => ({ ...m, isMine: m.fromId === currentUser?.id })));
-    }
-  }, [currentUser?.id]);
+  const fetchMessages = useCallback(
+    async (convId: string) => {
+      const token = localStorage.getItem(TOKEN_KEY);
+      const res = await fetch(`/api/conversations/${convId}/messages`, {
+        headers: authHeaders(token),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setMessages(
+          data.messages.map((m: { id: string; content: string; fromId: string; type: string; createdAt: string }) => ({
+            ...m,
+            isMine: m.fromId === currentUser?.id,
+          }))
+        );
+        await markConversationRead(convId);
+      }
+    },
+    [currentUser?.id, markConversationRead]
+  );
 
   useEffect(() => {
     if (currentUser?.id) fetchConversations();
-  }, [currentUser?.id]);
+  }, [currentUser?.id, fetchConversations]);
 
-  // 从 URL 参数自动选中会话
   useEffect(() => {
     const convId = searchParams.get("conv");
     if (!convId || conversations.length === 0 || selectedId === convId) return;
-    const exists = conversations.some((c) => c.id === convId);
-    if (exists) {
+    if (conversations.some((c) => c.id === convId)) {
       setSelectedId(convId);
       fetchMessages(convId);
       socket?.emit("join_chat", convId);
     }
   }, [searchParams, conversations, selectedId, fetchMessages, socket]);
 
-  // Socket 监听新消息
   useEffect(() => {
     if (!socket || !currentUser?.id) return;
-    socket.on("new_message", (msg: any) => {
-      if (selectedId) {
-        setMessages((prev) => [...prev, { ...msg, isMine: msg.fromId === currentUser.id }]);
+
+    const onNewMessage = (msg: {
+      id: string;
+      content: string;
+      fromId: string;
+      type?: string;
+      createdAt: string;
+    }) => {
+      const activeConvId = selectedIdRef.current;
+      const isMine = msg.fromId === currentUser.id;
+
+      if (activeConvId) {
+        setMessages((prev) => {
+          if (prev.some((m) => m.id === msg.id)) return prev;
+          return [
+            ...prev,
+            {
+              id: msg.id,
+              content: msg.content,
+              fromId: msg.fromId,
+              type: msg.type || "text",
+              createdAt: msg.createdAt,
+              isMine,
+            },
+          ];
+        });
+        if (!isMine) {
+          markConversationRead(activeConvId);
+        }
       }
-      fetchConversations();
-    });
-  }, [socket, selectedId, currentUser?.id]);
+
+      void fetchConversations();
+    };
+
+    socket.on("new_message", onNewMessage);
+    return () => {
+      socket.off("new_message", onNewMessage);
+    };
+  }, [socket, currentUser?.id, markConversationRead, fetchConversations]);
 
   const handleSelectConv = (convId: string) => {
     setSelectedId(convId);
@@ -137,16 +221,28 @@ export default function ChatListPage() {
     const token = localStorage.getItem(TOKEN_KEY);
     const res = await fetch(`/api/conversations/${selectedId}/messages`, {
       method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      headers: {
+        "Content-Type": "application/json",
+        ...authHeaders(token),
+      },
       body: JSON.stringify({ content: input.trim() }),
     });
     if (res.ok) {
       const data = await res.json();
-      setMessages((prev) => [...prev, { ...data.message, isMine: true }]);
-      // 通过 Socket 广播给对面
-      socket?.emit("private_message", {
-        roomId: selectedId,
-        message: { ...data.message, isMine: false },
+      const msg = data.message;
+      setMessages((prev) => {
+        if (prev.some((m) => m.id === msg.id)) return prev;
+        return [
+          ...prev,
+          {
+            id: msg.id,
+            content: msg.content,
+            fromId: msg.fromId,
+            type: msg.type,
+            createdAt: msg.createdAt,
+            isMine: true,
+          },
+        ];
       });
       setInput("");
       setShowEmoji(false);
@@ -160,7 +256,7 @@ export default function ChatListPage() {
     const token = localStorage.getItem(TOKEN_KEY);
     const res = await fetch(`/api/conversations/${convId}`, {
       method: "DELETE",
-      headers: { Authorization: `Bearer ${token}` },
+      headers: authHeaders(token),
     });
     if (res.ok) {
       setConversations((prev) => prev.filter((c) => c.id !== convId));
@@ -182,58 +278,31 @@ export default function ChatListPage() {
 
   const selectedConv = conversations.find((c) => c.id === selectedId);
   const otherUserId = selectedConv ? getOtherParticipantId(selectedConv) : null;
-  const contact = otherUserId ? (contacts[otherUserId] || { id: otherUserId, nickname: "用户", avatar: null, status: "offline", role: "BOSS" }) : null;
+  const contact = otherUserId
+    ? contacts[otherUserId] || {
+        id: otherUserId,
+        nickname: "用户",
+        avatar: null,
+        status: "offline",
+        role: "BOSS",
+      }
+    : null;
   const isBossViewingShop = currentUser?.role === "BOSS" && contact?.role === "SHOP";
+  const totalUnread = conversations.reduce((sum, c) => sum + (c.unreadCount || 0), 0);
 
   return (
     <div className="h-[calc(100vh-64px)] flex">
-      {/* 左侧会话列表 */}
-      <div className="w-full max-w-xs border-r border-white/10 bg-[#0f0f1a]/50 flex flex-col">
-        <div className="p-4 border-b border-white/10">
-          <h1 className="text-xl font-bold text-white">💬 消息</h1>
-          <p className="text-sm text-gray-500 mt-1">{conversations.length} 条会话 {connected && "🟢"}</p>
-        </div>
-        <div className="flex-1 overflow-y-auto">
-          {conversations.map((conv) => {
-            const otherId = getOtherParticipantId(conv);
-            const u = contacts[otherId];
-            return (
-              <div
-                key={conv.id}
-                className={`relative group w-full text-left flex items-center gap-3 px-4 py-3 hover:bg-white/5 transition border-b border-white/5 cursor-pointer ${
-                  selectedId === conv.id ? "bg-white/10" : ""
-                }`}
-                onClick={() => handleSelectConv(conv.id)}
-              >
-                <div className="relative shrink-0">
-                  <SafeAvatar src={u?.avatar} seed={otherId} size={48} alt={u?.nickname || "用户"} />
-                  {u?.status === "online" && (
-                    <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 rounded-full border-2 border-[#0f0f1a]" />
-                  )}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between">
-                    <h3 className="font-medium text-white truncate">{u?.nickname || "用户"}</h3>
-                    <span className="text-xs text-gray-500 shrink-0">
-                      {conv.lastMessageAt ? new Date(conv.lastMessageAt).toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" }) : ""}
-                    </span>
-                  </div>
-                  <p className="text-sm text-gray-400 truncate mt-0.5">{conv.lastMessage || "暂无消息"}</p>
-                </div>
-                <button
-                  onClick={(e) => handleDeleteConv(conv.id, e)}
-                  className="shrink-0 w-8 h-8 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 hover:bg-red-500/20 hover:text-red-400 text-gray-500 transition-all"
-                  title="删除会话"
-                >
-                  <Trash2 size={16} />
-                </button>
-              </div>
-            );
-          })}
-        </div>
-      </div>
+      <ChatSidebar
+        conversations={conversations}
+        contacts={contacts}
+        selectedId={selectedId}
+        connected={connected}
+        totalUnread={totalUnread}
+        getOtherParticipantId={getOtherParticipantId}
+        onSelect={handleSelectConv}
+        onDelete={handleDeleteConv}
+      />
 
-      {/* 右侧聊天区域 */}
       {selectedConv && contact ? (
         <div className="flex-1 flex flex-col">
           <div className="glass border-b border-white/10 px-4 py-3 flex items-center gap-3">
@@ -256,24 +325,12 @@ export default function ChatListPage() {
 
           <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
             {messages.map((msg) => (
-              <div key={msg.id} className={`flex ${msg.isMine ? "justify-end" : "justify-start"}`}>
-                {!msg.isMine && (
-                  <SafeAvatar src={contact.avatar} seed={contact.id} size={32} className="mr-2 mt-1" />
-                )}
-                <div className={`max-w-[70%] rounded-2xl px-4 py-2.5 ${
-                  msg.isMine
-                    ? "bg-gradient-to-r from-pink-500 to-purple-500 text-white rounded-br-md"
-                    : "bg-white/10 text-gray-200 rounded-bl-md"
-                }`}>
-                  <p className="text-sm leading-relaxed break-words">{msg.content}</p>
-                  <p className={`text-[10px] mt-1 ${msg.isMine ? "text-pink-200/60 text-right" : "text-gray-500"}`}>
-                    {new Date(msg.createdAt).toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" })}
-                  </p>
-                </div>
-                {msg.isMine && (
-                  <GeneratedAvatar seed={currentUser?.id || "me"} size={32} className="ml-2 mt-1" />
-                )}
-              </div>
+              <MessageRow
+                key={msg.id}
+                msg={msg}
+                contact={contact}
+                currentUserId={currentUser?.id}
+              />
             ))}
           </div>
 
@@ -287,20 +344,30 @@ export default function ChatListPage() {
 
           <div className="glass border-t border-white/10 px-4 py-3">
             <div className="flex items-end gap-2">
-              <button onClick={() => setShowEmoji((v) => !v)}
-                className="shrink-0 w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-xl hover:bg-white/10 transition">
+              <button
+                onClick={() => setShowEmoji((v) => !v)}
+                className="shrink-0 w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-xl hover:bg-white/10 transition"
+              >
                 😊
               </button>
               <textarea
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    handleSend();
+                  }
+                }}
                 placeholder="输入消息..."
                 rows={1}
                 className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white placeholder-gray-500 outline-none focus:border-pink-500/50 resize-none text-sm"
               />
-              <button onClick={handleSend} disabled={!input.trim()}
-                className="btn-gradient shrink-0 px-5 py-2.5 rounded-xl text-sm font-medium disabled:opacity-30">
+              <button
+                onClick={handleSend}
+                disabled={!input.trim()}
+                className="btn-gradient shrink-0 px-5 py-2.5 rounded-xl text-sm font-medium disabled:opacity-30"
+              >
                 发送
               </button>
             </div>
@@ -311,10 +378,148 @@ export default function ChatListPage() {
           <div className="text-center">
             <span className="text-6xl block mb-4">💬</span>
             <h2 className="text-xl font-bold text-gray-400">选择一个会话开始聊天</h2>
-            <p className="text-gray-500 text-sm mt-2">从左侧列表中选择一个陪玩师</p>
+            <p className="text-gray-500 text-sm mt-2">从左侧列表中选择联系人</p>
           </div>
         </div>
       )}
     </div>
+  );
+}
+
+function MessageRow({
+  msg,
+  contact,
+  currentUserId,
+}: {
+  msg: ChatMessage;
+  contact: ChatUser;
+  currentUserId?: string;
+}) {
+  return (
+    <div className={`flex ${msg.isMine ? "justify-end" : "justify-start"}`}>
+      {!msg.isMine && <SafeAvatar src={contact.avatar} seed={contact.id} size={32} className="mr-2 mt-1" />}
+      <div
+        className={`max-w-[70%] rounded-2xl px-4 py-2.5 ${
+          msg.isMine
+            ? "bg-gradient-to-r from-pink-500 to-purple-500 text-white rounded-br-md"
+            : "bg-white/10 text-gray-200 rounded-bl-md"
+        }`}
+      >
+        <p className="text-sm leading-relaxed break-words">{msg.content}</p>
+        <p className={`text-[10px] mt-1 ${msg.isMine ? "text-pink-200/60 text-right" : "text-gray-500"}`}>
+          {new Date(msg.createdAt).toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" })}
+        </p>
+      </div>
+      {msg.isMine && <GeneratedAvatar seed={currentUserId || "me"} size={32} className="ml-2 mt-1" />}
+    </div>
+  );
+}
+
+function ChatSidebar({
+  conversations,
+  contacts,
+  selectedId,
+  connected,
+  totalUnread,
+  getOtherParticipantId,
+  onSelect,
+  onDelete,
+}: {
+  conversations: ConversationItem[];
+  contacts: Record<string, ChatUser>;
+  selectedId: string | null;
+  connected: boolean;
+  totalUnread: number;
+  getOtherParticipantId: (conv: ConversationItem) => string;
+  onSelect: (id: string) => void;
+  onDelete: (id: string, e: React.MouseEvent) => void;
+}) {
+  return (
+    <div className="w-full max-w-xs border-r border-white/10 bg-[#0f0f1a]/50 flex flex-col">
+      <div className="p-4 border-b border-white/10">
+        <div className="flex items-center justify-between">
+          <h1 className="text-xl font-bold text-white">💬 消息</h1>
+          {totalUnread > 0 && (
+            <span className="min-w-[20px] h-5 px-1.5 rounded-full bg-pink-500 text-white text-xs font-medium flex items-center justify-center">
+              {totalUnread > 99 ? "99+" : totalUnread}
+            </span>
+          )}
+        </div>
+        <p className="text-sm text-gray-500 mt-1">
+          {conversations.length} 条会话 {connected ? "🟢" : "○ 连接中"}
+        </p>
+      </div>
+      <div className="flex-1 overflow-y-auto">
+        {conversations.map((conv) => {
+          const otherId = getOtherParticipantId(conv);
+          const u = contacts[otherId];
+          const unread = conv.unreadCount || 0;
+          return (
+            <div
+              key={conv.id}
+              className={`relative group w-full text-left flex items-center gap-3 px-4 py-3 hover:bg-white/5 transition border-b border-white/5 cursor-pointer ${
+                selectedId === conv.id ? "bg-white/10" : ""
+              }`}
+              onClick={() => onSelect(conv.id)}
+            >
+              <div className="relative shrink-0">
+                <SafeAvatar src={u?.avatar} seed={otherId} size={48} alt={u?.nickname || "用户"} />
+                {u?.status === "online" && (
+                  <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 rounded-full border-2 border-[#0f0f1a]" />
+                )}
+              </div>
+              <div className="flex-1 min-w-0">
+                <ConvMeta conv={conv} u={u} unread={unread} />
+              </div>
+              <button
+                onClick={(e) => onDelete(conv.id, e)}
+                className="shrink-0 w-8 h-8 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 hover:bg-red-500/20 hover:text-red-400 text-gray-500 transition-all"
+                title="删除会话"
+              >
+                <Trash2 size={16} />
+              </button>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function ConvMeta({
+  conv,
+  u,
+  unread,
+}: {
+  conv: ConversationItem;
+  u?: ChatUser;
+  unread: number;
+}) {
+  return (
+    <>
+      <div className="flex items-center justify-between gap-2">
+        <h3 className={`font-medium truncate ${unread > 0 ? "text-white" : "text-white/90"}`}>
+          {u?.nickname || "用户"}
+        </h3>
+        <span className="text-xs text-gray-500 shrink-0">
+          {conv.lastMessageAt
+            ? new Date(conv.lastMessageAt).toLocaleTimeString("zh-CN", {
+                hour: "2-digit",
+                minute: "2-digit",
+              })
+            : ""}
+        </span>
+      </div>
+      <div className="flex items-center justify-between gap-2 mt-0.5">
+        <p className={`text-sm truncate ${unread > 0 ? "text-gray-200 font-medium" : "text-gray-400"}`}>
+          {conv.lastMessage || "暂无消息"}
+        </p>
+        {unread > 0 && (
+          <span className="shrink-0 min-w-[18px] h-[18px] px-1 rounded-full bg-pink-500 text-white text-[10px] font-bold flex items-center justify-center">
+            {unread > 99 ? "99+" : unread}
+          </span>
+        )}
+      </div>
+    </>
   );
 }

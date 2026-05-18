@@ -23,11 +23,11 @@ export async function POST(req: NextRequest) {
       licenseImage,
     } = body;
 
-    if (!phone || !password) {
-      return NextResponse.json({ error: "手机号和密码不能为空" }, { status: 400 });
+    if (!phone) {
+      return NextResponse.json({ error: "手机号不能为空" }, { status: 400 });
     }
 
-    if (password.length < 6) {
+    if (password && password.length < 6) {
       return NextResponse.json({ error: "密码至少6位" }, { status: 400 });
     }
 
@@ -68,13 +68,13 @@ export async function POST(req: NextRequest) {
     const user = await prisma.user.create({
       data: {
         phone,
-        passwordHash: hashPassword(password),
+        passwordHash: password ? hashPassword(password) : null,
         role: role || "BOSS",
         nickname: finalNickname,
         avatar: avatarUrl,
         email: email || null,
         emailVerified: !!email,
-        hasPassword: true,
+        hasPassword: !!password,
         status: "online",
       },
     });
