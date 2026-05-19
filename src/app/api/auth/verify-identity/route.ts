@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { verifyToken, getTokenFromRequest } from "@/lib/auth";
 import { encrypt } from "@/lib/crypto";
+import { isValidIdCardNumber } from "@/lib/id-card";
 
 export async function POST(req: NextRequest) {
   try {
@@ -30,7 +31,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "姓名和身份证号不能为空" }, { status: 400 });
     }
 
-    if (!/^[1-9]\d{5}(18|19|20)\d{2}(0[1-9]|1[0-2])(0[1-9]|[12]\d|3[01])\d{3}[\dXx]$/.test(idCardNumber)) {
+    if (!isValidIdCardNumber(idCardNumber)) {
       return NextResponse.json({ error: "身份证号格式不正确" }, { status: 400 });
     }
 

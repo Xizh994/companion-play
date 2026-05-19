@@ -676,8 +676,10 @@ pm2 start ecosystem.config.js
 
 | 实例名 | 端口 | 说明 |
 |--------|------|------|
-| dazistar-3000 | 3000 | 主实例 |
-| dazistar-3001 | 3001 | 备用实例 |
+| dazistar-3000 | 3000 | **生产**（www.dazistar.com） |
+| dazistar-3001 | 3001 | **测试**（test.dazistar.com） |
+
+详见 [docs/ENVIRONMENTS.md](docs/ENVIRONMENTS.md)。实名/店铺验真方案见 [docs/design/verification-v1.md](docs/design/verification-v1.md)。
 
 ### 10.2 一键部署脚本
 

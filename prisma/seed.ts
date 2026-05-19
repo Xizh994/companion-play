@@ -1,5 +1,7 @@
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
+import { buildSubmittedNotes } from "../src/lib/verification-notes";
+import { encrypt } from "../src/lib/crypto";
 
 const prisma = new PrismaClient();
 
@@ -28,7 +30,8 @@ async function main() {
           licenseImage: "/placeholder-license.png",
           contactName: "张店长",
           contactPhone: "13800000001",
-          contactIdCard: "330000000000000000",
+          contactIdCard: encrypt("330000000000000000"),
+          verificationNotes: buildSubmittedNotes(),
           playerCount: 25,
           rating: 4.9,
           orderCount: 3280,

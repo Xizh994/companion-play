@@ -7,6 +7,15 @@ import { useAuth } from "@/hooks/useAuth";
 import { Crown, Store, Shield, Check, Clock, XCircle, Mail, Phone, Lock, Camera, ArrowLeft, X, Pencil, Loader2, ZoomIn, ZoomOut, MapPin, User, PhoneCall, FileText, BadgeCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { maskPhone, maskEmail } from "@/lib/mask";
+import { isValidIdCardNumber } from "@/lib/id-card";
+import {
+  getBossVerifyView,
+  getShopVerifyView,
+  getVerifyBadgeClass,
+  getVerifyPanelClass,
+  getVerifyTextClass,
+  formatVerificationNotesForDisplay,
+} from "@/lib/verification-ui";
 
 const CROP_SIZE = 280;
 const MIN_SCALE = 0.5;
@@ -77,6 +86,16 @@ export default function ProfilePage() {
   const [contactPhoneLoading, setContactPhoneLoading] = useState(false);
   const [contactPhoneError, setContactPhoneError] = useState("");
 
+  const [shopVerifySubmitting, setShopVerifySubmitting] = useState(false);
+  const [shopVerifyError, setShopVerifyError] = useState("");
+  const [resubmitModalOpen, setResubmitModalOpen] = useState(false);
+  const [resubmitLicenseUrl, setResubmitLicenseUrl] = useState<string | null>(null);
+  const [resubmitPreview, setResubmitPreview] = useState<string | null>(null);
+  const [resubmitUploading, setResubmitUploading] = useState(false);
+  const [resubmitSubmitting, setResubmitSubmitting] = useState(false);
+  const [resubmitError, setResubmitError] = useState("");
+  const resubmitLicenseInputRef = useRef<HTMLInputElement>(null);
+
   const saveShopField = async (field: string, value: string) => {
     setShopInfoSaving(true);
     setProfileError("");
@@ -114,27 +133,27 @@ export default function ProfilePage() {
     if (!picked) { setContactNameError("请输入新负责人姓名"); return; }
     if (!contactNameRealName) { setContactNameError("请输入您的真实姓名"); return; }
     if (!contactNameIdCard) { setContactNameError("请输入您的身份证号"); return; }
-    if (!/^\d{17}[\dXx]$/.test(contactNameIdCard)) { setContactNameError("身份证号格式不正确"); return; }
+    if (!isValidIdCardNumber(contactNameIdCard)) {
+      setContactNameError("身份证号格式不正确");
+      return;
+    }
 
     setContactNameVerifying(true);
     try {
-      const res = await fetch("/api/auth/verify-identity", {
+      const res = await fetch("/api/verification/contact-person", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ realName: contactNameRealName, idCardNumber: contactNameIdCard }),
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          contactName: picked,
+          realName: contactNameRealName,
+          idCardNumber: contactNameIdCard,
+        }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "身份核验失败");
-
-      const formData = new FormData();
-      formData.append("contactName", picked);
-      const saveRes = await fetch("/api/profile/update", {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
-        body: formData,
-      });
-      const saveData = await saveRes.json();
-      if (!saveRes.ok) throw new Error(saveData.error || "保存失败");
+      if (!res.ok) throw new Error(data.error || "更换负责人失败");
 
       await refreshUser();
       setContactNameDone(true);
@@ -283,13 +302,13 @@ export default function ProfilePage() {
   }, [newPhoneCountdown]);
 
   useEffect(() => {
-    if (cropModalOpen || emailModalOpen || phoneModalOpen || contactNameModalOpen || contactPhoneModalOpen) {
+    if (cropModalOpen || emailModalOpen || phoneModalOpen || contactNameModalOpen || contactPhoneModalOpen || resubmitModalOpen) {
       document.body.style.overflow = "hidden";
     } else {
       document.body.style.overflow = "";
     }
     return () => { document.body.style.overflow = ""; };
-  }, [cropModalOpen, emailModalOpen, phoneModalOpen, contactNameModalOpen, contactPhoneModalOpen]);
+  }, [cropModalOpen, emailModalOpen, phoneModalOpen, contactNameModalOpen, contactPhoneModalOpen, resubmitModalOpen]);
 
   const closeEmailModal = useCallback(() => {
     setEmailModalOpen(false);
@@ -718,7 +737,7 @@ export default function ProfilePage() {
     setVerifyError("");
     if (!realName) { setVerifyError("请输入真实姓名"); return; }
     if (!idCardNumber) { setVerifyError("请输入身份证号"); return; }
-    if (!/^\d{17}[\dXx]$/.test(idCardNumber)) { setVerifyError("身份证号格式不正确"); return; }
+    if (!isValidIdCardNumber(idCardNumber)) { setVerifyError("身份证号格式不正确"); return; }
 
     setVerifying(true);
     try {
@@ -738,22 +757,108 @@ export default function ProfilePage() {
     }
   };
 
-  const getStatusBadge = () => {
-    if (!rn) {
-      return { icon: null, text: "未认证", color: "text-gray-500 bg-gray-500/10" };
-    }
-    switch (rn.status) {
-      case "APPROVED":
-        return { icon: Check, text: "已认证", color: "text-green-400 bg-green-500/10" };
-      case "REJECTED":
-        return { icon: XCircle, text: "已拒绝", color: "text-red-400 bg-red-500/10" };
-      default:
-        return { icon: Clock, text: "审核中", color: "text-amber-400 bg-amber-500/10" };
+  const bossVerifyView = getBossVerifyView(rn);
+  const shopVerifyView = getShopVerifyView(
+    sp as { verificationStatus?: string; verificationNotes?: string | null } | null | undefined
+  );
+  const shopNotesDisplay = formatVerificationNotesForDisplay(
+    typeof sp?.verificationNotes === "string" ? sp.verificationNotes : null
+  );
+
+  const BossStatusIcon =
+    bossVerifyView.badge === "approved"
+      ? Check
+      : bossVerifyView.badge === "rejected"
+        ? XCircle
+        : bossVerifyView.badge === "verifying"
+          ? Clock
+          : null;
+
+  const handleShopVerifySubmit = async () => {
+    setShopVerifyError("");
+    setShopVerifySubmitting(true);
+    try {
+      const res = await fetch("/api/verification/shop/submit", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          legalPersonName: typeof sp?.contactName === "string" ? sp.contactName : "",
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "提交失败");
+      await refreshUser();
+    } catch (err) {
+      setShopVerifyError(err instanceof Error ? err.message : "提交失败");
+    } finally {
+      setShopVerifySubmitting(false);
     }
   };
 
-  const statusBadge = getStatusBadge();
-  const StatusIcon = statusBadge.icon;
+  const openResubmitModal = () => {
+    setResubmitLicenseUrl((sp?.licenseImage as string) || null);
+    setResubmitPreview((sp?.licenseImage as string) || null);
+    setResubmitError("");
+    setResubmitModalOpen(true);
+  };
+
+  const handleResubmitLicenseChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setResubmitError("");
+    setResubmitUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append("license", file);
+      const res = await fetch("/api/uploads/license", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData,
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "上传失败");
+      setResubmitLicenseUrl(data.url);
+      setResubmitPreview(data.url);
+    } catch (err) {
+      setResubmitError(err instanceof Error ? err.message : "上传失败");
+    } finally {
+      setResubmitUploading(false);
+      e.target.value = "";
+    }
+  };
+
+  const handleResubmitConfirm = async () => {
+    if (!resubmitLicenseUrl) {
+      setResubmitError("请上传营业执照");
+      return;
+    }
+    setResubmitError("");
+    setResubmitSubmitting(true);
+    try {
+      const res = await fetch("/api/verification/shop/submit", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          licenseImageUrl: resubmitLicenseUrl,
+          legalPersonName: typeof sp?.contactName === "string" ? sp.contactName : "",
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "提交失败");
+      await refreshUser();
+      setResubmitModalOpen(false);
+    } catch (err) {
+      setResubmitError(err instanceof Error ? err.message : "提交失败");
+    } finally {
+      setResubmitSubmitting(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#0a0a1a] via-[#0f0f2a] to-[#0a0a1a]">
@@ -832,13 +937,25 @@ export default function ProfilePage() {
                 {user.role === "BOSS" ? "老板" : "店铺"}
               </span>
 
-              {rn && (
-                <span className={cn(
-                  "inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium",
-                  statusBadge.color
-                )}>
-                  {StatusIcon && <StatusIcon className="w-3 h-3" />}
-                  {statusBadge.text}
+              {user.role === "BOSS" && bossVerifyView.badge !== "none" && (
+                <span
+                  className={cn(
+                    "inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium",
+                    getVerifyBadgeClass(bossVerifyView.badge)
+                  )}
+                >
+                  {BossStatusIcon && <BossStatusIcon className="w-3 h-3" />}
+                  {bossVerifyView.label}
+                </span>
+              )}
+              {user.role === "SHOP" && (
+                <span
+                  className={cn(
+                    "inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium",
+                    getVerifyBadgeClass(shopVerifyView.badge)
+                  )}
+                >
+                  {shopVerifyView.label}
                 </span>
               )}
             </div>
@@ -948,13 +1065,13 @@ export default function ProfilePage() {
                   )}>
                     {rn.status === "APPROVED" && "✅ 实名认证已通过"}
                     {rn.status === "REJECTED" && "❌ 实名认证未通过，请重新提交"}
-                    {rn.status === "PENDING" && "⏳ 实名认证审核中，请耐心等待"}
+                    {rn.status === "PENDING" && "⏳ 实名信息核验中，请稍后刷新"}
                   </p>
                   <p className="text-xs text-gray-400 mt-1">姓名：{rn.realName}</p>
                 </div>
               )}
 
-              {(!rn || rn.status === "REJECTED") && (
+              {bossVerifyView.canSubmit && (
                 <>
                   {!showRealName ? (
                     <button
@@ -1155,44 +1272,34 @@ export default function ProfilePage() {
               <div className="flex items-center gap-2 mb-3">
                 <BadgeCheck className="w-4 h-4 text-violet-400" />
                 <h2 className="text-sm font-semibold text-gray-300">店铺认证</h2>
-                {sp && (
-                  <span className={cn(
+                <span
+                  className={cn(
                     "inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium",
-                    sp.verificationStatus === "APPROVED" ? "bg-green-500/10 text-green-400" :
-                    sp.verificationStatus === "REJECTED" ? "bg-red-500/10 text-red-400" :
-                    "bg-amber-500/10 text-amber-400"
-                  )}>
-                    {sp.verificationStatus === "APPROVED" ? "已认证" :
-                     sp.verificationStatus === "REJECTED" ? "未通过" :
-                     "未核验"}
-                  </span>
-                )}
+                    getVerifyBadgeClass(shopVerifyView.badge)
+                  )}
+                >
+                  {shopVerifyView.label}
+                </span>
               </div>
 
               {sp ? (
                 <div className="space-y-3">
-                  <div className={cn(
-                    "p-3 rounded-xl",
-                    sp.verificationStatus === "APPROVED" ? "bg-green-500/10 border border-green-500/20" :
-                    sp.verificationStatus === "REJECTED" ? "bg-red-500/10 border border-red-500/20" :
-                    "bg-amber-500/10 border border-amber-500/20"
-                  )}>
-                    <p className={cn(
-                      "text-xs font-medium",
-                      sp.verificationStatus === "APPROVED" ? "text-green-400" :
-                      sp.verificationStatus === "REJECTED" ? "text-red-400" :
-                      "text-amber-400"
-                    )}>
-                      {sp.verificationStatus === "APPROVED" && "✅ 认证已通过 · 阿里云企业要素核验一致"}
-                      {sp.verificationStatus === "REJECTED" && "❌ 认证未通过 · 请核实企业信息后重新提交"}
-                      {sp.verificationStatus === "PENDING" && "⏳ 未核验 · 企业信息已提交，尚未调用阿里云核验"}
+                  <div
+                    className={cn("p-3 rounded-xl border", getVerifyPanelClass(shopVerifyView.badge))}
+                  >
+                    <p className={cn("text-xs font-medium", getVerifyTextClass(shopVerifyView.badge))}>
+                      {shopVerifyView.message}
                     </p>
-                    {typeof sp.verifiedAt === "string" && sp.verifiedAt && (
-                      <p className="text-[10px] text-gray-500 mt-1">
-                        认证通过时间：{new Date(sp.verifiedAt).toLocaleString("zh-CN")}
-                      </p>
-                    )}
+                    {typeof sp.verifiedAt === "string" &&
+                      sp.verifiedAt &&
+                      shopVerifyView.badge === "approved" && (
+                        <p className="text-[10px] text-gray-500 mt-1">
+                          认证通过时间：{new Date(sp.verifiedAt as string).toLocaleString("zh-CN")}
+                        </p>
+                      )}
                   </div>
+
+                  {shopVerifyError && <p className="text-xs text-red-400">{shopVerifyError}</p>}
 
                   {/* 认证详情 */}
                   <div className="p-3 rounded-xl bg-white/[0.02] border border-white/[0.05] space-y-2">
@@ -1221,10 +1328,10 @@ export default function ProfilePage() {
                       </div>
                     </div>
 
-                    {typeof sp.verificationNotes === "string" && sp.verificationNotes && (
+                    {shopNotesDisplay && (
                       <div className="pt-2 border-t border-white/[0.04]">
-                        <p className="text-[10px] text-gray-500">核验结果详情</p>
-                        <p className="text-xs text-gray-400 mt-0.5 leading-relaxed">{sp.verificationNotes}</p>
+                        <p className="text-[10px] text-gray-500">备注</p>
+                        <p className="text-xs text-gray-400 mt-0.5 leading-relaxed">{shopNotesDisplay}</p>
                       </div>
                     )}
                   </div>
@@ -1253,9 +1360,21 @@ export default function ProfilePage() {
                     </button>
                   )}
 
-                  {sp.verificationStatus === "REJECTED" && (
+                  {shopVerifyView.canSubmit && (
                     <button
                       type="button"
+                      onClick={handleShopVerifySubmit}
+                      disabled={shopVerifySubmitting}
+                      className="w-full py-2.5 rounded-xl border border-violet-500/30 text-violet-400 text-sm font-medium hover:bg-violet-500/10 transition disabled:opacity-40"
+                    >
+                      {shopVerifySubmitting ? "提交中…" : "开始核验"}
+                    </button>
+                  )}
+
+                  {shopVerifyView.canResubmit && (
+                    <button
+                      type="button"
+                      onClick={openResubmitModal}
                       className="w-full py-2.5 rounded-xl border border-violet-500/30 text-violet-400 text-sm font-medium hover:bg-violet-500/10 transition"
                     >
                       重新提交认证资料
@@ -1265,9 +1384,6 @@ export default function ProfilePage() {
               ) : (
                 <div className="p-3 rounded-xl bg-gray-500/5 border border-white/[0.06]">
                   <p className="text-xs text-gray-500">尚未提交店铺认证资料</p>
-                  <p className="text-xs text-gray-600 mt-1">
-                    店铺认证通过阿里云企业要素核验，验证营业执照真实性及法人信息一致性，认证结果实时返回。
-                  </p>
                 </div>
               )}
             </div>
@@ -1953,6 +2069,73 @@ export default function ProfilePage() {
                   </button>
                 </div>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+      {resubmitModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
+          <div className="w-full max-w-sm bg-[#12122a] border border-white/10 rounded-2xl p-6 shadow-2xl">
+            <div className="flex items-center justify-between mb-5">
+              <h3 className="text-white font-semibold">重新提交认证资料</h3>
+              <button
+                type="button"
+                onClick={() => setResubmitModalOpen(false)}
+                className="text-gray-400 hover:text-gray-200"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="space-y-4">
+              <p className="text-xs text-gray-400">
+                请上传最新营业执照。负责人须与执照法定代表人一致（当前：
+                {typeof sp?.contactName === "string" ? sp.contactName : "—"}）。
+              </p>
+              <input
+                ref={resubmitLicenseInputRef}
+                type="file"
+                accept="image/png,image/jpeg,image/webp"
+                className="hidden"
+                onChange={handleResubmitLicenseChange}
+              />
+              <button
+                type="button"
+                disabled={resubmitUploading}
+                onClick={() => resubmitLicenseInputRef.current?.click()}
+                className="w-full border-2 border-dashed border-white/10 rounded-xl p-4 text-sm text-gray-400 hover:border-violet-500/40 transition disabled:opacity-50"
+              >
+                {resubmitUploading
+                  ? "上传中…"
+                  : resubmitPreview
+                    ? "点击更换营业执照"
+                    : "上传营业执照"}
+              </button>
+              {resubmitPreview && (
+                /* eslint-disable-next-line @next/next/no-img-element */
+                <img
+                  src={resubmitPreview}
+                  alt="执照预览"
+                  className="w-full h-28 object-contain rounded-lg bg-black/30"
+                />
+              )}
+              {resubmitError && <p className="text-xs text-red-400">{resubmitError}</p>}
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setResubmitModalOpen(false)}
+                  className="flex-1 py-2.5 rounded-xl border border-white/10 text-gray-400 text-sm hover:border-white/20 transition"
+                >
+                  取消
+                </button>
+                <button
+                  type="button"
+                  onClick={handleResubmitConfirm}
+                  disabled={resubmitSubmitting || !resubmitLicenseUrl}
+                  className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-violet-500 to-purple-500 text-white text-sm font-medium hover:opacity-90 transition disabled:opacity-40"
+                >
+                  {resubmitSubmitting ? "提交中…" : "提交核验"}
+                </button>
+              </div>
             </div>
           </div>
         </div>

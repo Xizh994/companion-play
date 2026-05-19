@@ -52,6 +52,8 @@ export default function RegisterPage() {
   const [contactIdCard, setContactIdCard] = useState("");
   const [shopCoverPreview, setShopCoverPreview] = useState<string | null>(null);
   const [licensePreview, setLicensePreview] = useState<string | null>(null);
+  const [licenseImageUrl, setLicenseImageUrl] = useState<string | null>(null);
+  const [licenseUploading, setLicenseUploading] = useState(false);
 
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
 
@@ -89,14 +91,38 @@ export default function RegisterPage() {
     e.target.value = "";
   };
 
-  const handleLicenseChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleLicenseChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > 10 * 1024 * 1024) { setError("营业执照大小不能超过 10MB"); return; }
-    const reader = new FileReader();
-    reader.onload = () => setLicensePreview(reader.result as string);
-    reader.readAsDataURL(file);
-    e.target.value = "";
+    if (!phoneVerified || !phoneVerifiedToken) {
+      setError("请先完成手机验证后再上传营业执照");
+      e.target.value = "";
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      setError("营业执照大小不能超过 10MB");
+      e.target.value = "";
+      return;
+    }
+    setError("");
+    setLicenseUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append("license", file);
+      formData.append("phoneVerifiedToken", phoneVerifiedToken);
+      const res = await fetch("/api/uploads/license", { method: "POST", body: formData });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "上传失败");
+      setLicenseImageUrl(data.url);
+      setLicensePreview(data.url);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "营业执照上传失败");
+      setLicenseImageUrl(null);
+      setLicensePreview(null);
+    } finally {
+      setLicenseUploading(false);
+      e.target.value = "";
+    }
   };
 
   // 发送手机验证码
@@ -195,6 +221,15 @@ export default function RegisterPage() {
     if (!phoneVerified) { setError("请先完成手机验证"); return; }
     if (!nickname) { setError("请输入昵称"); return; }
     if (password && password.length < 6) { setError("密码至少6位"); return; }
+    if (role === "SHOP") {
+      if (!shopName.trim()) { setError("请填写店铺名称"); return; }
+      if (!contactName.trim()) { setError("请填写负责人姓名"); return; }
+      if (!/^\d{17}[\dXx]$/.test(contactIdCard.trim())) {
+        setError("请填写正确的负责人身份证号");
+        return;
+      }
+      if (!licenseImageUrl) { setError("请上传营业执照"); return; }
+    }
 
     setLoading(true);
     try {
@@ -212,7 +247,7 @@ export default function RegisterPage() {
         shopCover: role === "SHOP" ? shopCoverPreview : undefined,
         contactName: role === "SHOP" ? contactName : undefined,
         contactIdCard: role === "SHOP" ? contactIdCard : undefined,
-        licenseImage: role === "SHOP" ? licensePreview : undefined,
+        licenseImage: role === "SHOP" ? licenseImageUrl! : undefined,
       });
       router.push("/lobby");
     } catch (err) {
@@ -222,7 +257,14 @@ export default function RegisterPage() {
     }
   };
 
-  const canSubmit = phoneVerified && nickname && (!password || password.length >= 6);
+  const shopFieldsOk =
+    role !== "SHOP" ||
+    (shopName.trim() &&
+      contactName.trim() &&
+      /^\d{17}[\dXx]$/.test(contactIdCard.trim()) &&
+      !!licenseImageUrl);
+  const canSubmit =
+    phoneVerified && nickname && (!password || password.length >= 6) && shopFieldsOk && !licenseUploading;
 
   return (
     <div className="min-h-screen flex items-center justify-center px-4 py-10">
@@ -582,12 +624,14 @@ export default function RegisterPage() {
                   />
                   <button
                     type="button"
+                    disabled={licenseUploading || !phoneVerified}
                     onClick={() => licenseInputRef.current?.click()}
                     className={cn(
                       "w-full border-2 border-dashed rounded-xl p-4 flex flex-col items-center gap-1.5 transition-all duration-300",
                       licensePreview
                         ? "border-purple-500/40 bg-purple-500/5"
-                        : "border-white/10 bg-white/[0.02] hover:border-purple-400/40 hover:bg-white/[0.05]"
+                        : "border-white/10 bg-white/[0.02] hover:border-purple-400/40 hover:bg-white/[0.05]",
+                      (licenseUploading || !phoneVerified) && "opacity-50 cursor-not-allowed"
                     )}
                   >
                     {licensePreview ? (
@@ -599,7 +643,9 @@ export default function RegisterPage() {
                     ) : (
                       <>
                         <span className="text-2xl">📄</span>
-                        <span className="text-xs text-gray-400">上传营业执照照片</span>
+                        <span className="text-xs text-gray-400">
+                          {licenseUploading ? "上传中…" : "上传营业执照照片"}
+                        </span>
                         <span className="text-[10px] text-gray-500">支持 PNG / JPG / WebP，不超过 10MB</span>
                       </>
                     )}
