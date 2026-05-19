@@ -194,7 +194,7 @@ export default function LobbyPage() {
           <div className="text-center py-20">
             <span className="text-6xl block mb-4">🎮</span>
             <p className="text-lg text-muted-foreground">
-              {isBoss ? "暂无陪玩店" : "暂无已实名的在线老板"}
+              {isBoss ? "暂无陪玩店" : "暂无在线老板"}
             </p>
           </div>
         ) : isBoss ? (
