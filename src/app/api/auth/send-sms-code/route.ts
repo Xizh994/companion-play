@@ -26,6 +26,22 @@ export async function POST(req: NextRequest) {
 
     const smsType = PURPOSE_TYPE_MAP[purpose];
 
+    const existingUser = await prisma.user.findUnique({ where: { phone } });
+
+    if (purpose === "login" && !existingUser) {
+      return NextResponse.json(
+        { error: "该手机号未注册，请先注册账号", code: "PHONE_NOT_REGISTERED" },
+        { status: 404 }
+      );
+    }
+
+    if (purpose === "register" && existingUser) {
+      return NextResponse.json(
+        { error: "该手机号已注册，请直接登录", code: "PHONE_ALREADY_REGISTERED" },
+        { status: 409 }
+      );
+    }
+
     const typeCheck = await canSendCode(phone, smsType);
     if (!typeCheck.allowed) {
       return NextResponse.json({ error: `请 ${typeCheck.waitSeconds} 秒后再试` }, { status: 429 });

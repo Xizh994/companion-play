@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { verifyToken, getTokenFromRequest } from "@/lib/auth";
+import { assertChatAllowed } from "@/lib/boss-access";
 
 export async function GET(req: NextRequest) {
   try {
@@ -43,6 +44,11 @@ export async function POST(req: NextRequest) {
 
     const { targetUserId } = await req.json();
     if (!targetUserId) return NextResponse.json({ error: "缺少目标用户ID" }, { status: 400 });
+
+    const chatAccess = await assertChatAllowed(payload.userId, targetUserId);
+    if (!chatAccess.allowed) {
+      return NextResponse.json({ error: chatAccess.error, code: "CHAT_RESTRICTED" }, { status: chatAccess.status });
+    }
 
     const participants = [payload.userId, targetUserId].sort();
 

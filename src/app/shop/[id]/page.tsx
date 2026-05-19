@@ -2,10 +2,12 @@
 
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
+import Link from "next/link";
 import { SafeAvatar } from "@/components/GeneratedAvatar";
 import { MessageCircle, Loader2 } from "lucide-react";
 
 const TOKEN_KEY = "dazistar_token";
+const USER_KEY = "dazistar_user";
 
 interface ShopData {
   id: string;
@@ -27,10 +29,31 @@ export default function ShopPage() {
   const [shop, setShop] = useState<ShopData | null>(null);
   const [loading, setLoading] = useState(true);
   const [chatLoading, setChatLoading] = useState(false);
+  const [chatRestricted, setChatRestricted] = useState(false);
+  const [chatError, setChatError] = useState("");
 
   useEffect(() => {
     const token = localStorage.getItem(TOKEN_KEY);
     if (!token) return;
+
+    const userStr = localStorage.getItem(USER_KEY);
+    if (userStr) {
+      try {
+        const user = JSON.parse(userStr);
+        if (user.role === "BOSS") {
+          fetch("/api/auth/me", { headers: { Authorization: `Bearer ${token}` } })
+            .then((res) => res.json())
+            .then((data) => {
+              const rn = data.user?.realNameVerification;
+              const approved = rn?.status === "APPROVED";
+              setChatRestricted(!approved);
+            })
+            .catch(() => {});
+        }
+      } catch {
+        /* ignore */
+      }
+    }
 
     fetch(`/api/users?id=${encodeURIComponent(id)}`, {
       headers: { Authorization: `Bearer ${token}` },
@@ -47,6 +70,11 @@ export default function ShopPage() {
 
   const handleChat = async () => {
     if (!shop) return;
+    if (chatRestricted) {
+      setChatError("请先完成实名认证后再发起聊天");
+      return;
+    }
+    setChatError("");
     setChatLoading(true);
     const token = localStorage.getItem(TOKEN_KEY);
     try {
@@ -58,12 +86,16 @@ export default function ShopPage() {
         },
         body: JSON.stringify({ targetUserId: shop.id }),
       });
+      const data = await res.json().catch(() => ({}));
       if (res.ok) {
-        const { conversation } = await res.json();
+        const { conversation } = data;
         router.push(`/chat/${conversation.id}`);
+      } else {
+        setChatError(data.error || "发起聊天失败");
       }
     } catch (err) {
       console.error("Failed to create conversation:", err);
+      setChatError("发起聊天失败");
     } finally {
       setChatLoading(false);
     }
@@ -128,18 +160,31 @@ export default function ShopPage() {
           </div>
         </div>
 
-        <button
-          onClick={handleChat}
-          disabled={chatLoading}
-          className="w-full py-3.5 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-medium flex items-center justify-center gap-2 transition-all duration-300 hover:shadow-lg hover:shadow-purple-500/25 disabled:opacity-60 mb-8"
-        >
-          {chatLoading ? (
-            <Loader2 className="h-5 w-5 animate-spin" />
-          ) : (
-            <MessageCircle className="h-5 w-5" />
-          )}
-          发起聊天
-        </button>
+        {chatError && (
+          <p className="text-center text-sm text-red-400 mb-4">{chatError}</p>
+        )}
+
+        {chatRestricted ? (
+          <div className="w-full mb-8 p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 text-center text-sm text-amber-100 space-y-2">
+            <p>完成实名认证后可与店铺发起聊天</p>
+            <Link href="/profile" className="text-pink-400 hover:text-pink-300 font-medium underline">
+              前往实名认证 →
+            </Link>
+          </div>
+        ) : (
+          <button
+            onClick={handleChat}
+            disabled={chatLoading}
+            className="w-full py-3.5 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-medium flex items-center justify-center gap-2 transition-all duration-300 hover:shadow-lg hover:shadow-purple-500/25 disabled:opacity-60 mb-8"
+          >
+            {chatLoading ? (
+              <Loader2 className="h-5 w-5 animate-spin" />
+            ) : (
+              <MessageCircle className="h-5 w-5" />
+            )}
+            发起聊天
+          </button>
+        )}
 
         <div className="glass rounded-2xl p-6">
           <div className="flex flex-wrap items-center justify-center gap-4 mb-6 text-sm text-gray-400">

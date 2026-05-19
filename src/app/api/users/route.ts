@@ -1,11 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { verifyToken, getTokenFromRequest } from "@/lib/auth";
+import {
+  BOSS_PREVIEW_SHOP_LIMIT,
+  canBossUseFullPlatform,
+  isBossRealNameApproved,
+  loadUserWithRealName,
+} from "@/lib/boss-access";
 
 export async function GET(req: NextRequest) {
   try {
     const token = getTokenFromRequest(req);
     const payload = token ? verifyToken(token) : null;
+    const caller = payload ? await loadUserWithRealName(payload.userId) : null;
 
     const url = new URL(req.url);
     const userId = url.searchParams.get("id");
@@ -14,6 +21,19 @@ export async function GET(req: NextRequest) {
     const game = url.searchParams.get("game");
     const search = url.searchParams.get("search");
 
+    const buildMeta = () => {
+      if (!caller || caller.role !== "BOSS") return undefined;
+      const verified = canBossUseFullPlatform(caller);
+      return {
+        bossVerified: verified,
+        previewLimit: verified ? null : BOSS_PREVIEW_SHOP_LIMIT,
+        chatRestricted: !verified,
+        restrictionMessage: verified
+          ? null
+          : "完成实名认证后可浏览全部店铺并发起聊天",
+      };
+    };
+
     if (idsParam) {
       const ids = idsParam.split(",").map((s) => s.trim()).filter(Boolean);
       if (ids.length === 0) {
@@ -21,7 +41,7 @@ export async function GET(req: NextRequest) {
       }
       const users = await prisma.user.findMany({
         where: { id: { in: ids.slice(0, 50) } },
-        include: { playerProfile: true, shopProfile: true },
+        include: { playerProfile: true, shopProfile: true, realNameVerification: true },
       });
       return NextResponse.json({ users: users.map(formatUser) });
     }
@@ -29,16 +49,17 @@ export async function GET(req: NextRequest) {
     if (userId) {
       const user = await prisma.user.findUnique({
         where: { id: userId },
-        include: { playerProfile: true, shopProfile: true },
+        include: { playerProfile: true, shopProfile: true, realNameVerification: true },
       });
       if (!user) return NextResponse.json({ users: [] });
       return NextResponse.json({
         users: [formatUser(user)],
+        meta: buildMeta(),
       });
     }
 
     if (role === "SHOP") {
-      const where: any = {};
+      const where: Record<string, unknown> = { role: "SHOP" };
       if (search) {
         where.OR = [
           { nickname: { contains: search, mode: "insensitive" } },
@@ -47,20 +68,28 @@ export async function GET(req: NextRequest) {
         ];
       }
 
+      const bossPreview =
+        caller?.role === "BOSS" && !canBossUseFullPlatform(caller);
+
       const users = await prisma.user.findMany({
-        where: { ...where, role: "SHOP" },
+        where,
         include: { shopProfile: true },
-        take: 50,
+        take: bossPreview ? BOSS_PREVIEW_SHOP_LIMIT : 50,
         orderBy: { shopProfile: { orderCount: "desc" } },
       });
 
       return NextResponse.json({
         users: users.map(formatUser),
+        meta: buildMeta(),
       });
     }
 
     if (role === "BOSS") {
-      const where: any = { role: "BOSS", status: "online" };
+      const where: Record<string, unknown> = {
+        role: "BOSS",
+        status: "online",
+        realNameVerification: { status: "APPROVED" },
+      };
       if (search) {
         where.OR = [
           { nickname: { contains: search, mode: "insensitive" } },
@@ -70,6 +99,7 @@ export async function GET(req: NextRequest) {
 
       const users = await prisma.user.findMany({
         where,
+        include: { realNameVerification: true },
         take: 50,
         orderBy: { createdAt: "desc" },
       });
@@ -79,7 +109,7 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    const where: any = { status: { not: "offline" }, role: "PLAYER" };
+    const where: Record<string, unknown> = { status: { not: "offline" }, role: "PLAYER" };
     if (game) {
       where.playerProfile = { gameCategories: { has: game } };
     }
@@ -108,7 +138,30 @@ export async function GET(req: NextRequest) {
   }
 }
 
-function formatUser(u: any) {
+function formatUser(u: {
+  id: string;
+  nickname: string;
+  avatar: string | null;
+  bio: string | null;
+  status: string;
+  role: string;
+  playerProfile?: {
+    gameCategories: string[];
+    serviceTags: string[];
+    pricePerHour: unknown;
+  } | null;
+  shopProfile?: {
+    shopName: string;
+    shopDesc: string | null;
+    shopCover: string | null;
+    shopAddress: string | null;
+    playerCount: number;
+    rating: unknown;
+    orderCount: number;
+  } | null;
+  realNameVerification?: { status: string } | null;
+  createdAt: Date;
+}) {
   return {
     id: u.id,
     nickname: u.nickname,
@@ -126,6 +179,7 @@ function formatUser(u: any) {
     playerCount: u.shopProfile?.playerCount || 0,
     rating: u.shopProfile?.rating ? Number(u.shopProfile.rating) : null,
     orderCount: u.shopProfile?.orderCount || 0,
+    realNameApproved: isBossRealNameApproved(u),
     createdAt: u.createdAt,
   };
 }

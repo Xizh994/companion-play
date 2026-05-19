@@ -57,22 +57,16 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: "短信验证已过期" }, { status: 400 });
       }
 
-      let user = await prisma.user.findUnique({ where: { phone } });
+      const user = await prisma.user.findUnique({ where: { phone } });
 
-      // 如果用户不存在，自动注册（无密码）
       if (!user) {
-        user = await prisma.user.create({
-          data: {
-            phone,
-            role: "BOSS",
-            nickname: phone.slice(-4),
-            hasPassword: false,
-            status: "online",
-          },
-        });
-      } else {
-        await prisma.user.update({ where: { id: user.id }, data: { status: "online" } });
+        return NextResponse.json(
+          { error: "该手机号未注册，请先注册账号", code: "PHONE_NOT_REGISTERED" },
+          { status: 404 }
+        );
       }
+
+      await prisma.user.update({ where: { id: user.id }, data: { status: "online" } });
 
       const token = signToken({ userId: user.id, role: user.role });
 

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { verifyToken, getTokenFromRequest } from "@/lib/auth";
 import { emitNewMessage } from "@/lib/socket-emit";
+import { assertChatAllowed } from "@/lib/boss-access";
 
 export async function GET(req: NextRequest, context: { params: Promise<{ id: string }> }) {
   try {
@@ -48,6 +49,11 @@ export async function POST(req: NextRequest, context: { params: Promise<{ id: st
 
     const toId = conv.participants.find((p) => p !== payload.userId)!;
     const { content, type = "text" } = await req.json();
+
+    const chatAccess = await assertChatAllowed(payload.userId, toId);
+    if (!chatAccess.allowed) {
+      return NextResponse.json({ error: chatAccess.error, code: "CHAT_RESTRICTED" }, { status: chatAccess.status });
+    }
 
     const message = await prisma.message.create({
       data: { fromId: payload.userId, toId, content, type },

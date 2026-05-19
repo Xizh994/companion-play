@@ -43,6 +43,7 @@ export default function LoginPage() {
   const [emergencyCodeSent, setEmergencyCodeSent] = useState(false);
   const [emergencyCode, setEmergencyCode] = useState("");
   const [agreedToTerms, setAgreedToTerms] = useState(false);
+  const [registerHint, setRegisterHint] = useState(false);
 
   const startCooldown = () => {
     setSmsCooldown(60);
@@ -57,6 +58,7 @@ export default function LoginPage() {
   const handleSendSms = async () => {
     if (!/^1\d{10}$/.test(phone)) { setError("请输入正确的手机号"); return; }
     setError("");
+    setRegisterHint(false);
     setSendingSms(true);
     try {
       const res = await fetch("/api/auth/send-sms-code", {
@@ -65,7 +67,12 @@ export default function LoginPage() {
         body: JSON.stringify({ phone, purpose: "login" }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
+      if (!res.ok) {
+        if (data.code === "PHONE_NOT_REGISTERED") {
+          setRegisterHint(true);
+        }
+        throw new Error(data.error);
+      }
       startCooldown();
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
@@ -187,7 +194,7 @@ export default function LoginPage() {
               <button
                 key={tab.key}
                 type="button"
-                onClick={() => { setActiveTab(tab.key); setError(""); setEmergencyCodeSent(false); setEmergencyCode(""); }}
+                onClick={() => { setActiveTab(tab.key); setError(""); setRegisterHint(false); setEmergencyCodeSent(false); setEmergencyCode(""); }}
                 className={cn(
                   "flex-1 pb-2.5 text-sm font-medium transition-all border-b-2 -mb-[1px]",
                   activeTab === tab.key
@@ -206,6 +213,18 @@ export default function LoginPage() {
             </div>
           )}
 
+          {registerHint && (
+            <div className="mb-4 p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl text-amber-200 text-sm text-center space-y-2">
+              <p>该手机号尚未注册，请先创建账号。</p>
+              <Link
+                href="/register"
+                className="inline-block text-pink-400 hover:text-pink-300 font-medium underline"
+              >
+                前往注册 →
+              </Link>
+            </div>
+          )}
+
           {activeTab === "sms" && (
             <form onSubmit={handleSmsLogin} className="space-y-4">
               <div>
@@ -213,7 +232,7 @@ export default function LoginPage() {
                 <input
                   type="tel"
                   value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
+                  onChange={(e) => { setPhone(e.target.value); setRegisterHint(false); }}
                   placeholder="请输入手机号"
                   className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 outline-none focus:border-pink-500/50 focus:ring-2 focus:ring-pink-500/20 transition"
                   required

@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { SafeAvatar } from "@/components/GeneratedAvatar";
 import { Input } from "@/components/ui/input";
 import { useSocket } from "@/hooks/useSocket";
-import { MessageCircle, Search, Sparkles, Store, Crown } from "lucide-react";
+import { MessageCircle, Search, Sparkles, Store, Crown, ShieldAlert } from "lucide-react";
 
 interface UserItem {
   id: string;
@@ -25,6 +25,13 @@ interface UserItem {
   orderCount?: number;
 }
 
+interface LobbyMeta {
+  bossVerified: boolean;
+  previewLimit: number | null;
+  chatRestricted: boolean;
+  restrictionMessage: string | null;
+}
+
 const TOKEN_KEY = "dazistar_token";
 const USER_KEY = "dazistar_user";
 
@@ -34,6 +41,8 @@ export default function LobbyPage() {
   const [search, setSearch] = useState("");
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [lobbyMeta, setLobbyMeta] = useState<LobbyMeta | null>(null);
+  const [chatError, setChatError] = useState("");
 
   useEffect(() => {
     const userStr = localStorage.getItem(USER_KEY);
@@ -57,6 +66,7 @@ export default function LobbyPage() {
       if (res.ok) {
         const data = await res.json();
         setUsers(data.users);
+        if (data.meta) setLobbyMeta(data.meta);
       }
     } catch (err) {
       console.error("Failed to fetch users:", err);
@@ -77,15 +87,23 @@ export default function LobbyPage() {
   }, [currentUser?.id, socket]);
 
   const handleChat = async (targetUser: UserItem) => {
+    if (lobbyMeta?.chatRestricted) {
+      setChatError(lobbyMeta.restrictionMessage || "请先完成实名认证后再发起聊天");
+      return;
+    }
+    setChatError("");
     const token = localStorage.getItem(TOKEN_KEY);
     const res = await fetch("/api/conversations", {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
       body: JSON.stringify({ targetUserId: targetUser.id }),
     });
+    const data = await res.json().catch(() => ({}));
     if (res.ok) {
-      const { conversation } = await res.json();
+      const { conversation } = data;
       router.push(`/chat/${conversation.id}`);
+    } else {
+      setChatError(data.error || "发起聊天失败");
     }
   };
 
@@ -103,6 +121,7 @@ export default function LobbyPage() {
   }, [users, search]);
 
   const isBoss = currentUser?.role === "BOSS";
+  const bossPreviewMode = isBoss && lobbyMeta?.chatRestricted;
 
   if (!currentUser) return <div className="min-h-screen flex items-center justify-center"><span className="text-2xl">⏳</span></div>;
 
@@ -112,10 +131,14 @@ export default function LobbyPage() {
         <div className="container mx-auto px-4 text-center">
           <h1 className="text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-purple-400 via-pink-400 to-purple-400 bg-clip-text text-transparent">
             <Sparkles className="inline h-8 w-8 mr-2" />
-            {isBoss ? "在线陪玩店" : "在线老板"}
+            {isBoss ? (bossPreviewMode ? "陪玩店预览" : "在线陪玩店") : "在线老板"}
           </h1>
           <p className="text-lg text-gray-400 mb-6">
-            {isBoss ? "当前在线的陪玩店，即刻联系" : "当前在线的老板用户，主动发起对话"}
+            {isBoss
+              ? bossPreviewMode
+                ? "完成实名认证后可浏览全部店铺并发起聊天"
+                : "当前在线的陪玩店，即刻联系"
+              : "当前已实名的在线老板，主动发起对话"}
             {connected ? <span className="text-green-400 ml-2">● 在线</span> : <span className="text-gray-500 ml-2">● 连接中...</span>}
           </p>
           <div className="max-w-xl mx-auto relative">
@@ -131,6 +154,26 @@ export default function LobbyPage() {
       </section>
 
       <section className="px-4 py-8 max-w-7xl mx-auto">
+        {bossPreviewMode && (
+          <div className="mb-6 p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 flex gap-3 items-start">
+            <ShieldAlert className="h-5 w-5 text-amber-400 shrink-0 mt-0.5" />
+            <div className="text-sm text-amber-100 space-y-2">
+              <p>
+                你当前为预览模式，仅展示 {lobbyMeta?.previewLimit ?? 2} 家店铺，且无法发起聊天；店铺用户也无法在大厅看到你。
+              </p>
+              <Link href="/profile" className="text-pink-400 hover:text-pink-300 font-medium underline">
+                前往完成实名认证 →
+              </Link>
+            </div>
+          </div>
+        )}
+
+        {chatError && (
+          <div className="mb-4 p-3 bg-red-500/10 border border-red-500/30 rounded-xl text-red-400 text-sm text-center">
+            {chatError}
+          </div>
+        )}
+
         <div className="flex items-center gap-2 mb-6">
           {isBoss ? (
             <Store className="h-6 w-6 text-purple-400" />
@@ -151,7 +194,7 @@ export default function LobbyPage() {
           <div className="text-center py-20">
             <span className="text-6xl block mb-4">🎮</span>
             <p className="text-lg text-muted-foreground">
-              {isBoss ? "暂无在线陪玩店" : "暂无在线老板"}
+              {isBoss ? "暂无陪玩店" : "暂无已实名的在线老板"}
             </p>
           </div>
         ) : isBoss ? (
@@ -199,11 +242,12 @@ export default function LobbyPage() {
                   </p>
                   <Button
                     onClick={() => handleChat(user)}
-                    className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+                    disabled={lobbyMeta?.chatRestricted}
+                    className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 disabled:opacity-50 disabled:cursor-not-allowed"
                     size="sm"
                   >
                     <MessageCircle className="h-4 w-4 mr-2" />
-                    {isBoss ? "联系店铺" : "发起聊天"}
+                    {lobbyMeta?.chatRestricted ? "需实名后聊天" : isBoss ? "联系店铺" : "发起聊天"}
                   </Button>
                 </CardContent>
               </Card>
