@@ -23,8 +23,10 @@ export function useSocket(userId: string | null) {
     setConnectionStatus("connecting");
     setConnectionError(null);
 
+    // polling 优先：Nginx 未正确转发 WebSocket 时仍可连上；upgrade:false 避免连上后升级 WS 失败反复断线
     const client = io(window.location.origin, {
-      transports: ["websocket", "polling"],
+      transports: ["polling", "websocket"],
+      upgrade: false,
       reconnection: true,
       reconnectionAttempts: Infinity,
       reconnectionDelay: 1000,
@@ -42,7 +44,13 @@ export function useSocket(userId: string | null) {
     };
 
     const onConnectError = (err: Error) => {
-      setConnectionError(err.message || "无法连接实时服务");
+      if (client.connected) return;
+      const msg = err.message || "无法连接实时服务";
+      setConnectionError(
+        msg.toLowerCase().includes("websocket")
+          ? "实时服务连接失败，请确认已用 npm start 启动且 Nginx 已配置 WebSocket 转发"
+          : msg
+      );
       setConnectionStatus(client.active ? "reconnecting" : "error");
     };
 

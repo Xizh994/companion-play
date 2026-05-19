@@ -95,13 +95,13 @@ main() {
 
   [ $# -gt 0 ] && die "未知参数: $* (可用: --rollback)"
 
-  # 构建一次
+  warn "本脚本仅在 /www/dazistar 构建；测试环境请另执行 deploy-test.sh（/www/dazistar-test），避免构建产物与 .env 混用"
+
   preflight_check
   pull_code
   install_deps
   build_project
 
-  # 部署两个环境
   header "5/7 部署发布"
   deploy_one "dazistar"        "生产环境(3000)"
   deploy_one "dazistar-3001"  "测试环境(3001)"
