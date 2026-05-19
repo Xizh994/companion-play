@@ -28,7 +28,10 @@ console.log("[Server] NODE_ENV:", process.env.NODE_ENV);
 console.log("[Server] ALIYUN_ACCESS_KEY_ID:", process.env.ALIYUN_ACCESS_KEY_ID ? "已设置" : "未设置");
 console.log("[Server] ALIYUN_DM_ACCOUNT_NAME:", process.env.ALIYUN_DM_ACCOUNT_NAME ? "已设置" : "未设置");
 
-app.prepare().then(() => {
+app.prepare().then(async () => {
+  const { resetAllOfflineOnBoot } = require("./server/presence.cjs");
+  await resetAllOfflineOnBoot();
+
   const server = createServer((req, res) => {
     const parsedUrl = parse(req.url, true);
     handle(req, res, parsedUrl);
@@ -42,15 +45,16 @@ app.prepare().then(() => {
   // 供 API Routes 推送实时消息（与 src/lib/socket-emit.ts 共用 global）
   global.__dazistar_io = io;
 
-  const onlineUsers = new Map();
+  const { trackConnect, trackDisconnect } = require("./server/presence.cjs");
 
   io.on("connection", (socket) => {
     console.log("[Socket] Connected:", socket.id);
 
     socket.on("auth", (userId) => {
-      onlineUsers.set(userId, socket.id);
+      if (!userId || typeof userId !== "string") return;
       socket.data.userId = userId;
       socket.join(`user:${userId}`);
+      trackConnect(io, userId, socket.id).catch(console.error);
       console.log("[Socket] Auth:", userId);
     });
 
@@ -73,8 +77,9 @@ app.prepare().then(() => {
     });
 
     socket.on("disconnect", () => {
-      if (socket.data.userId) {
-        onlineUsers.delete(socket.data.userId);
+      const userId = socket.data.userId;
+      if (userId) {
+        trackDisconnect(io, userId, socket.id).catch(console.error);
       }
       console.log("[Socket] Disconnected:", socket.id);
     });

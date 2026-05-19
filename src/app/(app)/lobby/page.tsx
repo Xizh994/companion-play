@@ -8,7 +8,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { SafeAvatar } from "@/components/GeneratedAvatar";
 import { Input } from "@/components/ui/input";
-import { useSocket } from "@/hooks/useSocket";
+import { useUnreadMessages } from "@/contexts/UnreadMessagesContext";
 import { MessageCircle, Search, Sparkles, Store, Crown, ShieldAlert } from "lucide-react";
 
 interface UserItem {
@@ -52,12 +52,12 @@ export default function LobbyPage() {
     } catch {}
   }, []);
 
-  const { socket, connected } = useSocket(currentUser?.id || null);
+  const { socket, connected } = useUnreadMessages();
 
-  const fetchUsers = async () => {
+  const fetchUsers = async (silent = false) => {
     const token = localStorage.getItem(TOKEN_KEY);
     if (!token) return;
-    setLoading(true);
+    if (!silent) setLoading(true);
     try {
       const role = currentUser?.role === "BOSS" ? "SHOP" : "BOSS";
       const res = await fetch(`/api/users?role=${role}`, {
@@ -71,20 +71,34 @@ export default function LobbyPage() {
     } catch (err) {
       console.error("Failed to fetch users:", err);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
   useEffect(() => {
     if (currentUser?.id) {
       fetchUsers();
-      if (socket) {
-        socket.emit("join_lobby");
-        socket.on("lobby_users", () => fetchUsers());
-        return () => { socket.emit("leave_lobby"); };
-      }
     }
-  }, [currentUser?.id, socket]);
+  }, [currentUser?.id]);
+
+  useEffect(() => {
+    if (connected && currentUser?.id) {
+      fetchUsers(true);
+    }
+  }, [connected, currentUser?.id]);
+
+  useEffect(() => {
+    if (!socket || !currentUser?.id) return;
+
+    socket.emit("join_lobby");
+    const onLobbyChange = () => fetchUsers(true);
+    socket.on("lobby_users", onLobbyChange);
+
+    return () => {
+      socket.off("lobby_users", onLobbyChange);
+      socket.emit("leave_lobby");
+    };
+  }, [socket, currentUser?.id]);
 
   const handleChat = async (targetUser: UserItem) => {
     if (lobbyMeta?.chatRestricted) {
@@ -138,7 +152,7 @@ export default function LobbyPage() {
               ? bossPreviewMode
                 ? "完成实名认证后可浏览全部店铺并发起聊天"
                 : "当前在线的陪玩店，即刻联系"
-              : "当前已实名的在线老板，主动发起对话"}
+              : "当前在线的老板，主动发起对话"}
             {connected ? <span className="text-green-400 ml-2">● 在线</span> : <span className="text-gray-500 ml-2">● 连接中...</span>}
           </p>
           <div className="max-w-xl mx-auto relative">

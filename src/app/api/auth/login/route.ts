@@ -22,8 +22,6 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: "密码错误" }, { status: 401 });
       }
 
-      await prisma.user.update({ where: { id: user.id }, data: { status: "online" } });
-
       const token = signToken({ userId: user.id, role: user.role });
 
       return NextResponse.json({
@@ -66,8 +64,6 @@ export async function POST(req: NextRequest) {
         );
       }
 
-      await prisma.user.update({ where: { id: user.id }, data: { status: "online" } });
-
       const token = signToken({ userId: user.id, role: user.role });
 
       return NextResponse.json({
@@ -105,8 +101,6 @@ export async function POST(req: NextRequest) {
       if (!user) {
         return NextResponse.json({ error: "该邮箱未绑定任何账号" }, { status: 404 });
       }
-
-      await prisma.user.update({ where: { id: user.id }, data: { status: "online" } });
 
       const token = signToken({ userId: user.id, role: user.role });
 

@@ -59,7 +59,7 @@ export async function GET(req: NextRequest) {
     }
 
     if (role === "SHOP") {
-      const where: Record<string, unknown> = { role: "SHOP" };
+      const where: Record<string, unknown> = { role: "SHOP", status: "online" };
       if (search) {
         where.OR = [
           { nickname: { contains: search, mode: "insensitive" } },

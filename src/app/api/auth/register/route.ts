@@ -75,7 +75,7 @@ export async function POST(req: NextRequest) {
         email: email || null,
         emailVerified: !!email,
         hasPassword: !!password,
-        status: "online",
+        status: "offline",
       },
     });
 

@@ -113,7 +113,18 @@ export function useAuth() {
     return data;
   }, []);
 
-  const logout = useCallback(() => {
+  const logout = useCallback(async () => {
+    const storedToken = localStorage.getItem(TOKEN_KEY);
+    if (storedToken) {
+      try {
+        await fetch("/api/auth/logout", {
+          method: "POST",
+          headers: { Authorization: `Bearer ${storedToken}` },
+        });
+      } catch {
+        // 仍清除本地登录态
+      }
+    }
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(USER_KEY);
     removeTokenCookie();
