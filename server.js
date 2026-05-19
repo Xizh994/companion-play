@@ -50,6 +50,7 @@ app.prepare().then(() => {
     socket.on("auth", (userId) => {
       onlineUsers.set(userId, socket.id);
       socket.data.userId = userId;
+      socket.join(`user:${userId}`);
       console.log("[Socket] Auth:", userId);
     });
 

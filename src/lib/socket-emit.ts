@@ -13,6 +13,15 @@ export function getSocketIO(): SocketIOServer | undefined {
   return global.__dazistar_io;
 }
 
-export function emitNewMessage(roomId: string, message: Record<string, unknown>) {
-  getSocketIO()?.to(roomId).emit("new_message", message);
+export function emitNewMessage(conversationId: string, message: Record<string, unknown>) {
+  const io = getSocketIO();
+  if (!io) return;
+
+  const payload = { ...message, conversationId };
+  io.to(conversationId).emit("new_message", payload);
+
+  const toId = message.toId;
+  if (typeof toId === "string" && toId) {
+    io.to(`user:${toId}`).emit("new_message", payload);
+  }
 }

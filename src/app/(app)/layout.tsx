@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter, useSelectedLayoutSegment } from "next/navigation";
+import { usePathname, useSelectedLayoutSegment } from "next/navigation";
 import { useState, useEffect } from "react";
 import AuthGuard from "@/components/AuthGuard";
+import { UnreadMessagesProvider, useUnreadMessages } from "@/contexts/UnreadMessagesContext";
 import { Crown, Store, User as UserIcon } from "lucide-react";
 import { AuthUser } from "@/hooks/useAuth";
 
@@ -30,48 +31,63 @@ const SHOP_NAV: NavItem[] = [
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
-    <AuthGuard fallback={
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
-          <span className="text-3xl animate-bounce">🎮</span>
-          <p className="text-gray-400 text-sm">验证登录状态...</p>
-        </div>
-      </div>
-    }>
+    <AuthGuard
+      fallback={<AuthLoadingFallback />}
+    >
       <AppLayoutInner>{children}</AppLayoutInner>
     </AuthGuard>
   );
 }
 
-function AppLayoutInner({ children }: { children: React.ReactNode }) {
-  const pathname = usePathname();
-  const segment = useSelectedLayoutSegment();
-  const router = useRouter();
+function AuthLoadingFallback() {
+  return (
+    <div className="min-h-screen flex items-center justify-center">
+      <div className="flex flex-col items-center gap-4">
+        <span className="text-3xl animate-bounce">🎮</span>
+        <p className="text-gray-400 text-sm">验证登录状态...</p>
+      </div>
+    </div>
+  );
+}
 
+function AppLayoutInner({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(() => {
     if (typeof window === "undefined") return null;
     const userStr = localStorage.getItem(USER_KEY);
     if (!userStr) return null;
-    try { return JSON.parse(userStr); } catch { return null; }
+    try {
+      return JSON.parse(userStr);
+    } catch {
+      return null;
+    }
   });
 
   useEffect(() => {
     const handleStorage = () => {
       const userStr = localStorage.getItem(USER_KEY);
       if (userStr) {
-        try { setUser(JSON.parse(userStr)); } catch {}
+        try {
+          setUser(JSON.parse(userStr));
+        } catch {
+          // ignore
+        }
       }
     };
     window.addEventListener("storage", handleStorage);
     return () => window.removeEventListener("storage", handleStorage);
   }, []);
 
-  const handleLogout = () => {
-    localStorage.removeItem("dazistar_token");
-    localStorage.removeItem(USER_KEY);
-    document.cookie = "dazistar_token=; path=/; max-age=0";
-    router.push("/login");
-  };
+  return (
+    <UnreadMessagesProvider userId={user?.id ?? null}>
+      <AppLayoutShell user={user}>{children}</AppLayoutShell>
+    </UnreadMessagesProvider>
+  );
+}
+
+function AppLayoutShell({ user, children }: { user: AuthUser | null; children: React.ReactNode }) {
+  const pathname = usePathname();
+  const segment = useSelectedLayoutSegment();
+  const { totalUnread } = useUnreadMessages();
 
   const isBoss = user?.role === "BOSS";
   const navItems = isBoss ? BOSS_NAV : SHOP_NAV;
@@ -100,11 +116,12 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
           <nav className="flex items-center gap-1 bg-white/5 rounded-full p-1">
             {navItems.map((item) => {
               const isActive = getIsActive(item.href);
+              const showBadge = item.href === "/chat" && totalUnread > 0;
               return (
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`px-4 py-1.5 rounded-full text-sm font-medium transition flex items-center gap-1.5 ${
+                  className={`relative px-4 py-1.5 rounded-full text-sm font-medium transition flex items-center gap-1.5 ${
                     isActive
                       ? "bg-gradient-to-r from-pink-500 to-purple-500 text-white shadow-md"
                       : "text-gray-300 hover:text-white hover:bg-white/10"
@@ -112,27 +129,43 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
                 >
                   {item.iconComponent ? <item.iconComponent className="w-4 h-4" /> : <span>{item.icon}</span>}
                   {item.label}
+                  {showBadge && (
+                    <span
+                      className={`absolute -top-1 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-bold flex items-center justify-center ${
+                        isActive ? "bg-white text-pink-600" : "bg-pink-500 text-white"
+                      }`}
+                    >
+                      {totalUnread > 99 ? "99+" : totalUnread}
+                    </span>
+                  )}
                 </Link>
               );
             })}
           </nav>
 
-          <div className="flex items-center gap-3">
-            {user && (
-              <span className={`flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full ${
-                isBoss
-                  ? "bg-amber-500/20 text-amber-300 border border-amber-500/30"
-                  : "bg-violet-500/20 text-violet-300 border border-violet-500/30"
-              }`}>
-                {isBoss ? <Crown className="w-3 h-3" /> : <Store className="w-3 h-3" />}
-                {isBoss ? "老板" : "陪玩店"}
-              </span>
-            )}
-          </div>
+          <RoleBadge user={user} isBoss={!!isBoss} />
         </div>
       </header>
 
       <main>{children}</main>
+    </div>
+  );
+}
+
+function RoleBadge({ user, isBoss }: { user: AuthUser | null; isBoss: boolean }) {
+  if (!user) return <div className="w-20" />;
+  return (
+    <div className="flex items-center gap-3">
+      <span
+        className={`flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full ${
+          isBoss
+            ? "bg-amber-500/20 text-amber-300 border border-amber-500/30"
+            : "bg-violet-500/20 text-violet-300 border border-violet-500/30"
+        }`}
+      >
+        {isBoss ? <Crown className="w-3 h-3" /> : <Store className="w-3 h-3" />}
+        {isBoss ? "老板" : "陪玩店"}
+      </span>
     </div>
   );
 }

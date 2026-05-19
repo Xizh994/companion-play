@@ -22,6 +22,7 @@ export function initSocket(httpServer: HTTPServer): SocketIOServer {
     socket.on("auth", (userId: string) => {
       onlineUsers.set(userId, socket.id);
       socket.data.userId = userId;
+      socket.join(`user:${userId}`);
       console.log(`[Socket] User authenticated: ${userId}`);
     });
 

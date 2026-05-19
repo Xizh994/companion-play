@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useSocket } from "@/hooks/useSocket";
+import { useUnreadMessages, notifyUnreadUpdated } from "@/contexts/UnreadMessagesContext";
 import { GeneratedAvatar, SafeAvatar } from "@/components/GeneratedAvatar";
 import { Trash2 } from "lucide-react";
 import dynamic from "next/dynamic";
@@ -75,8 +75,13 @@ export default function ChatListPage() {
     }
   }, [router]);
 
-  const { socket, connected } = useSocket(currentUser?.id || null);
+  const { socket, connected, refreshUnread, setActiveConversationId } = useUnreadMessages();
   const searchParams = useSearchParams();
+
+  useEffect(() => {
+    setActiveConversationId(selectedId);
+    return () => setActiveConversationId(null);
+  }, [selectedId, setActiveConversationId]);
 
   const loadContacts = useCallback(async (userIds: string[]) => {
     const token = localStorage.getItem(TOKEN_KEY);
@@ -114,7 +119,9 @@ export default function ChatListPage() {
     setConversations((prev) =>
       prev.map((c) => (c.id === convId ? { ...c, unreadCount: 0 } : c))
     );
-  }, []);
+    await refreshUnread();
+    notifyUnreadUpdated();
+  }, [refreshUnread]);
 
   const fetchConversations = useCallback(async () => {
     const token = localStorage.getItem(TOKEN_KEY);
@@ -201,6 +208,7 @@ export default function ChatListPage() {
       }
 
       void fetchConversations();
+      notifyUnreadUpdated();
     };
 
     socket.on("new_message", onNewMessage);
@@ -247,6 +255,7 @@ export default function ChatListPage() {
       setInput("");
       setShowEmoji(false);
       fetchConversations();
+      notifyUnreadUpdated();
     }
   };
 
