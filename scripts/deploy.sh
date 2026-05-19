@@ -1,13 +1,12 @@
 #!/bin/bash
 # ================================================================
-#  搭子星 (DaziStar) — 编译与发布脚本 (生产 + 测试)
-#  用途: 在服务器上拉取最新代码 → 构建 → 同时部署两个环境
+#  搭子星 (DaziStar) — 编译与发布脚本 (生产环境)
+#  用途: 在服务器上拉取最新代码 → 构建 → 部署生产环境
 #  使用:
-#    bash scripts/deploy.sh             部署生产 + 测试
+#    bash scripts/deploy.sh             部署生产环境
 #    bash scripts/deploy.sh --rollback  手动选择备份回滚
 #
 #  如需单独部署:
-#    bash scripts/deploy-prod.sh        仅生产环境 (3000)
 #    bash scripts/deploy-test.sh        仅测试环境 (3001)
 #
 #  前置条件 (仅需一次):
@@ -18,7 +17,7 @@
 # ================================================================
 
 LOG_PREFIX="deploy"
-ROLLBACK_APPS="dazistar dazistar-3001"
+ROLLBACK_APPS="dazistar"
 
 source "$(dirname "$0")/_deploy_lib.sh"
 BUILD_LOG="${LOG_DIR}/${LOG_PREFIX}-${BUILD_TIMESTAMP}.log"
@@ -37,9 +36,7 @@ print_summary() {
   echo -e "  常用命令:"
   echo -e "    pm2 status                查看进程状态"
   echo -e "    pm2 logs dazistar         查看生产环境日志"
-  echo -e "    pm2 logs dazistar-3001    查看测试环境日志"
   echo -e "    pm2 monit                 资源监控面板"
-  echo -e "    bash scripts/deploy-prod.sh   仅部署生产"
   echo -e "    bash scripts/deploy-test.sh   仅部署测试"
   echo ""
   echo -e "  回滚命令:"
@@ -77,7 +74,6 @@ manual_rollback() {
   rm -rf "${PROJECT_DIR}/.next"
   cp -r "$selected" "${PROJECT_DIR}/.next"
   pm2 restart dazistar 2>&1 | tee -a "$BUILD_LOG" || true
-  pm2 restart dazistar-3001 2>&1 | tee -a "$BUILD_LOG" || true
 
   ok "已回滚到 $selected"
 }
@@ -95,21 +91,16 @@ main() {
 
   [ $# -gt 0 ] && die "未知参数: $* (可用: --rollback)"
 
-  warn "本脚本仅在 /www/dazistar 构建；测试环境请另执行 deploy-test.sh（/www/dazistar-test），避免构建产物与 .env 混用"
-
   preflight_check
   pull_code
   install_deps
   build_project
 
-  header "5/7 部署发布"
-  deploy_one "dazistar"        "生产环境(3000)"
-  deploy_one "dazistar-3001"  "测试环境(3001)"
+  header "5/6 部署发布"
+  deploy_one "dazistar" "生产环境(3000)"
 
-  # 健康检查 (生产致命, 测试非致命)
-  header "6/7 健康检查"
-  health_check_one "dazistar"        "生产环境(3000)" "3000" "true"
-  health_check_one "dazistar-3001"  "测试环境(3001)" "3001" "false"
+  header "6/6 健康检查"
+  health_check_one "dazistar" "生产环境(3000)" "3000" "true"
 
   cleanup
   print_summary
