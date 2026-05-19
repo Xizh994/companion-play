@@ -27,7 +27,7 @@ print_summary() {
   echo -e "${CYAN}============================================================${NC}"
   echo -e "${GREEN}  搭子星 部署成功!${NC}"
   echo -e "${CYAN}============================================================${NC}"
-  echo -e "  目标环境: 生产 (3000)"
+  echo -e "  目标环境: 生产 (3000) + 测试 (3001)"
   echo -e "  提交版本: $(cd "$PROJECT_DIR" && git rev-parse --short HEAD)"
   echo -e "  分支:     $(cd "$PROJECT_DIR" && git rev-parse --abbrev-ref HEAD)"
   echo -e "  构建时间: ${BUILD_TIMESTAMP}"
@@ -81,7 +81,7 @@ manual_rollback() {
 main() {
   echo ""
   echo -e "${CYAN}╔══════════════════════════════════════════════╗${NC}"
-  echo -e "${CYAN}║     搭子星 编译与发布 (生产环境)             ║${NC}"
+  echo -e "${CYAN}║     搭子星 编译与发布 (生产 + 测试)         ║${NC}"
   echo -e "${CYAN}╚══════════════════════════════════════════════╝${NC}"
 
   if [ "${1:-}" = "--rollback" ]; then
