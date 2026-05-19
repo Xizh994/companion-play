@@ -3,6 +3,8 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useUnreadMessages, notifyUnreadUpdated } from "@/contexts/UnreadMessagesContext";
+import { RealtimeConnectionStatus } from "@/components/RealtimeConnectionStatus";
+import type { SocketConnectionStatus } from "@/lib/socket-connection";
 import { GeneratedAvatar, SafeAvatar } from "@/components/GeneratedAvatar";
 import { Trash2 } from "lucide-react";
 import dynamic from "next/dynamic";
@@ -75,7 +77,8 @@ export default function ChatListPage() {
     }
   }, [router]);
 
-  const { socket, connected, refreshUnread, setActiveConversationId } = useUnreadMessages();
+  const { socket, connectionStatus, connectionError, refreshUnread, setActiveConversationId } =
+    useUnreadMessages();
   const searchParams = useSearchParams();
 
   useEffect(() => {
@@ -305,7 +308,8 @@ export default function ChatListPage() {
         conversations={conversations}
         contacts={contacts}
         selectedId={selectedId}
-        connected={connected}
+        connectionStatus={connectionStatus}
+        connectionError={connectionError}
         totalUnread={totalUnread}
         getOtherParticipantId={getOtherParticipantId}
         onSelect={handleSelectConv}
@@ -428,7 +432,8 @@ function ChatSidebar({
   conversations,
   contacts,
   selectedId,
-  connected,
+  connectionStatus,
+  connectionError,
   totalUnread,
   getOtherParticipantId,
   onSelect,
@@ -437,7 +442,8 @@ function ChatSidebar({
   conversations: ConversationItem[];
   contacts: Record<string, ChatUser>;
   selectedId: string | null;
-  connected: boolean;
+  connectionStatus: SocketConnectionStatus;
+  connectionError: string | null;
   totalUnread: number;
   getOtherParticipantId: (conv: ConversationItem) => string;
   onSelect: (id: string) => void;
@@ -454,8 +460,13 @@ function ChatSidebar({
             </span>
           )}
         </div>
-        <p className="text-sm text-gray-500 mt-1">
-          {conversations.length} 条会话 {connected ? "🟢" : "○ 连接中"}
+        <p className="text-sm text-gray-500 mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
+          <span>{conversations.length} 条会话</span>
+          <RealtimeConnectionStatus
+            status={connectionStatus}
+            className="text-xs"
+            title={connectionError ?? undefined}
+          />
         </p>
       </div>
       <div className="flex-1 overflow-y-auto">

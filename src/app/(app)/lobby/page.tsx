@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { SafeAvatar } from "@/components/GeneratedAvatar";
 import { Input } from "@/components/ui/input";
 import { useUnreadMessages } from "@/contexts/UnreadMessagesContext";
+import { RealtimeConnectionStatus } from "@/components/RealtimeConnectionStatus";
 import { MessageCircle, Search, Sparkles, Store, Crown, ShieldAlert } from "lucide-react";
 
 interface UserItem {
@@ -52,7 +53,7 @@ export default function LobbyPage() {
     } catch {}
   }, []);
 
-  const { socket, connected } = useUnreadMessages();
+  const { socket, connected, connectionStatus, connectionError } = useUnreadMessages();
 
   const fetchUsers = async (silent = false) => {
     const token = localStorage.getItem(TOKEN_KEY);
@@ -153,7 +154,11 @@ export default function LobbyPage() {
                 ? "完成实名认证后可浏览全部店铺并发起聊天"
                 : "当前在线的陪玩店，即刻联系"
               : "当前在线的老板，主动发起对话"}
-            {connected ? <span className="text-green-400 ml-2">● 在线</span> : <span className="text-gray-500 ml-2">● 连接中...</span>}
+            <RealtimeConnectionStatus
+              status={connectionStatus}
+              className="ml-2"
+              title={connectionError ?? undefined}
+            />
           </p>
           <div className="max-w-xl mx-auto relative">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />

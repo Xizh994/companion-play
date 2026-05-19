@@ -11,6 +11,7 @@ import {
 } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useSocket } from "@/hooks/useSocket";
+import type { SocketConnectionStatus } from "@/lib/socket-connection";
 import {
   clearBrowserNotifyEffects,
   getDefaultTitle,
@@ -38,7 +39,10 @@ interface UnreadMessagesContextValue {
   refreshUnread: () => Promise<void>;
   setActiveConversationId: (id: string | null) => void;
   socket: Socket | null;
+  /** @deprecated 请优先使用 connectionStatus */
   connected: boolean;
+  connectionStatus: SocketConnectionStatus;
+  connectionError: string | null;
 }
 
 const UnreadMessagesContext = createContext<UnreadMessagesContextValue | null>(null);
@@ -70,7 +74,7 @@ export function UnreadMessagesProvider({
   const contactsCacheRef = useRef<Record<string, string>>({});
   const notifiedPermissionRef = useRef(false);
 
-  const { socket, connected } = useSocket(userId);
+  const { socket, connected, connectionStatus, connectionError } = useSocket(userId);
 
   useEffect(() => {
     totalUnreadRef.current = totalUnread;
@@ -228,6 +232,8 @@ export function UnreadMessagesProvider({
     setActiveConversationId,
     socket,
     connected,
+    connectionStatus,
+    connectionError,
   };
 
   return (
