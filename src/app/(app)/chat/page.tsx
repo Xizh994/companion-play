@@ -56,6 +56,8 @@ export default function ChatListPage() {
   const selectedIdRef = useRef<string | null>(null);
   const contactsRef = useRef<Record<string, ChatUser>>({});
   const imageInputRef = useRef<HTMLInputElement>(null);
+  const emojiAnchorRef = useRef<HTMLDivElement>(null);
+  const composerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     selectedIdRef.current = selectedId;
@@ -292,32 +294,85 @@ export default function ChatListPage() {
     }
   };
 
+  const uploadAndSendImage = useCallback(
+    async (file: File) => {
+      if (!selectedId || uploadingImage) return false;
+      const allowed = ["image/jpeg", "image/png", "image/webp"];
+      if (!allowed.includes(file.type)) {
+        alert("仅支持 JPG/PNG/WebP 图片");
+        return false;
+      }
+
+      setUploadingImage(true);
+      try {
+        const token = localStorage.getItem(TOKEN_KEY);
+        const formData = new FormData();
+        formData.append("image", file);
+        const uploadRes = await fetch("/api/uploads/chat", {
+          method: "POST",
+          headers: authHeaders(token),
+          body: formData,
+        });
+        const uploadData = await uploadRes.json().catch(() => ({}));
+        if (!uploadRes.ok) {
+          alert(uploadData.error || "图片上传失败");
+          return false;
+        }
+        const ok = await sendMessage({ content: uploadData.url, type: "image" });
+        if (ok) setShowEmoji(false);
+        return ok;
+      } finally {
+        setUploadingImage(false);
+      }
+    },
+    [selectedId, uploadingImage, sendMessage]
+  );
+
   const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     e.target.value = "";
-    if (!file || !selectedId) return;
+    if (!file) return;
+    await uploadAndSendImage(file);
+  };
 
-    setUploadingImage(true);
-    try {
-      const token = localStorage.getItem(TOKEN_KEY);
-      const formData = new FormData();
-      formData.append("image", file);
-      const uploadRes = await fetch("/api/uploads/chat", {
-        method: "POST",
-        headers: authHeaders(token),
-        body: formData,
-      });
-      const uploadData = await uploadRes.json().catch(() => ({}));
-      if (!uploadRes.ok) {
-        alert(uploadData.error || "图片上传失败");
+  const handlePaste = async (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    const items = e.clipboardData?.items;
+    if (!items?.length) return;
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      if (item.kind === "file" && item.type.startsWith("image/")) {
+        e.preventDefault();
+        const file = item.getAsFile();
+        if (file) await uploadAndSendImage(file);
         return;
       }
-      const ok = await sendMessage({ content: uploadData.url, type: "image" });
-      if (ok) setShowEmoji(false);
-    } finally {
-      setUploadingImage(false);
     }
   };
+
+  const handleComposerDrop = async (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const file = e.dataTransfer.files?.[0];
+    if (file?.type.startsWith("image/")) {
+      await uploadAndSendImage(file);
+    }
+  };
+
+  const handleComposerDragOver = (e: React.DragEvent) => {
+    if (e.dataTransfer.types.includes("Files")) {
+      e.preventDefault();
+    }
+  };
+
+  useEffect(() => {
+    if (!showEmoji) return;
+    const onDocMouseDown = (ev: MouseEvent) => {
+      if (emojiAnchorRef.current?.contains(ev.target as Node)) return;
+      setShowEmoji(false);
+    };
+    document.addEventListener("mousedown", onDocMouseDown);
+    return () => document.removeEventListener("mousedown", onDocMouseDown);
+  }, [showEmoji]);
 
   const handleDeleteConv = async (convId: string, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -404,15 +459,12 @@ export default function ChatListPage() {
             ))}
           </div>
 
-          {showEmoji && (
-            <div className="px-4 pb-2">
-              <div className="glass rounded-xl overflow-hidden border border-white/10">
-                <ChatEmojiPanel onPick={onEmojiPick} />
-              </div>
-            </div>
-          )}
-
-          <div className="glass border-t border-white/10 px-4 py-3">
+          <div
+            ref={composerRef}
+            className="glass border-t border-white/10 px-4 py-3"
+            onDrop={handleComposerDrop}
+            onDragOver={handleComposerDragOver}
+          >
             <input
               ref={imageInputRef}
               type="file"
@@ -421,35 +473,43 @@ export default function ChatListPage() {
               onChange={handleImageSelect}
             />
             <div className="flex items-end gap-2">
-              <button
-                type="button"
-                onClick={() => imageInputRef.current?.click()}
-                disabled={uploadingImage}
-                className="shrink-0 w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-gray-300 hover:bg-white/10 transition disabled:opacity-40"
-                title="发送图片"
-              >
-                <ImagePlus className="h-5 w-5" />
-              </button>
-              <button
-                type="button"
-                onClick={() => setShowEmoji((v) => !v)}
-                className={`shrink-0 w-10 h-10 rounded-xl flex items-center justify-center text-xl transition ${
-                  showEmoji ? "bg-pink-500/20" : "bg-white/5 hover:bg-white/10"
-                }`}
-                title="表情"
-              >
-                😊
-              </button>
+              <div ref={emojiAnchorRef} className="relative flex shrink-0 items-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => imageInputRef.current?.click()}
+                  disabled={uploadingImage}
+                  className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-gray-300 hover:bg-white/10 transition disabled:opacity-40"
+                  title="发送图片"
+                >
+                  <ImagePlus className="h-5 w-5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowEmoji((v) => !v)}
+                  className={`w-10 h-10 rounded-xl flex items-center justify-center text-xl transition ${
+                    showEmoji ? "bg-pink-500/20" : "bg-white/5 hover:bg-white/10"
+                  }`}
+                  title="表情"
+                >
+                  😊
+                </button>
+                {showEmoji && (
+                  <div className="absolute bottom-full left-0 mb-2 z-30 rounded-lg border border-white/15 bg-[#1a1a2e] shadow-xl shadow-black/40 overflow-hidden">
+                    <ChatEmojiPanel onPick={onEmojiPick} />
+                  </div>
+                )}
+              </div>
               <textarea
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
+                onPaste={handlePaste}
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && !e.shiftKey) {
                     e.preventDefault();
                     handleSend();
                   }
                 }}
-                placeholder="输入消息..."
+                placeholder="输入消息，可粘贴或拖入图片..."
                 rows={1}
                 className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white placeholder-gray-500 outline-none focus:border-pink-500/50 resize-none text-sm"
               />
