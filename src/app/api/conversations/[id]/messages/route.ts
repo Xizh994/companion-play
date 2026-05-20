@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { verifyToken, getTokenFromRequest } from "@/lib/auth";
 import { emitNewMessage } from "@/lib/socket-emit";
 import { assertChatAllowed } from "@/lib/boss-access";
+import { formatMessagePreview } from "@/lib/chat-message";
 
 export async function GET(req: NextRequest, context: { params: Promise<{ id: string }> }) {
   try {
@@ -49,6 +50,11 @@ export async function POST(req: NextRequest, context: { params: Promise<{ id: st
 
     const toId = conv.participants.find((p) => p !== payload.userId)!;
     const { content, type = "text" } = await req.json();
+    if (!content || typeof content !== "string" || !content.trim()) {
+      return NextResponse.json({ error: "消息内容不能为空" }, { status: 400 });
+    }
+    const normalizedType = type === "image" ? "image" : "text";
+    const normalizedContent = content.trim();
 
     const chatAccess = await assertChatAllowed(payload.userId, toId);
     if (!chatAccess.allowed) {
@@ -56,12 +62,21 @@ export async function POST(req: NextRequest, context: { params: Promise<{ id: st
     }
 
     const message = await prisma.message.create({
-      data: { fromId: payload.userId, toId, content, type },
+      data: {
+        fromId: payload.userId,
+        toId,
+        content: normalizedContent,
+        type: normalizedType,
+      },
     });
 
     await prisma.conversation.update({
       where: { id },
-      data: { lastMessage: content, lastMessageAt: new Date(), updatedAt: new Date() },
+      data: {
+        lastMessage: formatMessagePreview(normalizedType, normalizedContent),
+        lastMessageAt: new Date(),
+        updatedAt: new Date(),
+      },
     });
 
     emitNewMessage(id, {

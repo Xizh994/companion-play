@@ -22,6 +22,7 @@ import {
   setFaviconBadge,
 } from "@/lib/browser-notify";
 import type { Socket } from "socket.io-client";
+import { formatMessagePreview } from "@/lib/chat-message";
 
 const TOKEN_KEY = "dazistar_token";
 export interface IncomingMessage {
@@ -158,8 +159,7 @@ export function UnreadMessagesProvider({
       if (!shouldNotifyForMessage(msg, convId)) return;
 
       const senderName = await resolveSenderName(msg.fromId);
-      const preview =
-        msg.content.length > 60 ? `${msg.content.slice(0, 60)}…` : msg.content;
+      const preview = formatMessagePreview(msg.type || "text", msg.content);
 
       if (document.visibilityState === "hidden") {
         startTitleBlink(totalUnreadRef.current + 1);

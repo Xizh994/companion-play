@@ -6,10 +6,9 @@ import { useUnreadMessages, notifyUnreadUpdated } from "@/contexts/UnreadMessage
 import { RealtimeConnectionStatus } from "@/components/RealtimeConnectionStatus";
 import type { SocketConnectionStatus } from "@/lib/socket-connection";
 import { GeneratedAvatar, SafeAvatar } from "@/components/GeneratedAvatar";
-import { Trash2 } from "lucide-react";
-import dynamic from "next/dynamic";
-
-const EmojiPicker = dynamic(() => import("emoji-picker-react"), { ssr: false });
+import { ChatEmojiPanel } from "@/components/ChatEmojiPanel";
+import { formatMessagePreview, isImageMessage } from "@/lib/chat-message";
+import { ImagePlus, Trash2 } from "lucide-react";
 
 interface ConversationItem {
   id: string;
@@ -52,9 +51,11 @@ export default function ChatListPage() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [showEmoji, setShowEmoji] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
   const [currentUser, setCurrentUser] = useState<{ id: string; role?: string } | null>(null);
   const selectedIdRef = useRef<string | null>(null);
   const contactsRef = useRef<Record<string, ChatUser>>({});
+  const imageInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     selectedIdRef.current = selectedId;
@@ -227,20 +228,14 @@ export default function ChatListPage() {
     router.replace(`/chat?conv=${convId}`, { scroll: false });
   };
 
-  const handleSend = async () => {
-    if (!input.trim() || !selectedId) return;
-    const token = localStorage.getItem(TOKEN_KEY);
-    const res = await fetch(`/api/conversations/${selectedId}/messages`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        ...authHeaders(token),
-      },
-      body: JSON.stringify({ content: input.trim() }),
-    });
-    if (res.ok) {
-      const data = await res.json();
-      const msg = data.message;
+  const appendSentMessage = useCallback(
+    (msg: {
+      id: string;
+      content: string;
+      fromId: string;
+      type: string;
+      createdAt: string;
+    }) => {
       setMessages((prev) => {
         if (prev.some((m) => m.id === msg.id)) return prev;
         return [
@@ -255,10 +250,72 @@ export default function ChatListPage() {
           },
         ];
       });
-      setInput("");
-      setShowEmoji(false);
       fetchConversations();
       notifyUnreadUpdated();
+    },
+    [fetchConversations]
+  );
+
+  const sendMessage = useCallback(
+    async (payload: { content: string; type?: string }) => {
+      if (!selectedId) return false;
+      const token = localStorage.getItem(TOKEN_KEY);
+      const res = await fetch(`/api/conversations/${selectedId}/messages`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...authHeaders(token),
+        },
+        body: JSON.stringify({
+          content: payload.content,
+          type: payload.type || "text",
+        }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        alert(data.error || "发送失败");
+        return false;
+      }
+      const data = await res.json();
+      appendSentMessage(data.message);
+      return true;
+    },
+    [selectedId, appendSentMessage]
+  );
+
+  const handleSend = async () => {
+    if (!input.trim() || !selectedId) return;
+    const ok = await sendMessage({ content: input.trim(), type: "text" });
+    if (ok) {
+      setInput("");
+      setShowEmoji(false);
+    }
+  };
+
+  const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file || !selectedId) return;
+
+    setUploadingImage(true);
+    try {
+      const token = localStorage.getItem(TOKEN_KEY);
+      const formData = new FormData();
+      formData.append("image", file);
+      const uploadRes = await fetch("/api/uploads/chat", {
+        method: "POST",
+        headers: authHeaders(token),
+        body: formData,
+      });
+      const uploadData = await uploadRes.json().catch(() => ({}));
+      if (!uploadRes.ok) {
+        alert(uploadData.error || "图片上传失败");
+        return;
+      }
+      const ok = await sendMessage({ content: uploadData.url, type: "image" });
+      if (ok) setShowEmoji(false);
+    } finally {
+      setUploadingImage(false);
     }
   };
 
@@ -280,8 +337,8 @@ export default function ChatListPage() {
     }
   };
 
-  const onEmojiClick = (emojiData: { emoji: string }) => {
-    setInput((prev) => prev + emojiData.emoji);
+  const onEmojiPick = (emoji: string) => {
+    setInput((prev) => prev + emoji);
   };
 
   const getOtherParticipantId = (conv: ConversationItem) => {
@@ -349,17 +406,37 @@ export default function ChatListPage() {
 
           {showEmoji && (
             <div className="px-4 pb-2">
-              <div className="glass rounded-xl overflow-hidden">
-                <EmojiPicker onEmojiClick={onEmojiClick} width="100%" height={320} searchDisabled skinTonesDisabled />
+              <div className="glass rounded-xl overflow-hidden border border-white/10">
+                <ChatEmojiPanel onPick={onEmojiPick} />
               </div>
             </div>
           )}
 
           <div className="glass border-t border-white/10 px-4 py-3">
+            <input
+              ref={imageInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              className="hidden"
+              onChange={handleImageSelect}
+            />
             <div className="flex items-end gap-2">
               <button
+                type="button"
+                onClick={() => imageInputRef.current?.click()}
+                disabled={uploadingImage}
+                className="shrink-0 w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-gray-300 hover:bg-white/10 transition disabled:opacity-40"
+                title="发送图片"
+              >
+                <ImagePlus className="h-5 w-5" />
+              </button>
+              <button
+                type="button"
                 onClick={() => setShowEmoji((v) => !v)}
-                className="shrink-0 w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-xl hover:bg-white/10 transition"
+                className={`shrink-0 w-10 h-10 rounded-xl flex items-center justify-center text-xl transition ${
+                  showEmoji ? "bg-pink-500/20" : "bg-white/5 hover:bg-white/10"
+                }`}
+                title="表情"
               >
                 😊
               </button>
@@ -378,10 +455,10 @@ export default function ChatListPage() {
               />
               <button
                 onClick={handleSend}
-                disabled={!input.trim()}
+                disabled={!input.trim() || uploadingImage}
                 className="btn-gradient shrink-0 px-5 py-2.5 rounded-xl text-sm font-medium disabled:opacity-30"
               >
-                发送
+                {uploadingImage ? "上传中" : "发送"}
               </button>
             </div>
           </div>
@@ -418,7 +495,18 @@ function MessageRow({
             : "bg-white/10 text-gray-200 rounded-bl-md"
         }`}
       >
-        <p className="text-sm leading-relaxed break-words">{msg.content}</p>
+        {isImageMessage(msg.type, msg.content) ? (
+          <a href={msg.content} target="_blank" rel="noopener noreferrer" className="block">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={msg.content}
+              alt="图片消息"
+              className="max-w-[220px] max-h-[280px] rounded-lg object-cover"
+            />
+          </a>
+        ) : (
+          <p className="text-sm leading-relaxed break-words">{msg.content}</p>
+        )}
         <p className={`text-[10px] mt-1 ${msg.isMine ? "text-pink-200/60 text-right" : "text-gray-500"}`}>
           {new Date(msg.createdAt).toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" })}
         </p>
@@ -532,7 +620,12 @@ function ConvMeta({
       </div>
       <div className="flex items-center justify-between gap-2 mt-0.5">
         <p className={`text-sm truncate ${unread > 0 ? "text-gray-200 font-medium" : "text-gray-400"}`}>
-          {conv.lastMessage || "暂无消息"}
+          {conv.lastMessage
+            ? formatMessagePreview(
+                conv.lastMessage.startsWith("/api/uploads/chat/") ? "image" : "text",
+                conv.lastMessage
+              )
+            : "暂无消息"}
         </p>
         {unread > 0 && (
           <span className="shrink-0 min-w-[18px] h-[18px] px-1 rounded-full bg-pink-500 text-white text-[10px] font-bold flex items-center justify-center">

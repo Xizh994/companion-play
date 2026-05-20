@@ -5,7 +5,9 @@ import crypto from "crypto";
 const LICENSE_TYPES = ["image/jpeg", "image/png", "image/webp"];
 const AVATAR_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
 
-export type UploadKind = "avatars" | "licenses";
+const CHAT_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
+
+export type UploadKind = "avatars" | "licenses" | "chat";
 
 const CONFIG: Record<
   UploadKind,
@@ -23,6 +25,12 @@ const CONFIG: Record<
     allowed: LICENSE_TYPES,
     maxBytes: 10 * 1024 * 1024,
   },
+  chat: {
+    dir: path.join(process.cwd(), "data", "uploads", "chat"),
+    publicPath: "/api/uploads/chat",
+    allowed: CHAT_IMAGE_TYPES,
+    maxBytes: 5 * 1024 * 1024,
+  },
 };
 
 async function ensureDir(dir: string) {
@@ -39,16 +47,16 @@ export async function saveUploadedImage(
 ): Promise<{ url: string; filename: string }> {
   const cfg = CONFIG[kind];
   if (!cfg.allowed.includes(file.type)) {
-    throw new Error(
-      kind === "licenses"
+    const formatMsg =
+      kind === "licenses" || kind === "chat"
         ? "仅支持 JPG/PNG/WebP 格式"
-        : "仅支持 JPG/PNG/WebP/GIF 格式"
-    );
+        : "仅支持 JPG/PNG/WebP/GIF 格式";
+    throw new Error(formatMsg);
   }
   if (file.size > cfg.maxBytes) {
-    throw new Error(
-      kind === "licenses" ? "图片大小不能超过 10MB" : "图片大小不能超过 5MB"
-    );
+    const sizeMsg =
+      kind === "licenses" ? "图片大小不能超过 10MB" : "图片大小不能超过 5MB";
+    throw new Error(sizeMsg);
   }
 
   await ensureDir(cfg.dir);
