@@ -33,13 +33,13 @@ function EmojiGrid({
   onPick: (emoji: string) => void;
 }) {
   return (
-    <div className="grid grid-cols-10 gap-px p-1" role="listbox">
+    <div className="grid grid-cols-8 gap-1 p-2" role="listbox">
       {emojis.map((emoji) => (
         <button
           key={emoji}
           type="button"
           role="option"
-          className="h-7 w-7 flex items-center justify-center rounded text-base hover:bg-white/10 active:scale-95 transition"
+          className="h-10 w-10 flex items-center justify-center rounded-md text-2xl hover:bg-white/10 active:scale-95 transition"
           onClick={() => onPick(emoji)}
           title={emoji}
         >
@@ -79,16 +79,16 @@ export function ChatEmojiPanel({ onPick }: ChatEmojiPanelProps) {
   };
 
   return (
-    <div className="w-[300px] select-none" aria-label="表情">
+    <div className="w-[360px] select-none" aria-label="表情">
       {recent.length > 0 && (
         <div className="border-b border-white/10">
-          <p className="text-[10px] text-gray-500 px-2 pt-1.5 pb-0.5">最近</p>
+          <p className="text-xs text-gray-400 px-3 pt-2 pb-1">最近</p>
           <EmojiGrid emojis={recent} onPick={handlePick} />
         </div>
       )}
       <div>
-        <p className="text-[10px] text-gray-500 px-2 pt-1.5 pb-0.5">表情</p>
-        <div className="max-h-[132px] overflow-y-auto overflow-x-hidden">
+        <p className="text-xs text-gray-400 px-3 pt-2 pb-1">表情</p>
+        <div className="max-h-[220px] overflow-y-auto overflow-x-hidden">
           <EmojiGrid emojis={CHAT_EMOJIS} onPick={handlePick} />
         </div>
       </div>

@@ -461,7 +461,7 @@ export default function ChatListPage() {
 
           <div
             ref={composerRef}
-            className="glass border-t border-white/10 px-4 py-4"
+            className="glass border-t border-white/10 px-4 py-3"
             onDrop={handleComposerDrop}
             onDragOver={handleComposerDragOver}
           >
@@ -472,13 +472,13 @@ export default function ChatListPage() {
               className="hidden"
               onChange={handleImageSelect}
             />
-            <div className="flex items-end gap-3">
-              <div ref={emojiAnchorRef} className="relative flex shrink-0 items-end gap-2 pb-0.5">
+            <div className="flex items-end gap-2">
+              <div ref={emojiAnchorRef} className="relative flex shrink-0 items-end gap-2">
                 <button
                   type="button"
                   onClick={() => imageInputRef.current?.click()}
                   disabled={uploadingImage}
-                  className="w-11 h-11 rounded-xl bg-white/5 flex items-center justify-center text-gray-300 hover:bg-white/10 transition disabled:opacity-40"
+                  className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-gray-300 hover:bg-white/10 transition disabled:opacity-40"
                   title="发送图片"
                 >
                   <ImagePlus className="h-5 w-5" />
@@ -486,7 +486,7 @@ export default function ChatListPage() {
                 <button
                   type="button"
                   onClick={() => setShowEmoji((v) => !v)}
-                  className={`w-11 h-11 rounded-xl flex items-center justify-center text-xl transition ${
+                  className={`w-10 h-10 rounded-xl flex items-center justify-center text-xl transition ${
                     showEmoji ? "bg-pink-500/20" : "bg-white/5 hover:bg-white/10"
                   }`}
                   title="表情"
@@ -509,14 +509,14 @@ export default function ChatListPage() {
                     handleSend();
                   }
                 }}
-                placeholder="输入消息，可粘贴或拖入图片…（Shift+Enter 换行）"
-                rows={3}
-                className="flex-1 min-h-[88px] max-h-[200px] bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 outline-none focus:border-pink-500/50 resize-y text-base leading-relaxed"
+                placeholder="输入消息，可粘贴或拖入图片..."
+                rows={1}
+                className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white placeholder-gray-500 outline-none focus:border-pink-500/50 resize-none text-sm min-h-[42px]"
               />
               <button
                 onClick={handleSend}
                 disabled={!input.trim() || uploadingImage}
-                className="btn-gradient shrink-0 self-end min-h-[88px] px-6 rounded-xl text-base font-medium disabled:opacity-30"
+                className="btn-gradient shrink-0 px-5 py-2.5 rounded-xl text-sm font-medium disabled:opacity-30"
               >
                 {uploadingImage ? "上传中" : "发送"}
               </button>
