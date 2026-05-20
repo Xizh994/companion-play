@@ -1241,8 +1241,11 @@ export default function ProfilePage() {
                   <User className="w-4 h-4 text-gray-500 shrink-0" />
                   <div className="flex-1 min-w-0">
                     <p className="text-xs text-gray-500">{SHOP_PLATFORM_CONTACT_LABEL}</p>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <p className="text-sm text-gray-200">{sp?.contactName ? (sp.contactName as string) : "未设置"}</p>
+                      {typeof sp?.contactIdCard === "string" && sp.contactIdCard ? (
+                        <span className="text-[10px] text-gray-500">已实名登记</span>
+                      ) : null}
                       <button
                         onClick={openContactNameModal}
                         className="text-xs text-violet-400 hover:text-violet-300 shrink-0"
@@ -1346,28 +1349,6 @@ export default function ProfilePage() {
                         <p className="text-xs text-gray-400 mt-0.5 leading-relaxed">{shopNotesDisplay}</p>
                       </div>
                     )}
-                  </div>
-
-                  {/* 平台负责人 */}
-                  <div className="p-3 rounded-xl bg-violet-500/5 border border-violet-500/15 space-y-2">
-                    <p className="text-[10px] text-violet-300/90 font-medium">{SHOP_PLATFORM_CONTACT_LABEL}</p>
-                    <p className="text-[10px] text-gray-500 leading-relaxed">{SHOP_PLATFORM_CONTACT_HINT}</p>
-                    <div className="text-xs">
-                      <span className="text-gray-500">姓名：</span>
-                      <span className="text-gray-300">
-                        {typeof sp.contactName === "string" ? sp.contactName : "—"}
-                      </span>
-                      {typeof sp.contactIdCard === "string" && sp.contactIdCard ? (
-                        <span className="text-gray-500"> · 已实名登记</span>
-                      ) : null}
-                    </div>
-                    <button
-                      type="button"
-                      onClick={openContactNameModal}
-                      className="text-xs text-violet-400 hover:text-violet-300"
-                    >
-                      更换{SHOP_PLATFORM_CONTACT_LABEL} →
-                    </button>
                   </div>
 
                   {/* 营业执照预览 */}
