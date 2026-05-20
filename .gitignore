@@ -41,6 +41,9 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+# cursor（本地助手规则，与产品代码无关）
+.cursor/
+
 # deploy
 /logs/
 /backups/
