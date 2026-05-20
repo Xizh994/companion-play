@@ -39,12 +39,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "请上传营业执照" }, { status: 400 });
     }
 
-    if (profile.contactName && legalPersonName && profile.contactName !== legalPersonName) {
-      return NextResponse.json(
-        { error: "负责人姓名须与营业执照法定代表人一致" },
-        { status: 400 }
-      );
-    }
+    // 企业法人姓名仅来自 OCR/请求体，不与平台负责人 contactName 比对（Phase C）
 
     await prisma.shopProfile.update({
       where: { userId: user.id },

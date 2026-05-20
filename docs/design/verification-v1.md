@@ -8,7 +8,7 @@
 ### 1.1 业务目标
 
 - **老板（BOSS）**：身份证二要素实名校验，通过后解锁大厅全量浏览与聊天（现有 `boss-access` 逻辑）。
-- **店铺（SHOP）**：营业执照资料 + 企业要素验真；负责人与法人一致性校验。
+- **店铺（SHOP）**：营业执照 + 企业要素验真（主体真实）；**平台负责人**单独二要素（运营对接人，≠ 执照法定代表人）。
 - **注册**：账号创建（手机验证）与认证**解耦**——注册成功不等待阿里云核验。
 
 ### 1.2 阿里云调用方式
@@ -129,7 +129,7 @@ AES_ENCRYPT_KEY=
 
 | 接口 | 要点 |
 |------|------|
-| `POST /api/auth/register` | SHOP 必填：店名、负责人、身份证、执照 URL；`contactIdCard` 加密；`verificationStatus=PENDING`，`notes.phase=submitted`；不调阿里云 |
+| `POST /api/auth/register` | SHOP 必填：店名、平台负责人、身份证、执照 URL；`contactIdCard` 加密；`verificationStatus=PENDING`；不调阿里云 |
 | `POST /api/auth/verify-identity` | 仅 BOSS；内调 `Id2MetaVerify`；同步 `APPROVED`/`REJECTED` |
 | `GET /api/auth/me` | 可选返回 `verificationSummary`（badge + message） |
 | `GET /api/users?role=SHOP` | 返回 `shopVerified`；可选 APPROVED 优先排序 |
@@ -138,7 +138,7 @@ AES_ENCRYPT_KEY=
 
 ```
 POST /api/verification/person           # 老板实名（可合并 verify-identity）
-POST /api/verification/contact-person     # 店铺更换负责人（二要素 + 更新 contactName）
+POST /api/verification/contact-person     # 更换平台负责人：contactName+contactIdCard，二要素；**不**重置企业认证
 POST /api/verification/shop/submit        # 提交/重提店铺认证
 GET  /api/verification/shop/status        # verifying 时轮询
 POST /api/uploads/license                 # 执照上传 → URL
@@ -146,10 +146,11 @@ POST /api/uploads/license                 # 执照上传 → URL
 
 ### 5.3 店铺提交流程
 
-1. 可选上传执照 → OCR 提取三要素 → 用户确认。
-2. 校验 `contactName` 与 OCR 法人姓名一致（不一致直接 REJECTED）。
-3. `EntElementVerify` ENT_3META（企业名 + 统一社会信用代码 + 法人姓名）。
-4. 写 `APPROVED` / `REJECTED` + `verificationNotes`。
+1. 可选上传执照 → OCR 提取三要素（企业名、信用代码、**法定代表人/经营者**）→ 用户确认。
+2. **不**与 `contactName`（平台负责人）比对；法人姓名仅来自 OCR/国家库。
+3. `EntElementVerify` ENT_3META（企业名 + 信用代码 + OCR/库法人姓名）。
+4. 写 `APPROVED` / `REJECTED` + `verificationNotes.ocr`。
+5. 平台负责人：`contact-person` 单独 `Id2MetaVerify`，更换负责人**不**打回企业 `APPROVED`。
 
 ### 5.4 内部模块
 
@@ -186,7 +187,8 @@ type VerifyBadge = "none" | "pending" | "verifying" | "approved" | "rejected";
 
 - `pending` → 「开始核验」→ `verifying` → 结果。
 - `rejected` → 「重新提交」弹窗（执照 + 确认三要素）→ `shop/submit`。
-- 更换负责人 → `contact-person`（**禁止**调用仅 BOSS 可用的 `verify-identity`）。
+- 更换**平台负责人** → `contact-person`（与执照法人无关；**禁止**用 BOSS 的 `verify-identity`）。
+- 个人页分区展示：**企业主体** / **平台负责人**。
 
 ### 6.4 大厅 / 店铺页
 

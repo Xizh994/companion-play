@@ -41,10 +41,10 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: "请填写店铺名称" }, { status: 400 });
       }
       if (!contactName || !String(contactName).trim()) {
-        return NextResponse.json({ error: "请填写负责人姓名" }, { status: 400 });
+        return NextResponse.json({ error: "请填写平台负责人姓名" }, { status: 400 });
       }
       if (!contactIdCard || !isValidIdCardNumber(String(contactIdCard))) {
-        return NextResponse.json({ error: "请填写正确的负责人身份证号" }, { status: 400 });
+        return NextResponse.json({ error: "请填写正确的平台负责人身份证号" }, { status: 400 });
       }
       if (!licenseImage || !String(licenseImage).trim()) {
         return NextResponse.json({ error: "请上传营业执照" }, { status: 400 });

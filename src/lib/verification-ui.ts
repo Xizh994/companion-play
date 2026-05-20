@@ -168,3 +168,16 @@ export function formatVerificationNotesForDisplay(
   if (!notes?.reason) return null;
   return notes.reason;
 }
+
+/** 企业认证 OCR/三要素结果中的法定代表人（与平台负责人无关） */
+export function getShopOcrLegalPerson(raw: string | null | undefined): string | null {
+  const notes = parseShopVerificationNotes(raw);
+  const lp = notes?.ocr?.legalPerson;
+  return typeof lp === "string" && lp.trim().length > 0 ? lp.trim() : null;
+}
+
+export function getShopOcrCreditCode(raw: string | null | undefined): string | null {
+  const notes = parseShopVerificationNotes(raw);
+  const code = notes?.ocr?.creditCode;
+  return typeof code === "string" && code.trim().length > 0 ? code.trim() : null;
+}

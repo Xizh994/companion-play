@@ -4,7 +4,11 @@ import Link from "next/link";
 import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
-import { SHOP_VERIFY_REGISTER_HINT } from "@/lib/shop-access";
+import {
+  SHOP_VERIFY_REGISTER_HINT,
+  SHOP_PLATFORM_CONTACT_LABEL,
+  SHOP_PLATFORM_CONTACT_HINT,
+} from "@/lib/shop-access";
 import { Store, Crown, Camera, X, CheckCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -224,9 +228,9 @@ export default function RegisterPage() {
     if (password && password.length < 6) { setError("密码至少6位"); return; }
     if (role === "SHOP") {
       if (!shopName.trim()) { setError("请填写店铺名称"); return; }
-      if (!contactName.trim()) { setError("请填写负责人姓名"); return; }
+      if (!contactName.trim()) { setError(`请填写${SHOP_PLATFORM_CONTACT_LABEL}姓名`); return; }
       if (!/^\d{17}[\dXx]$/.test(contactIdCard.trim())) {
-        setError("请填写正确的负责人身份证号");
+        setError(`请填写正确的${SHOP_PLATFORM_CONTACT_LABEL}身份证号`);
         return;
       }
       if (!licenseImageUrl) { setError("请上传营业执照"); return; }
@@ -587,30 +591,34 @@ export default function RegisterPage() {
                   <span className="text-gray-500 ml-1">（使用注册手机号）</span>
                 </div>
 
+                <div className="p-2.5 bg-violet-500/5 border border-violet-500/15 rounded-lg text-xs text-gray-400 mb-1 leading-relaxed">
+                  <span className="text-violet-400">{SHOP_PLATFORM_CONTACT_LABEL}：</span>
+                  {SHOP_PLATFORM_CONTACT_HINT}
+                </div>
                 <div>
-                  <label className="block text-xs text-gray-400 mb-1">负责人姓名</label>
+                  <label className="block text-xs text-gray-400 mb-1">{SHOP_PLATFORM_CONTACT_LABEL}姓名</label>
                   <input
                     type="text"
                     value={contactName}
                     onChange={(e) => setContactName(e.target.value)}
-                    placeholder="负责人真实姓名"
+                    placeholder="在本平台负责运营对接的实名姓名"
                     className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white placeholder-gray-500 outline-none focus:border-purple-500/50 focus:ring-2 focus:ring-purple-500/20 transition text-sm"
                   />
                 </div>
 
                 <div>
                   <label className="block text-xs text-gray-400 mb-1">
-                    负责人身份证号 <span className="text-red-400">*</span>
+                    {SHOP_PLATFORM_CONTACT_LABEL}身份证号 <span className="text-red-400">*</span>
                   </label>
                   <input
                     type="text"
                     value={contactIdCard}
                     onChange={(e) => setContactIdCard(e.target.value)}
-                    placeholder="请输入负责人身份证号"
+                    placeholder="请输入身份证号"
                     maxLength={18}
                     className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white placeholder-gray-500 outline-none focus:border-purple-500/50 focus:ring-2 focus:ring-purple-500/20 transition text-sm"
                   />
-                  <p className="text-[10px] text-gray-500 mt-1">用于实名认证校验，加密存储不会泄露</p>
+                  <p className="text-[10px] text-gray-500 mt-1">平台负责人实名用，加密存储；与执照法定代表人可以不是同一人</p>
                 </div>
 
                 <div>

@@ -45,7 +45,7 @@ export default function PrivacyPage() {
               <ul className="list-disc pl-5 space-y-1 text-sm">
                 <li><strong>店铺名称、简介</strong>：用于店铺信息展示</li>
                 <li><strong>联系电话</strong>：作为店铺联系方式</li>
-                <li><strong>负责人姓名</strong>：用于店铺负责人身份确认</li>
+                <li><strong>平台负责人姓名、身份证号</strong>：用于在本平台的运营对接与实名核验（与营业执照法定代表人可以不是同一人）</li>
               </ul>
 
               <h3 className="text-base font-medium text-gray-200 mt-4 mb-2">1.5 设备与服务信息</h3>

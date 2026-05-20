@@ -85,11 +85,13 @@ export async function POST(req: NextRequest) {
       shopUpdateData.shopAddress = shopAddress.trim() || null;
     }
     if (contactName !== null) {
-      const trimmed = contactName.trim();
-      if (!trimmed) {
-        return NextResponse.json({ error: "联系人姓名不能为空" }, { status: 400 });
-      }
-      shopUpdateData.contactName = trimmed;
+      return NextResponse.json(
+        {
+          error:
+            "请通过个人页「更换平台负责人」修改，需填写姓名与身份证并完成实名核验",
+        },
+        { status: 400 }
+      );
     }
     if (contactPhone !== null) {
       const trimmed = contactPhone.trim();

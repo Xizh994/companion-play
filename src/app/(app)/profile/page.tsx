@@ -15,7 +15,14 @@ import {
   getVerifyPanelClass,
   getVerifyTextClass,
   formatVerificationNotesForDisplay,
+  getShopOcrLegalPerson,
+  getShopOcrCreditCode,
 } from "@/lib/verification-ui";
+import {
+  SHOP_PLATFORM_CONTACT_LABEL,
+  SHOP_PLATFORM_CONTACT_HINT,
+  SHOP_ENTERPRISE_VERIFY_HINT,
+} from "@/lib/shop-access";
 
 const CROP_SIZE = 280;
 const MIN_SCALE = 0.5;
@@ -71,8 +78,7 @@ export default function ProfilePage() {
 
   const [contactNameModalOpen, setContactNameModalOpen] = useState(false);
   const [contactNamePicked, setContactNamePicked] = useState("");
-  const [contactNameRealName, setContactNameRealName] = useState("");
-  const [contactNameIdCard, setContactNameIdCard] = useState("");
+  const [contactNameNewIdCard, setContactNameNewIdCard] = useState("");
   const [contactNameVerifying, setContactNameVerifying] = useState(false);
   const [contactNameError, setContactNameError] = useState("");
   const [contactNameDone, setContactNameDone] = useState(false);
@@ -120,8 +126,7 @@ export default function ProfilePage() {
 
   const openContactNameModal = () => {
     setContactNamePicked((sp?.contactName as string) || "");
-    setContactNameRealName("");
-    setContactNameIdCard("");
+    setContactNameNewIdCard("");
     setContactNameError("");
     setContactNameDone(false);
     setContactNameModalOpen(true);
@@ -130,11 +135,11 @@ export default function ProfilePage() {
   const handleSubmitContactName = async () => {
     setContactNameError("");
     const picked = contactNamePicked.trim();
-    if (!picked) { setContactNameError("请输入新负责人姓名"); return; }
-    if (!contactNameRealName) { setContactNameError("请输入您的真实姓名"); return; }
-    if (!contactNameIdCard) { setContactNameError("请输入您的身份证号"); return; }
-    if (!isValidIdCardNumber(contactNameIdCard)) {
-      setContactNameError("身份证号格式不正确");
+    const newIdCard = contactNameNewIdCard.trim();
+    if (!picked) { setContactNameError(`请输入${SHOP_PLATFORM_CONTACT_LABEL}姓名`); return; }
+    if (!newIdCard) { setContactNameError(`请输入${SHOP_PLATFORM_CONTACT_LABEL}身份证号`); return; }
+    if (!isValidIdCardNumber(newIdCard)) {
+      setContactNameError(`${SHOP_PLATFORM_CONTACT_LABEL}身份证号格式不正确`);
       return;
     }
 
@@ -148,12 +153,11 @@ export default function ProfilePage() {
         },
         body: JSON.stringify({
           contactName: picked,
-          realName: contactNameRealName,
-          idCardNumber: contactNameIdCard,
+          contactIdCard: newIdCard,
         }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "更换负责人失败");
+      if (!res.ok) throw new Error(data.error || `更换${SHOP_PLATFORM_CONTACT_LABEL}失败`);
 
       await refreshUser();
       setContactNameDone(true);
@@ -765,9 +769,11 @@ export default function ProfilePage() {
       licenseImage?: string | null;
     } | null | undefined
   );
-  const shopNotesDisplay = formatVerificationNotesForDisplay(
-    typeof sp?.verificationNotes === "string" ? sp.verificationNotes : null
-  );
+  const shopNotesRaw =
+    typeof sp?.verificationNotes === "string" ? sp.verificationNotes : null;
+  const shopNotesDisplay = formatVerificationNotesForDisplay(shopNotesRaw);
+  const shopOcrLegalPerson = getShopOcrLegalPerson(shopNotesRaw);
+  const shopOcrCreditCode = getShopOcrCreditCode(shopNotesRaw);
 
   const BossStatusIcon =
     bossVerifyView.badge === "approved"
@@ -788,9 +794,7 @@ export default function ProfilePage() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({
-          legalPersonName: typeof sp?.contactName === "string" ? sp.contactName : "",
-        }),
+        body: JSON.stringify({}),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "提交失败");
@@ -850,7 +854,6 @@ export default function ProfilePage() {
         },
         body: JSON.stringify({
           licenseImageUrl: resubmitLicenseUrl,
-          legalPersonName: typeof sp?.contactName === "string" ? sp.contactName : "",
         }),
       });
       const data = await res.json();
@@ -1237,7 +1240,7 @@ export default function ProfilePage() {
                 <div className="flex items-center gap-3">
                   <User className="w-4 h-4 text-gray-500 shrink-0" />
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs text-gray-500">负责人</p>
+                    <p className="text-xs text-gray-500">{SHOP_PLATFORM_CONTACT_LABEL}</p>
                     <div className="flex items-center gap-2">
                       <p className="text-sm text-gray-200">{sp?.contactName ? (sp.contactName as string) : "未设置"}</p>
                       <button
@@ -1247,6 +1250,7 @@ export default function ProfilePage() {
                         更换
                       </button>
                     </div>
+                    <p className="text-[10px] text-gray-600 mt-0.5">{SHOP_PLATFORM_CONTACT_HINT}</p>
                   </div>
                 </div>
 
@@ -1305,39 +1309,65 @@ export default function ProfilePage() {
 
                   {shopVerifyError && <p className="text-xs text-red-400">{shopVerifyError}</p>}
 
-                  {/* 认证详情 */}
+                  <p className="text-[10px] text-gray-500 leading-relaxed">{SHOP_ENTERPRISE_VERIFY_HINT}</p>
+
+                  {/* 企业主体（执照 + 工商） */}
                   <div className="p-3 rounded-xl bg-white/[0.02] border border-white/[0.05] space-y-2">
-                    <p className="text-[10px] text-gray-500 font-medium">认证详情</p>
+                    <p className="text-[10px] text-gray-500 font-medium">企业主体</p>
                     <div className="grid grid-cols-2 gap-2 text-xs">
                       <div>
                         <span className="text-gray-500">核验方式：</span>
-                        <span className="text-gray-300">阿里云企业要素核验</span>
+                        <span className="text-gray-300">执照 OCR + 企业三要素</span>
                       </div>
                       <div>
-                        <span className="text-gray-500">核验类型：</span>
+                        <span className="text-gray-500">证照类型：</span>
                         <span className="text-gray-300">{formatLicenseType(sp.licenseType)}</span>
                       </div>
                       <div className="col-span-2">
-                        <span className="text-gray-500">企业名称：</span>
+                        <span className="text-gray-500">企业/店铺名称：</span>
                         <span className="text-gray-300">{typeof sp.shopName === "string" ? sp.shopName : "—"}</span>
                       </div>
                       <div className="col-span-2">
-                        <span className="text-gray-500">负责人：</span>
+                        <span className="text-gray-500">法定代表人/经营者：</span>
                         <span className="text-gray-300">
-                          {typeof sp.contactName === "string" ? sp.contactName : "—"}
-                          {typeof sp.contactIdCard === "string" && sp.contactIdCard ? (
-                            <span className="text-gray-500"> · 身份证已提交</span>
-                          ) : null}
+                          {shopOcrLegalPerson ?? "—（企业核验通过后展示）"}
                         </span>
                       </div>
+                      {shopOcrCreditCode && (
+                        <div className="col-span-2">
+                          <span className="text-gray-500">统一社会信用代码：</span>
+                          <span className="text-gray-300">{shopOcrCreditCode}</span>
+                        </div>
+                      )}
                     </div>
-
                     {shopNotesDisplay && (
                       <div className="pt-2 border-t border-white/[0.04]">
-                        <p className="text-[10px] text-gray-500">备注</p>
+                        <p className="text-[10px] text-gray-500">企业核验备注</p>
                         <p className="text-xs text-gray-400 mt-0.5 leading-relaxed">{shopNotesDisplay}</p>
                       </div>
                     )}
+                  </div>
+
+                  {/* 平台负责人 */}
+                  <div className="p-3 rounded-xl bg-violet-500/5 border border-violet-500/15 space-y-2">
+                    <p className="text-[10px] text-violet-300/90 font-medium">{SHOP_PLATFORM_CONTACT_LABEL}</p>
+                    <p className="text-[10px] text-gray-500 leading-relaxed">{SHOP_PLATFORM_CONTACT_HINT}</p>
+                    <div className="text-xs">
+                      <span className="text-gray-500">姓名：</span>
+                      <span className="text-gray-300">
+                        {typeof sp.contactName === "string" ? sp.contactName : "—"}
+                      </span>
+                      {typeof sp.contactIdCard === "string" && sp.contactIdCard ? (
+                        <span className="text-gray-500"> · 已实名登记</span>
+                      ) : null}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={openContactNameModal}
+                      className="text-xs text-violet-400 hover:text-violet-300"
+                    >
+                      更换{SHOP_PLATFORM_CONTACT_LABEL} →
+                    </button>
                   </div>
 
                   {/* 营业执照预览 */}
@@ -1903,7 +1933,7 @@ export default function ProfilePage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
           <div className="w-full max-w-sm bg-[#12122a] border border-white/10 rounded-2xl p-6 shadow-2xl">
             <div className="flex items-center justify-between mb-5">
-              <h3 className="text-white font-semibold">更换负责人</h3>
+              <h3 className="text-white font-semibold">更换{SHOP_PLATFORM_CONTACT_LABEL}</h3>
               <button onClick={() => setContactNameModalOpen(false)} className="text-gray-400 hover:text-gray-200">
                 <X className="w-5 h-5" />
               </button>
@@ -1912,7 +1942,9 @@ export default function ProfilePage() {
             {contactNameDone ? (
               <div className="space-y-4">
                 <div className="p-3 rounded-xl bg-green-500/10 border border-green-500/20">
-                  <p className="text-xs text-green-400">✅ 负责人已更新为 {contactNamePicked}</p>
+                  <p className="text-xs text-green-400">
+                    ✅ {SHOP_PLATFORM_CONTACT_LABEL}已更新为 {contactNamePicked}
+                  </p>
                 </div>
                 <button
                   onClick={() => setContactNameModalOpen(false)}
@@ -1924,41 +1956,32 @@ export default function ProfilePage() {
             ) : (
               <div className="space-y-4">
                 <div className="p-3 rounded-xl bg-amber-500/5 border border-amber-500/15">
-                  <p className="text-xs text-amber-400">⚠️ 更换负责人需要进行本人实名认证</p>
+                  <p className="text-xs text-amber-400">⚠️ 请填写新{SHOP_PLATFORM_CONTACT_LABEL}的实名信息</p>
+                  <p className="text-[10px] text-gray-500 mt-1 leading-relaxed">
+                    {SHOP_PLATFORM_CONTACT_HINT}。更换后不影响已通过的企业主体认证（营业执照仍有效）。
+                  </p>
                 </div>
                 <div>
-                  <label className="block text-xs text-gray-400 mb-1">新负责人姓名</label>
+                  <label className="block text-xs text-gray-400 mb-1">{SHOP_PLATFORM_CONTACT_LABEL}姓名</label>
                   <input
                     type="text"
                     value={contactNamePicked}
                     onChange={(e) => setContactNamePicked(e.target.value)}
-                    placeholder="请输入新负责人姓名"
+                    placeholder="运营对接人真实姓名"
                     className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white placeholder-gray-500 outline-none focus:border-violet-500/50 transition text-sm"
                   />
                 </div>
-                <div className="border-t border-white/[0.06] pt-4">
-                  <p className="text-xs text-gray-500 mb-3">请填写您的真实身份信息进行核验</p>
-                  <div>
-                    <label className="block text-xs text-gray-400 mb-1">您的真实姓名</label>
-                    <input
-                      type="text"
-                      value={contactNameRealName}
-                      onChange={(e) => setContactNameRealName(e.target.value)}
-                      placeholder="请输入真实姓名"
-                      className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white placeholder-gray-500 outline-none focus:border-violet-500/50 transition text-sm"
-                    />
-                  </div>
-                  <div className="mt-3">
-                    <label className="block text-xs text-gray-400 mb-1">您的身份证号</label>
-                    <input
-                      type="text"
-                      value={contactNameIdCard}
-                      onChange={(e) => setContactNameIdCard(e.target.value)}
-                      placeholder="请输入身份证号"
-                      className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white placeholder-gray-500 outline-none focus:border-violet-500/50 transition text-sm"
-                    />
-                    <p className="text-[10px] text-gray-500 mt-1">身份证号经 AES-256 加密后存储，仅用于身份核验</p>
-                  </div>
+                <div>
+                  <label className="block text-xs text-gray-400 mb-1">{SHOP_PLATFORM_CONTACT_LABEL}身份证号</label>
+                  <input
+                    type="text"
+                    value={contactNameNewIdCard}
+                    onChange={(e) => setContactNameNewIdCard(e.target.value)}
+                    placeholder="请输入身份证号"
+                    maxLength={18}
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white placeholder-gray-500 outline-none focus:border-violet-500/50 transition text-sm"
+                  />
+                  <p className="text-[10px] text-gray-500 mt-1">经 AES-256 加密存储，仅用于平台负责人实名核验</p>
                 </div>
 
                 {contactNameError && (
@@ -2101,9 +2124,9 @@ export default function ProfilePage() {
               </button>
             </div>
             <div className="space-y-4">
-              <p className="text-xs text-gray-400">
-                请上传最新营业执照。负责人须与执照法定代表人一致（当前：
-                {typeof sp?.contactName === "string" ? sp.contactName : "—"}）。
+              <p className="text-xs text-gray-400 leading-relaxed">
+                {SHOP_ENTERPRISE_VERIFY_HINT}。请上传清晰、在有效期内的营业执照；企业核验与
+                {SHOP_PLATFORM_CONTACT_LABEL}信息分开管理。
               </p>
               <input
                 ref={resubmitLicenseInputRef}
