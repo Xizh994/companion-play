@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -27,7 +27,8 @@ interface UserItem {
 }
 
 interface LobbyMeta {
-  bossVerified: boolean;
+  bossVerified?: boolean;
+  shopVerified?: boolean;
   previewLimit: number | null;
   chatRestricted: boolean;
   restrictionMessage: string | null;
@@ -38,12 +39,15 @@ const USER_KEY = "dazistar_user";
 
 export default function LobbyPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const shopVerifyPending = searchParams.get("shopVerifyPending") === "1";
   const [users, setUsers] = useState<UserItem[]>([]);
   const [search, setSearch] = useState("");
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [lobbyMeta, setLobbyMeta] = useState<LobbyMeta | null>(null);
   const [chatError, setChatError] = useState("");
+  const [dismissShopVerifyBanner, setDismissShopVerifyBanner] = useState(false);
 
   useEffect(() => {
     const userStr = localStorage.getItem(USER_KEY);
@@ -136,7 +140,11 @@ export default function LobbyPage() {
   }, [users, search]);
 
   const isBoss = currentUser?.role === "BOSS";
+  const isShop = currentUser?.role === "SHOP";
   const bossPreviewMode = isBoss && lobbyMeta?.chatRestricted;
+  const shopRestrictedMode = isShop && lobbyMeta?.chatRestricted;
+  const showShopVerifyBanner =
+    isShop && shopVerifyPending && !dismissShopVerifyBanner && shopRestrictedMode;
 
   if (!currentUser) return <div className="min-h-screen flex items-center justify-center"><span className="text-2xl">⏳</span></div>;
 
@@ -153,7 +161,9 @@ export default function LobbyPage() {
               ? bossPreviewMode
                 ? "完成实名认证后可浏览全部店铺并发起聊天"
                 : "当前在线的陪玩店，即刻联系"
-              : "当前在线的老板，主动发起对话"}
+              : shopRestrictedMode
+                ? "完成店铺认证并通过核验后，方可在大厅展示并与老板聊天"
+                : "当前在线的老板，主动发起对话"}
             <RealtimeConnectionStatus
               status={connectionStatus}
               className="ml-2"
@@ -182,6 +192,41 @@ export default function LobbyPage() {
               </p>
               <Link href="/profile" className="text-pink-400 hover:text-pink-300 font-medium underline">
                 前往完成实名认证 →
+              </Link>
+            </div>
+          </div>
+        )}
+
+        {showShopVerifyBanner && (
+          <div className="mb-6 p-4 rounded-xl bg-violet-500/10 border border-violet-500/30 flex gap-3 items-start">
+            <ShieldAlert className="h-5 w-5 text-violet-400 shrink-0 mt-0.5" />
+            <div className="flex-1 text-sm text-violet-100 space-y-2">
+              <p>
+                注册成功！请前往「我的」→「店铺认证」手动点击「开始核验」。核验通过后店铺才会在大厅展示并可与老板聊天（注册时不会自动核验）。
+              </p>
+              <div className="flex flex-wrap gap-3 items-center">
+                <Link href="/profile" className="text-pink-400 hover:text-pink-300 font-medium underline">
+                  前往店铺认证 →
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => setDismissShopVerifyBanner(true)}
+                  className="text-xs text-gray-400 hover:text-gray-300"
+                >
+                  知道了
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {shopRestrictedMode && !showShopVerifyBanner && (
+          <div className="mb-6 p-4 rounded-xl bg-violet-500/10 border border-violet-500/30 flex gap-3 items-start">
+            <ShieldAlert className="h-5 w-5 text-violet-400 shrink-0 mt-0.5" />
+            <div className="text-sm text-violet-100 space-y-2">
+              <p>{lobbyMeta?.restrictionMessage}</p>
+              <Link href="/profile" className="text-pink-400 hover:text-pink-300 font-medium underline">
+                前往店铺认证并发起核验 →
               </Link>
             </div>
           </div>
@@ -266,7 +311,13 @@ export default function LobbyPage() {
                     size="sm"
                   >
                     <MessageCircle className="h-4 w-4 mr-2" />
-                    {lobbyMeta?.chatRestricted ? "需实名后聊天" : isBoss ? "联系店铺" : "发起聊天"}
+                    {lobbyMeta?.chatRestricted
+                      ? isShop
+                        ? "需认证后聊天"
+                        : "需实名后聊天"
+                      : isBoss
+                        ? "联系店铺"
+                        : "发起聊天"}
                   </Button>
                 </CardContent>
               </Card>

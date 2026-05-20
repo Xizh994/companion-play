@@ -7,6 +7,10 @@ import {
   isBossRealNameApproved,
   loadUserWithRealName,
 } from "@/lib/boss-access";
+import {
+  canShopOperatePublicly,
+  SHOP_VERIFY_RESTRICTION_MESSAGE,
+} from "@/lib/shop-access";
 
 export async function GET(req: NextRequest) {
   try {
@@ -22,16 +26,27 @@ export async function GET(req: NextRequest) {
     const search = url.searchParams.get("search");
 
     const buildMeta = () => {
-      if (!caller || caller.role !== "BOSS") return undefined;
-      const verified = canBossUseFullPlatform(caller);
-      return {
-        bossVerified: verified,
-        previewLimit: verified ? null : BOSS_PREVIEW_SHOP_LIMIT,
-        chatRestricted: !verified,
-        restrictionMessage: verified
-          ? null
-          : "完成实名认证后可浏览全部店铺并发起聊天",
-      };
+      if (!caller) return undefined;
+      if (caller.role === "BOSS") {
+        const verified = canBossUseFullPlatform(caller);
+        return {
+          bossVerified: verified,
+          previewLimit: verified ? null : BOSS_PREVIEW_SHOP_LIMIT,
+          chatRestricted: !verified,
+          restrictionMessage: verified
+            ? null
+            : "完成实名认证后可浏览全部店铺并发起聊天",
+        };
+      }
+      if (caller.role === "SHOP") {
+        const verified = canShopOperatePublicly(caller);
+        return {
+          shopVerified: verified,
+          chatRestricted: !verified,
+          restrictionMessage: verified ? null : SHOP_VERIFY_RESTRICTION_MESSAGE,
+        };
+      }
+      return undefined;
     };
 
     if (idsParam) {
@@ -59,7 +74,11 @@ export async function GET(req: NextRequest) {
     }
 
     if (role === "SHOP") {
-      const where: Record<string, unknown> = { role: "SHOP", status: "online" };
+      const where: Record<string, unknown> = {
+        role: "SHOP",
+        status: "online",
+        shopProfile: { verificationStatus: "APPROVED" },
+      };
       if (search) {
         where.OR = [
           { nickname: { contains: search, mode: "insensitive" } },

@@ -759,7 +759,11 @@ export default function ProfilePage() {
 
   const bossVerifyView = getBossVerifyView(rn);
   const shopVerifyView = getShopVerifyView(
-    sp as { verificationStatus?: string; verificationNotes?: string | null } | null | undefined
+    sp as {
+      verificationStatus?: string;
+      verificationNotes?: string | null;
+      licenseImage?: string | null;
+    } | null | undefined
   );
   const shopNotesDisplay = formatVerificationNotesForDisplay(
     typeof sp?.verificationNotes === "string" ? sp.verificationNotes : null
@@ -1371,7 +1375,17 @@ export default function ProfilePage() {
                     </button>
                   )}
 
-                  {shopVerifyView.canResubmit && (
+                  {shopVerifyView.canResubmit && !shopVerifyView.canSubmit && (
+                    <button
+                      type="button"
+                      onClick={openResubmitModal}
+                      className="w-full py-2.5 rounded-xl border border-violet-500/30 text-violet-400 text-sm font-medium hover:bg-violet-500/10 transition"
+                    >
+                      上传营业执照并核验
+                    </button>
+                  )}
+
+                  {shopVerifyView.canResubmit && shopVerifyView.canSubmit && (
                     <button
                       type="button"
                       onClick={openResubmitModal}

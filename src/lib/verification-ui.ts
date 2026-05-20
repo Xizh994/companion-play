@@ -90,6 +90,7 @@ export function getBossVerifyView(
 export function getShopVerifyView(sp: {
   verificationStatus?: string;
   verificationNotes?: string | null;
+  licenseImage?: string | null;
 } | null | undefined): VerifyBadgeView {
   if (!sp) {
     return {
@@ -136,10 +137,25 @@ export function getShopVerifyView(sp: {
     };
   }
 
+  const hasLicense =
+    typeof sp.licenseImage === "string" && sp.licenseImage.trim().length > 0;
+
+  if (!hasLicense) {
+    return {
+      badge: "pending",
+      label: "待核验",
+      message: "请上传营业执照后，点击下方按钮发起企业要素核验；核验通过后方可营业",
+      canSubmit: false,
+      canResubmit: true,
+    };
+  }
+
   return {
     badge: "pending",
     label: "待核验",
-    message: notes?.reason || "资料已提交，可发起企业要素核验",
+    message:
+      notes?.reason ||
+      "资料已提交。请点击「开始核验」完成企业要素验真，通过后方可在大厅展示并与老板聊天",
     canSubmit: true,
     canResubmit: false,
   };

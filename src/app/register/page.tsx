@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
+import { SHOP_VERIFY_REGISTER_HINT } from "@/lib/shop-access";
 import { Store, Crown, Camera, X, CheckCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -249,7 +250,7 @@ export default function RegisterPage() {
         contactIdCard: role === "SHOP" ? contactIdCard : undefined,
         licenseImage: role === "SHOP" ? licenseImageUrl! : undefined,
       });
-      router.push("/lobby");
+      router.push(role === "SHOP" ? "/lobby?shopVerifyPending=1" : "/lobby");
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -549,8 +550,9 @@ export default function RegisterPage() {
                   资质材料 <span className="font-normal text-xs text-gray-500">· 仅店铺需要</span>
                 </span>
               </div>
-              <div className="p-2.5 bg-blue-500/5 border border-blue-500/15 rounded-lg text-xs text-gray-400 mb-3">
-                <span className="text-blue-400">📋</span> 店铺账号需提交营业执照及负责人身份信息供系统初步校验。
+              <div className="p-2.5 bg-blue-500/5 border border-blue-500/15 rounded-lg text-xs text-gray-400 mb-3 leading-relaxed">
+                <span className="text-blue-400">📋 </span>
+                {SHOP_VERIFY_REGISTER_HINT}。注册时仅保存资料，不会自动调用企业核验。
               </div>
 
               <div className="space-y-3">
