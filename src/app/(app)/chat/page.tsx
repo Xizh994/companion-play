@@ -170,15 +170,16 @@ export default function ChatListPage() {
     if (currentUser?.id) fetchConversations();
   }, [currentUser?.id, fetchConversations]);
 
+  // 仅随 URL ?conv= 变化同步会话；勿依赖 selectedId，否则点击切换时会被旧 URL 拉回
   useEffect(() => {
     const convId = searchParams.get("conv");
-    if (!convId || conversations.length === 0 || selectedId === convId) return;
-    if (conversations.some((c) => c.id === convId)) {
-      setSelectedId(convId);
-      fetchMessages(convId);
-      socket?.emit("join_chat", convId);
-    }
-  }, [searchParams, conversations, selectedId, fetchMessages, socket]);
+    if (!convId || conversations.length === 0) return;
+    if (!conversations.some((c) => c.id === convId)) return;
+
+    setSelectedId(convId);
+    void fetchMessages(convId);
+    socket?.emit("join_chat", convId);
+  }, [searchParams, conversations.length, fetchMessages, socket]);
 
   useEffect(() => {
     if (!socket || !currentUser?.id) return;
@@ -224,8 +225,12 @@ export default function ChatListPage() {
   }, [socket, currentUser?.id, markConversationRead, fetchConversations]);
 
   const handleSelectConv = (convId: string) => {
+    if (convId === selectedId) return;
     setSelectedId(convId);
-    fetchMessages(convId);
+    setMessages([]);
+    setInput("");
+    setShowEmoji(false);
+    void fetchMessages(convId);
     socket?.emit("join_chat", convId);
     router.replace(`/chat?conv=${convId}`, { scroll: false });
   };
