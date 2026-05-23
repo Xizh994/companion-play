@@ -11,8 +11,7 @@ import { Input } from "@/components/ui/input";
 import { useUnreadMessages } from "@/contexts/UnreadMessagesContext";
 import { RealtimeConnectionStatus } from "@/components/RealtimeConnectionStatus";
 import { MessageCircle, Search, Sparkles, Store, Crown, ShieldAlert } from "lucide-react";
-import { SHOP_GAME_OPTIONS } from "@/lib/shop-taxonomy";
-import { cn } from "@/lib/utils";
+import { ShopGameFilterChips } from "@/components/ShopGameFilterChips";
 
 interface UserItem {
   id: string;
@@ -220,35 +219,10 @@ export default function LobbyPage() {
               />
             </div>
             {isBoss && (
-              <div className="flex flex-wrap justify-center gap-2 px-1">
-                <button
-                  type="button"
-                  onClick={() => setGameFilter("")}
-                  className={cn(
-                    "px-3 py-1 rounded-full text-xs border transition",
-                    !selectedGame
-                      ? "bg-purple-500/25 text-purple-200 border-purple-500/40"
-                      : "bg-white/5 text-gray-400 border-white/10 hover:border-purple-500/30"
-                  )}
-                >
-                  全部
-                </button>
-                {SHOP_GAME_OPTIONS.map((game) => (
-                  <button
-                    key={game}
-                    type="button"
-                    onClick={() => setGameFilter(game)}
-                    className={cn(
-                      "px-3 py-1 rounded-full text-xs border transition",
-                      selectedGame === game
-                        ? "bg-purple-500/25 text-purple-200 border-purple-500/40"
-                        : "bg-white/5 text-gray-400 border-white/10 hover:border-purple-500/30"
-                    )}
-                  >
-                    {game}
-                  </button>
-                ))}
-              </div>
+              <ShopGameFilterChips
+                selectedGame={selectedGame}
+                onSelect={setGameFilter}
+              />
             )}
           </div>
         </div>
