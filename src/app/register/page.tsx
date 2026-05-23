@@ -11,6 +11,8 @@ import {
 } from "@/lib/shop-access";
 import { Store, Crown, Camera, X, CheckCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { GameCategoryPicker } from "@/components/GameCategoryPicker";
+import { SHOP_GAME_MAX } from "@/lib/shop-taxonomy";
 
 const ROLES = [
   { value: "SHOP", label: "店铺", icon: Store, color: "violet", gradient: "from-violet-500 to-purple-500", glow: "shadow-purple-500/25", emoji: "🏪", desc: "经营店铺，接待老板" },
@@ -53,6 +55,7 @@ export default function RegisterPage() {
   // 店铺信息
   const [shopName, setShopName] = useState("");
   const [shopBio, setShopBio] = useState("");
+  const [shopGameCategories, setShopGameCategories] = useState<string[]>([]);
   const [contactName, setContactName] = useState("");
   const [contactIdCard, setContactIdCard] = useState("");
   const [shopCoverPreview, setShopCoverPreview] = useState<string | null>(null);
@@ -234,6 +237,7 @@ export default function RegisterPage() {
         return;
       }
       if (!licenseImageUrl) { setError("请上传营业执照"); return; }
+      if (shopGameCategories.length < 1) { setError("请至少选择 1 个主打游戏"); return; }
     }
 
     setLoading(true);
@@ -253,6 +257,7 @@ export default function RegisterPage() {
         contactName: role === "SHOP" ? contactName : undefined,
         contactIdCard: role === "SHOP" ? contactIdCard : undefined,
         licenseImage: role === "SHOP" ? licenseImageUrl! : undefined,
+        gameCategories: role === "SHOP" ? shopGameCategories : undefined,
       });
       router.push(role === "SHOP" ? "/lobby?shopVerifyPending=1" : "/lobby");
     } catch (err) {
@@ -265,6 +270,7 @@ export default function RegisterPage() {
   const shopFieldsOk =
     role !== "SHOP" ||
     (shopName.trim() &&
+      shopGameCategories.length >= 1 &&
       contactName.trim() &&
       /^\d{17}[\dXx]$/.test(contactIdCard.trim()) &&
       !!licenseImageUrl);
@@ -580,6 +586,19 @@ export default function RegisterPage() {
                     rows={2}
                     className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white placeholder-gray-500 outline-none focus:border-purple-500/50 focus:ring-2 focus:ring-purple-500/20 transition resize-none text-sm"
                   />
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-400 mb-1">
+                    主打游戏 <span className="text-red-400">*</span>
+                  </label>
+                  <GameCategoryPicker
+                    value={shopGameCategories}
+                    onChange={setShopGameCategories}
+                    max={SHOP_GAME_MAX}
+                  />
+                  <p className="text-[10px] text-gray-500 mt-1.5">
+                    至少选 1 个，最多 {SHOP_GAME_MAX} 个；老板可在发现页按游戏筛选找到你
+                  </p>
                 </div>
                 <div className="p-2.5 bg-white/[0.03] border border-white/[0.06] rounded-lg text-xs text-gray-400">
                   <span className="text-gray-300">📞 店铺联系电话：</span>

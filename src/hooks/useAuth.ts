@@ -65,6 +65,7 @@ export interface RegisterFormData {
   contactName?: string;
   contactIdCard?: string;
   licenseImage?: string | null;
+  gameCategories?: string[];
 }
 
 export function useAuth() {

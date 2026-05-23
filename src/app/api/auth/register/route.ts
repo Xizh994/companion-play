@@ -5,6 +5,10 @@ import { generateAvatarUrl } from "@/lib/avatar";
 import { encrypt } from "@/lib/crypto";
 import { isValidIdCardNumber } from "@/lib/id-card";
 import { buildSubmittedNotes } from "@/lib/verification-notes";
+import {
+  normalizeShopGameCategories,
+  validateShopGameCategories,
+} from "@/lib/shop-taxonomy";
 
 export async function POST(req: NextRequest) {
   try {
@@ -24,6 +28,7 @@ export async function POST(req: NextRequest) {
       contactName,
       contactIdCard,
       licenseImage,
+      gameCategories: gameCategoriesRaw,
     } = body;
 
     if (!phone) {
@@ -35,6 +40,7 @@ export async function POST(req: NextRequest) {
     }
 
     const userRole = role === "SHOP" ? "SHOP" : "BOSS";
+    let shopGameCategories: string[] = [];
 
     if (userRole === "SHOP") {
       if (!shopName || !String(shopName).trim()) {
@@ -54,6 +60,11 @@ export async function POST(req: NextRequest) {
           { error: "营业执照请通过上传接口提交，勿使用内嵌图片" },
           { status: 400 }
         );
+      }
+      shopGameCategories = normalizeShopGameCategories(gameCategoriesRaw);
+      const gameErr = validateShopGameCategories(shopGameCategories, { min: 1 });
+      if (gameErr) {
+        return NextResponse.json({ error: gameErr }, { status: 400 });
       }
     }
 
@@ -113,6 +124,7 @@ export async function POST(req: NextRequest) {
           shopName: String(shopName).trim(),
           shopDesc: shopBio ? String(shopBio).trim() : "",
           shopCover: shopCover && !String(shopCover).startsWith("data:") ? String(shopCover) : "",
+          gameCategories: shopGameCategories,
           contactPhone: phone,
           contactName: String(contactName).trim(),
           contactIdCard: encrypt(String(contactIdCard).trim()),

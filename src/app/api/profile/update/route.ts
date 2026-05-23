@@ -4,6 +4,10 @@ import { getTokenFromRequest, verifyToken } from "@/lib/auth";
 import { writeFile, mkdir } from "fs/promises";
 import path from "path";
 import crypto from "crypto";
+import {
+  normalizeShopGameCategories,
+  validateShopGameCategories,
+} from "@/lib/shop-taxonomy";
 
 const UPLOAD_DIR = path.join(process.cwd(), "data", "uploads", "avatars");
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
@@ -38,6 +42,7 @@ export async function POST(req: NextRequest) {
     const shopAddress = formData.get("shopAddress") as string | null;
     const contactName = formData.get("contactName") as string | null;
     const contactPhone = formData.get("contactPhone") as string | null;
+    const gameCategoriesRaw = formData.get("gameCategories") as string | null;
 
     const updateData: Record<string, unknown> = {};
     const shopUpdateData: Record<string, unknown> = {};
@@ -102,6 +107,21 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: "联系电话格式不正确" }, { status: 400 });
       }
       shopUpdateData.contactPhone = trimmed;
+    }
+
+    if (gameCategoriesRaw !== null) {
+      let parsed: unknown;
+      try {
+        parsed = JSON.parse(gameCategoriesRaw);
+      } catch {
+        return NextResponse.json({ error: "游戏项目数据格式错误" }, { status: 400 });
+      }
+      const gameCategories = normalizeShopGameCategories(parsed);
+      const gameErr = validateShopGameCategories(gameCategories, { min: 0 });
+      if (gameErr) {
+        return NextResponse.json({ error: gameErr }, { status: 400 });
+      }
+      shopUpdateData.gameCategories = gameCategories;
     }
 
     if (Object.keys(updateData).length === 0 && Object.keys(shopUpdateData).length === 0) {

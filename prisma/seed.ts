@@ -24,6 +24,7 @@ async function main() {
         create: {
           shopName: "星空电竞陪玩店",
           shopDesc: "⭐ 五年老店，金牌陪玩团队，王者荣耀/英雄联盟/和平精英/永劫无间，专业上分服务，安全可靠！\n🔥 当前在线陪玩师20+，欢迎咨询下单",
+          gameCategories: ["王者荣耀", "英雄联盟", "和平精英", "永劫无间"],
           shopCover: null,
           shopAddress: "线上服务",
           licenseType: "business_license",

@@ -23,6 +23,8 @@ import {
   SHOP_PLATFORM_CONTACT_HINT,
   SHOP_ENTERPRISE_VERIFY_HINT,
 } from "@/lib/shop-access";
+import { GameCategoryPicker } from "@/components/GameCategoryPicker";
+import { SHOP_GAME_MAX } from "@/lib/shop-taxonomy";
 
 const CROP_SIZE = 280;
 const MIN_SCALE = 0.5;
@@ -74,6 +76,10 @@ export default function ProfilePage() {
   const [shopNameValue, setShopNameValue] = useState((sp?.shopName as string) || "");
   const [shopDescValue, setShopDescValue] = useState((sp?.shopDesc as string) || "");
   const [shopAddressValue, setShopAddressValue] = useState((sp?.shopAddress as string) || "");
+  const [editingShopGames, setEditingShopGames] = useState(false);
+  const [shopGamesValue, setShopGamesValue] = useState<string[]>(
+    Array.isArray(sp?.gameCategories) ? (sp.gameCategories as string[]) : []
+  );
   const [shopInfoSaving, setShopInfoSaving] = useState(false);
 
   const [contactNameModalOpen, setContactNameModalOpen] = useState(false);
@@ -117,6 +123,28 @@ export default function ProfilePage() {
       if (!res.ok) throw new Error(data.error || "保存失败");
       await refreshUser();
       setEditingShopField(null);
+    } catch (err) {
+      setProfileError(err instanceof Error ? err.message : "保存失败");
+    } finally {
+      setShopInfoSaving(false);
+    }
+  };
+
+  const saveShopGames = async () => {
+    setShopInfoSaving(true);
+    setProfileError("");
+    try {
+      const formData = new FormData();
+      formData.append("gameCategories", JSON.stringify(shopGamesValue));
+      const res = await fetch("/api/profile/update", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData,
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "保存失败");
+      await refreshUser();
+      setEditingShopGames(false);
     } catch (err) {
       setProfileError(err instanceof Error ? err.message : "保存失败");
     } finally {
@@ -1231,6 +1259,80 @@ export default function ProfilePage() {
                         <button onClick={() => { setShopAddressValue((sp?.shopAddress as string) || ""); setEditingShopField("shopAddress"); }} className="text-gray-500 hover:text-gray-300 shrink-0">
                           <Pencil className="w-3 h-3" />
                         </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Main games */}
+                <div className="flex items-start gap-3">
+                  <span className="text-base shrink-0 mt-0.5">🎮</span>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-2 mb-1">
+                      <p className="text-xs text-gray-500">主打游戏</p>
+                      {!editingShopGames && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setShopGamesValue(
+                              Array.isArray(sp?.gameCategories)
+                                ? (sp.gameCategories as string[])
+                                : []
+                            );
+                            setEditingShopGames(true);
+                          }}
+                          className="text-gray-500 hover:text-gray-300"
+                        >
+                          <Pencil className="w-3 h-3" />
+                        </button>
+                      )}
+                    </div>
+                    {editingShopGames ? (
+                      <div className="space-y-2">
+                        <GameCategoryPicker
+                          value={shopGamesValue}
+                          onChange={setShopGamesValue}
+                          max={SHOP_GAME_MAX}
+                        />
+                        <div className="flex gap-2">
+                          <button
+                            type="button"
+                            onClick={saveShopGames}
+                            disabled={shopInfoSaving}
+                            className="px-3 py-1 rounded-lg text-xs bg-violet-500/20 text-violet-300 border border-violet-500/30 hover:bg-violet-500/30 disabled:opacity-50"
+                          >
+                            保存
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setShopGamesValue(
+                                Array.isArray(sp?.gameCategories)
+                                  ? (sp.gameCategories as string[])
+                                  : []
+                              );
+                              setEditingShopGames(false);
+                            }}
+                            className="px-3 py-1 rounded-lg text-xs text-gray-400 border border-white/10 hover:border-white/20"
+                          >
+                            取消
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex flex-wrap gap-1.5">
+                        {Array.isArray(sp?.gameCategories) && (sp.gameCategories as string[]).length > 0 ? (
+                          (sp.gameCategories as string[]).map((g) => (
+                            <span
+                              key={g}
+                              className="px-2 py-0.5 text-xs rounded-md bg-purple-500/15 text-purple-300 border border-purple-500/25"
+                            >
+                              {g}
+                            </span>
+                          ))
+                        ) : (
+                          <p className="text-sm text-gray-500">未设置（建议补充，方便老板按游戏找到你）</p>
+                        )}
                       </div>
                     )}
                   </div>

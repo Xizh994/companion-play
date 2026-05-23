@@ -11,6 +11,7 @@ import {
   canShopOperatePublicly,
   SHOP_VERIFY_RESTRICTION_MESSAGE,
 } from "@/lib/shop-access";
+import { normalizeShopGameCategories } from "@/lib/shop-taxonomy";
 
 export async function GET(req: NextRequest) {
   try {
@@ -74,16 +75,24 @@ export async function GET(req: NextRequest) {
     }
 
     if (role === "SHOP") {
+      const shopProfileWhere: Record<string, unknown> = {
+        verificationStatus: "APPROVED",
+      };
+      if (game) {
+        shopProfileWhere.gameCategories = { has: game };
+      }
+
       const where: Record<string, unknown> = {
         role: "SHOP",
         status: "online",
-        shopProfile: { verificationStatus: "APPROVED" },
+        shopProfile: shopProfileWhere,
       };
       if (search) {
         where.OR = [
           { nickname: { contains: search, mode: "insensitive" } },
           { shopProfile: { shopName: { contains: search, mode: "insensitive" } } },
           { shopProfile: { shopDesc: { contains: search, mode: "insensitive" } } },
+          { shopProfile: { gameCategories: { has: search } } },
         ];
       }
 
@@ -174,6 +183,7 @@ function formatUser(u: {
     shopDesc: string | null;
     shopCover: string | null;
     shopAddress: string | null;
+    gameCategories: string[];
     playerCount: number;
     rating: unknown;
     orderCount: number;
@@ -195,6 +205,7 @@ function formatUser(u: {
     shopDesc: u.shopProfile?.shopDesc || null,
     shopCover: u.shopProfile?.shopCover || null,
     shopAddress: u.shopProfile?.shopAddress || null,
+    shopGames: normalizeShopGameCategories(u.shopProfile?.gameCategories ?? []),
     playerCount: u.shopProfile?.playerCount || 0,
     rating: u.shopProfile?.rating ? Number(u.shopProfile.rating) : null,
     orderCount: u.shopProfile?.orderCount || 0,

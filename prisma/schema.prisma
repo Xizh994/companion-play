@@ -14,7 +14,7 @@ datasource db {
 // 用户角色枚举
 // ============================================================
 enum UserRole {
-  PLAYER
+  PLAYER // 个人陪玩：预留，当前产品未开放
   BOSS
   SHOP
 }
@@ -137,6 +137,9 @@ model ShopProfile {
   verificationNotes  String?
   verifiedAt         DateTime?
   verifiedBy         String?
+
+  // 主打游戏（大厅筛选、店铺展示；顺序即优先级，首项视为主打）
+  gameCategories String[]   @default([])
 
   // 店铺统计
   playerCount    Int        @default(0)

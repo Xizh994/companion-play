@@ -16,6 +16,7 @@ interface ShopData {
   status: string;
   shopName: string | null;
   shopDesc: string | null;
+  shopGames?: string[];
   playerCount: number;
   rating: number | null;
   orderCount: number;
@@ -195,10 +196,27 @@ export default function ShopPage() {
             {shop.playerCount > 0 && <span>{shop.playerCount} 位陪玩师</span>}
           </div>
 
+          {shop.shopGames && shop.shopGames.length > 0 && (
+            <div className="mb-6">
+              <p className="text-sm text-gray-500 mb-2">主打游戏</p>
+              <div className="flex flex-wrap justify-center gap-2">
+                {shop.shopGames.map((g) => (
+                  <Link
+                    key={g}
+                    href={`/lobby?game=${encodeURIComponent(g)}`}
+                    className="px-3 py-1 text-sm rounded-lg bg-purple-500/15 text-purple-300 border border-purple-500/30 hover:bg-purple-500/25 transition"
+                  >
+                    {g}
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div>
             <p className="text-sm text-gray-500 mb-3">店铺介绍</p>
             <p className="text-gray-300 text-sm leading-relaxed whitespace-pre-line">
-              {shop.shopDesc || shop.nickname && "这家店铺还没有详细介绍~"}
+              {shop.shopDesc || (shop.nickname && "这家店铺还没有详细介绍~")}
             </p>
           </div>
         </div>
