@@ -2,6 +2,7 @@
 
 import { cn } from "@/lib/utils";
 import { SHOP_GAME_GROUPS } from "@/lib/shop-taxonomy";
+import { ShopGameGroupRow, shopGameChipClass } from "@/components/shop-game-group-row";
 
 interface GameCategoryPickerProps {
   value: string[];
@@ -29,34 +30,28 @@ export function GameCategoryPicker({
   };
 
   return (
-    <div className={cn("space-y-4", className)}>
+    <div className={cn("space-y-3", className)}>
       {SHOP_GAME_GROUPS.map((group) => (
-        <div key={group.id}>
-          <p className="text-xs text-gray-500 mb-2">{group.label}</p>
-          <div className="flex flex-wrap gap-2">
-            {group.games.map((game) => {
-              const selected = value.includes(game);
-              const atMax = !selected && value.length >= max;
-              return (
-                <button
-                  key={game}
-                  type="button"
-                  disabled={disabled || atMax}
-                  onClick={() => toggle(game)}
-                  className={cn(
-                    "px-3 py-1.5 rounded-lg text-sm border transition",
-                    selected
-                      ? "bg-purple-500/20 text-purple-200 border-purple-500/40"
-                      : "bg-white/5 text-gray-400 border-white/10 hover:border-purple-500/30 hover:text-gray-200",
-                    (disabled || atMax) && !selected && "opacity-40 cursor-not-allowed"
-                  )}
-                >
-                  {game}
-                </button>
-              );
-            })}
-          </div>
-        </div>
+        <ShopGameGroupRow key={group.id} label={group.label}>
+          {group.games.map((game) => {
+            const selected = value.includes(game);
+            const atMax = !selected && value.length >= max;
+            return (
+              <button
+                key={game}
+                type="button"
+                disabled={disabled || atMax}
+                onClick={() => toggle(game)}
+                className={shopGameChipClass(
+                  selected,
+                  (disabled || atMax) && !selected ? "opacity-40 cursor-not-allowed" : undefined
+                )}
+              >
+                {game}
+              </button>
+            );
+          })}
+        </ShopGameGroupRow>
       ))}
     </div>
   );
