@@ -208,8 +208,8 @@ export default function LobbyPage() {
               title={connectionError ?? undefined}
             />
           </p>
-          <div className="max-w-xl mx-auto space-y-3">
-            <div className="relative">
+          <div className="max-w-3xl mx-auto w-full px-2 space-y-4">
+            <div className="relative max-w-xl mx-auto w-full">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
               <Input
                 placeholder={isBoss ? "搜索店名、简介、游戏…" : "搜索老板昵称..."}
@@ -222,6 +222,7 @@ export default function LobbyPage() {
               <ShopGameFilterChips
                 selectedGame={selectedGame}
                 onSelect={setGameFilter}
+                className="pt-1"
               />
             )}
           </div>

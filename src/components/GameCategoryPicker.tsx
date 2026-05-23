@@ -1,8 +1,8 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { SHOP_GAME_GROUPS } from "@/lib/shop-taxonomy";
-import { ShopGameGroupRow, shopGameChipClass } from "@/components/shop-game-group-row";
+import { SHOP_GAME_OPTIONS } from "@/lib/shop-taxonomy";
+import { ShopGameChipGrid, shopGameChipClass } from "@/components/shop-game-chips";
 
 interface GameCategoryPickerProps {
   value: string[];
@@ -30,29 +30,25 @@ export function GameCategoryPicker({
   };
 
   return (
-    <div className={cn("space-y-3", className)}>
-      {SHOP_GAME_GROUPS.map((group) => (
-        <ShopGameGroupRow key={group.id} label={group.label}>
-          {group.games.map((game) => {
-            const selected = value.includes(game);
-            const atMax = !selected && value.length >= max;
-            return (
-              <button
-                key={game}
-                type="button"
-                disabled={disabled || atMax}
-                onClick={() => toggle(game)}
-                className={shopGameChipClass(
-                  selected,
-                  (disabled || atMax) && !selected ? "opacity-40 cursor-not-allowed" : undefined
-                )}
-              >
-                {game}
-              </button>
-            );
-          })}
-        </ShopGameGroupRow>
-      ))}
-    </div>
+    <ShopGameChipGrid className={className}>
+      {SHOP_GAME_OPTIONS.map((game) => {
+        const selected = value.includes(game);
+        const atMax = !selected && value.length >= max;
+        return (
+          <button
+            key={game}
+            type="button"
+            disabled={disabled || atMax}
+            onClick={() => toggle(game)}
+            className={shopGameChipClass(
+              selected,
+              (disabled || atMax) && !selected ? "opacity-40 cursor-not-allowed" : undefined
+            )}
+          >
+            {game}
+          </button>
+        );
+      })}
+    </ShopGameChipGrid>
   );
 }

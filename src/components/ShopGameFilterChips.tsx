@@ -1,8 +1,8 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { SHOP_GAME_GROUPS } from "@/lib/shop-taxonomy";
-import { ShopGameGroupRow, shopGameChipClass } from "@/components/shop-game-group-row";
+import { SHOP_GAME_OPTIONS } from "@/lib/shop-taxonomy";
+import { ShopGameChipGrid, shopGameChipClass } from "@/components/shop-game-chips";
 
 interface ShopGameFilterChipsProps {
   selectedGame: string;
@@ -16,30 +16,24 @@ export function ShopGameFilterChips({
   className,
 }: ShopGameFilterChipsProps) {
   return (
-    <div className={cn("space-y-3 max-w-3xl mx-auto w-full px-1", className)}>
-      <div className="flex justify-center">
+    <ShopGameChipGrid className={cn("px-2", className)}>
+      <button
+        type="button"
+        onClick={() => onSelect("")}
+        className={shopGameChipClass(!selectedGame)}
+      >
+        全部
+      </button>
+      {SHOP_GAME_OPTIONS.map((game) => (
         <button
+          key={game}
           type="button"
-          onClick={() => onSelect("")}
-          className={shopGameChipClass(!selectedGame)}
+          onClick={() => onSelect(game)}
+          className={shopGameChipClass(selectedGame === game)}
         >
-          全部
+          {game}
         </button>
-      </div>
-      {SHOP_GAME_GROUPS.map((group) => (
-        <ShopGameGroupRow key={group.id} label={group.label}>
-          {group.games.map((game) => (
-            <button
-              key={game}
-              type="button"
-              onClick={() => onSelect(game)}
-              className={shopGameChipClass(selectedGame === game)}
-            >
-              {game}
-            </button>
-          ))}
-        </ShopGameGroupRow>
       ))}
-    </div>
+    </ShopGameChipGrid>
   );
 }
