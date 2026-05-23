@@ -14,10 +14,8 @@ export const SHOP_GAME_OPTIONS = [
   "CS2",
   "永劫无间",
   "绝地求生",
-  "DOTA2",
-  "蛋仔派对",
-  "金铲铲之战",
-  "云顶之弈",
+  "三角洲",
+  "无畏契约",
 ] as const;
 
 export type ShopGameOption = (typeof SHOP_GAME_OPTIONS)[number];
@@ -28,6 +26,8 @@ export const SHOP_GAME_MAX = 5;
 const LEGACY_GAME_ALIASES: Record<string, string> = {
   "CS:GO": "CS2",
   CSGO: "CS2",
+  "Valorant": "无畏契约",
+  "三角洲行动": "三角洲",
 };
 
 export function resolveShopGameName(name: string): string | null {
