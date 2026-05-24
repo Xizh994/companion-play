@@ -142,9 +142,14 @@ model ShopProfile {
   gameCategories String[]   @default([])
 
   // 店铺统计
-  playerCount    Int        @default(0)
-  rating         Decimal?   @db.Decimal(3,2)
-  orderCount     Int        @default(0)
+  playerCount         Int        @default(0)
+  rating              Decimal?   @db.Decimal(3,2)
+  orderCount          Int        @default(0)
+  reviewCount         Int        @default(0)
+  pageViewCount       Int        @default(0)
+  consultationCount   Int        @default(0)
+  activityScore       Decimal?   @db.Decimal(10,4)
+  rankScore           Decimal?   @db.Decimal(10,4)
 
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
@@ -247,4 +252,82 @@ model Conversation {
   updatedAt   DateTime @updatedAt
 
   @@map("conversations")
+}
+
+// ============================================================
+// 店铺评价
+// ============================================================
+enum ReviewRequestStatus {
+  PENDING
+  COMPLETED
+  EXPIRED
+  CANCELLED
+}
+
+enum ReviewStatus {
+  PUBLISHED
+  HIDDEN
+}
+
+model ShopReviewRequest {
+  id             String              @id @default(cuid())
+  shopUserId     String
+  bossUserId     String
+  conversationId String
+
+  status         ReviewRequestStatus @default(PENDING)
+  expiresAt      DateTime
+
+  review         ShopReview?
+
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+
+  @@index([shopUserId, bossUserId, createdAt])
+  @@index([bossUserId, status])
+  @@index([shopUserId, status])
+  @@map("shop_review_requests")
+}
+
+model ShopReview {
+  id           String       @id @default(cuid())
+  shopUserId   String
+  bossUserId   String
+  requestId    String       @unique
+
+  score        Int
+  content      String       @db.VarChar(500)
+  isAnonymous  Boolean      @default(false)
+  status       ReviewStatus @default(PUBLISHED)
+
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  request      ShopReviewRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+
+  @@index([shopUserId, bossUserId, createdAt])
+  @@index([shopUserId, status, createdAt])
+  @@map("shop_reviews")
+}
+
+model ShopPageView {
+  id         String   @id @default(cuid())
+  shopUserId String
+  visitorId  String?
+  source     String?
+  createdAt  DateTime @default(now())
+
+  @@index([shopUserId, createdAt])
+  @@map("shop_page_views")
+}
+
+model ShopConsultation {
+  id         String   @id @default(cuid())
+  shopUserId String
+  bossUserId String
+  createdAt  DateTime @default(now())
+
+  @@unique([shopUserId, bossUserId])
+  @@index([shopUserId, createdAt])
+  @@map("shop_consultations")
 }

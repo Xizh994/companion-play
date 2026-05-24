@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { SafeAvatar } from "@/components/GeneratedAvatar";
-import { MessageCircle, Loader2 } from "lucide-react";
+import { MessageCircle, Loader2, Star } from "lucide-react";
 
 const TOKEN_KEY = "dazistar_token";
 const USER_KEY = "dazistar_user";
@@ -20,6 +20,17 @@ interface ShopData {
   playerCount: number;
   rating: number | null;
   orderCount: number;
+  reviewCount?: number;
+}
+
+interface PublicReview {
+  id: string;
+  score: number;
+  content: string;
+  reviewerNickname: string;
+  reviewerAvatar: string | null;
+  isAnonymous: boolean;
+  createdAt: string;
 }
 
 export default function ShopPage() {
@@ -28,6 +39,10 @@ export default function ShopPage() {
   const id = params.id as string;
 
   const [shop, setShop] = useState<ShopData | null>(null);
+  const [reviews, setReviews] = useState<PublicReview[]>([]);
+  const [reviewSummary, setReviewSummary] = useState<{ avgRating: number | null; reviewCount: number } | null>(
+    null
+  );
   const [loading, setLoading] = useState(true);
   const [chatLoading, setChatLoading] = useState(false);
   const [chatRestricted, setChatRestricted] = useState(false);
@@ -35,7 +50,20 @@ export default function ShopPage() {
 
   useEffect(() => {
     const token = localStorage.getItem(TOKEN_KEY);
-    if (!token) return;
+
+    fetch(`/api/shops/${id}/track-view`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify({ source: "shop_page" }),
+    }).catch(() => {});
+
+    if (!token) {
+      setLoading(false);
+      return;
+    }
 
     const userStr = localStorage.getItem(USER_KEY);
     if (userStr) {
@@ -56,14 +84,18 @@ export default function ShopPage() {
       }
     }
 
-    fetch(`/api/users?id=${encodeURIComponent(id)}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.users?.length > 0) {
-          setShop(data.users[0]);
-        }
+    Promise.all([
+      fetch(`/api/users?id=${encodeURIComponent(id)}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      }).then((res) => res.json()),
+      fetch(`/api/shops/${id}/reviews?pageSize=10`, {
+        headers: { Authorization: `Bearer ${token}` },
+      }).then((res) => res.json()),
+    ])
+      .then(([userData, reviewData]) => {
+        if (userData.users?.length > 0) setShop(userData.users[0]);
+        if (reviewData.reviews) setReviews(reviewData.reviews);
+        if (reviewData.summary) setReviewSummary(reviewData.summary);
       })
       .catch(console.error)
       .finally(() => setLoading(false));
@@ -115,13 +147,17 @@ export default function ShopPage() {
       <div className="min-h-screen flex flex-col items-center justify-center gap-4">
         <span className="text-6xl">🏪</span>
         <p className="text-gray-400 text-lg">店铺不存在</p>
-        <button onClick={() => router.back()} className="text-sm text-purple-400 hover:text-purple-300 transition">← 返回</button>
+        <button onClick={() => router.back()} className="text-sm text-purple-400 hover:text-purple-300 transition">
+          ← 返回
+        </button>
       </div>
     );
   }
 
   const shopName = shop.shopName || shop.nickname;
   const isOnline = shop.status !== "offline";
+  const displayRating = reviewSummary?.avgRating ?? shop.rating;
+  const displayReviewCount = reviewSummary?.reviewCount ?? shop.reviewCount ?? 0;
 
   return (
     <div className="min-h-screen">
@@ -161,9 +197,7 @@ export default function ShopPage() {
           </div>
         </div>
 
-        {chatError && (
-          <p className="text-center text-sm text-red-400 mb-4">{chatError}</p>
-        )}
+        {chatError && <p className="text-center text-sm text-red-400 mb-4">{chatError}</p>}
 
         {chatRestricted ? (
           <div className="w-full mb-8 p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 text-center text-sm text-amber-100 space-y-2">
@@ -178,20 +212,17 @@ export default function ShopPage() {
             disabled={chatLoading}
             className="w-full py-3.5 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-medium flex items-center justify-center gap-2 transition-all duration-300 hover:shadow-lg hover:shadow-purple-500/25 disabled:opacity-60 mb-8"
           >
-            {chatLoading ? (
-              <Loader2 className="h-5 w-5 animate-spin" />
-            ) : (
-              <MessageCircle className="h-5 w-5" />
-            )}
+            {chatLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : <MessageCircle className="h-5 w-5" />}
             发起聊天
           </button>
         )}
 
-        <div className="glass rounded-2xl p-6">
+        <div className="glass rounded-2xl p-6 mb-6">
           <div className="flex flex-wrap items-center justify-center gap-4 mb-6 text-sm text-gray-400">
-            {shop.rating != null && (
-              <span className="text-yellow-400 font-medium">★ {(Number(shop.rating)).toFixed(1)}</span>
+            {displayRating != null && (
+              <span className="text-yellow-400 font-medium">★ {Number(displayRating).toFixed(1)}</span>
             )}
+            {displayReviewCount > 0 && <span>{displayReviewCount} 条评价</span>}
             {shop.orderCount > 0 && <span>{shop.orderCount} 单</span>}
             {shop.playerCount > 0 && <span>{shop.playerCount} 位陪玩师</span>}
           </div>
@@ -216,10 +247,44 @@ export default function ShopPage() {
           <div>
             <p className="text-sm text-gray-500 mb-3">店铺介绍</p>
             <p className="text-gray-300 text-sm leading-relaxed whitespace-pre-line">
-              {shop.shopDesc || (shop.nickname && "这家店铺还没有详细介绍~")}
+              {shop.shopDesc || "这家店铺还没有详细介绍~"}
             </p>
           </div>
         </div>
+
+        {reviews.length > 0 && (
+          <div className="glass rounded-2xl p-6">
+            <h2 className="text-sm font-semibold text-gray-300 mb-4">顾客评价</h2>
+            <div className="space-y-4">
+              {reviews.map((r) => (
+                <div key={r.id} className="border-b border-white/5 last:border-0 pb-4 last:pb-0">
+                  <div className="flex items-center gap-2 mb-2">
+                    <SafeAvatar
+                      src={r.reviewerAvatar}
+                      seed={r.reviewerNickname}
+                      size={28}
+                    />
+                    <span className="text-sm text-gray-200">{r.reviewerNickname}</span>
+                    <div className="flex items-center gap-0.5 ml-auto">
+                      {[1, 2, 3, 4, 5].map((n) => (
+                        <Star
+                          key={n}
+                          className={`w-3.5 h-3.5 ${
+                            n <= r.score ? "fill-yellow-400 text-yellow-400" : "text-gray-600"
+                          }`}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                  <p className="text-sm text-gray-300 leading-relaxed">{r.content}</p>
+                  <p className="text-[10px] text-gray-600 mt-1">
+                    {new Date(r.createdAt).toLocaleDateString("zh-CN")}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

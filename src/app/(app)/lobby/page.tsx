@@ -26,6 +26,7 @@ interface UserItem {
   playerCount?: number;
   rating?: number | null;
   orderCount?: number;
+  reviewCount?: number;
 }
 
 interface LobbyMeta {
@@ -338,6 +339,14 @@ export default function LobbyPage() {
                 <span className="text-sm font-medium text-white line-clamp-1 w-full">
                   {user.shopName || user.nickname}
                 </span>
+                {(user.rating != null || (user.reviewCount ?? 0) > 0) && (
+                  <span className="text-xs text-yellow-400/90">
+                    {user.rating != null ? `★ ${Number(user.rating).toFixed(1)}` : "★ —"}
+                    {(user.reviewCount ?? 0) > 0 && (
+                      <span className="text-gray-500 ml-1">{user.reviewCount} 评</span>
+                    )}
+                  </span>
+                )}
                 {user.shopGames && user.shopGames.length > 0 && (
                   <div className="flex flex-wrap justify-center gap-1 w-full">
                     {user.shopGames.slice(0, 2).map((g) => (

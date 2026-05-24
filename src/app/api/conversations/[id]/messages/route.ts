@@ -4,6 +4,7 @@ import { verifyToken, getTokenFromRequest } from "@/lib/auth";
 import { emitNewMessage } from "@/lib/socket-emit";
 import { assertChatAllowed } from "@/lib/boss-access";
 import { formatMessagePreview } from "@/lib/chat-message";
+import { maybeRecordConsultation } from "@/lib/shop-metrics";
 
 export async function GET(req: NextRequest, context: { params: Promise<{ id: string }> }) {
   try {
@@ -29,7 +30,43 @@ export async function GET(req: NextRequest, context: { params: Promise<{ id: str
       take: 100,
     });
 
-    return NextResponse.json({ messages });
+    const requestIds = messages
+      .filter((m) => m.type === "review_request")
+      .map((m) => {
+        const meta = m.metadata as { requestId?: string } | null;
+        return meta?.requestId;
+      })
+      .filter((id): id is string => Boolean(id));
+
+    const requestMap = new Map<string, { status: string; hasReview: boolean }>();
+    if (requestIds.length > 0) {
+      const requests = await prisma.shopReviewRequest.findMany({
+        where: { id: { in: requestIds } },
+        include: { review: { select: { id: true } } },
+      });
+      for (const r of requests) {
+        requestMap.set(r.id, {
+          status: r.status,
+          hasReview: !!r.review,
+        });
+      }
+    }
+
+    const enriched = messages.map((m) => {
+      if (m.type !== "review_request") return m;
+      const meta = (m.metadata as Record<string, unknown> | null) ?? {};
+      const requestId = meta.requestId as string | undefined;
+      const req = requestId ? requestMap.get(requestId) : undefined;
+      return {
+        ...m,
+        metadata: {
+          ...meta,
+          completed: req?.status === "COMPLETED" || req?.hasReview === true,
+        },
+      };
+    });
+
+    return NextResponse.json({ messages: enriched });
   } catch {
     return NextResponse.json({ error: "获取消息失败" }, { status: 500 });
   }
@@ -69,6 +106,11 @@ export async function POST(req: NextRequest, context: { params: Promise<{ id: st
         type: normalizedType,
       },
     });
+
+    const shopUserId = payload.userId;
+    const bossUserId = toId;
+    void maybeRecordConsultation(shopUserId, bossUserId).catch(() => {});
+    void maybeRecordConsultation(bossUserId, shopUserId).catch(() => {});
 
     await prisma.conversation.update({
       where: { id },

@@ -187,6 +187,7 @@ function formatUser(u: {
     playerCount: number;
     rating: unknown;
     orderCount: number;
+    reviewCount: number;
   } | null;
   realNameVerification?: { status: string } | null;
   createdAt: Date;
@@ -209,6 +210,7 @@ function formatUser(u: {
     playerCount: u.shopProfile?.playerCount || 0,
     rating: u.shopProfile?.rating ? Number(u.shopProfile.rating) : null,
     orderCount: u.shopProfile?.orderCount || 0,
+    reviewCount: u.shopProfile?.reviewCount || 0,
     realNameApproved: isBossRealNameApproved(u),
     createdAt: u.createdAt,
   };

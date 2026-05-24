@@ -25,6 +25,7 @@ import {
 } from "@/lib/shop-access";
 import { GameCategoryPicker } from "@/components/GameCategoryPicker";
 import { SHOP_GAME_MAX } from "@/lib/shop-taxonomy";
+import { ShopProfileHubCards } from "@/components/ShopProfileHubCards";
 
 const CROP_SIZE = 280;
 const MIN_SCALE = 0.5;
@@ -1514,6 +1515,10 @@ export default function ProfilePage() {
                 </div>
               )}
             </div>
+          )}
+
+          {user.role === "SHOP" && user.id && (
+            <ShopProfileHubCards token={token} shopUserId={user.id} />
           )}
 
           {/* Logout */}

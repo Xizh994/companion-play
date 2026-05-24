@@ -9,6 +9,9 @@ import { GeneratedAvatar, SafeAvatar } from "@/components/GeneratedAvatar";
 import { ChatEmojiPanel } from "@/components/ChatEmojiPanel";
 import { formatMessagePreview, isImageMessage } from "@/lib/chat-message";
 import { ImagePlus, Trash2 } from "lucide-react";
+import { ShopInviteReviewBar } from "@/components/ShopInviteReviewBar";
+import { ShopReviewFormDialog } from "@/components/ShopReviewFormDialog";
+import { ReviewRequestMessageCard } from "@/components/ReviewRequestMessageCard";
 
 interface ConversationItem {
   id: string;
@@ -34,6 +37,7 @@ interface ChatMessage {
   type: string;
   createdAt: string;
   isMine: boolean;
+  metadata?: Record<string, unknown> | null;
 }
 
 const TOKEN_KEY = "dazistar_token";
@@ -58,6 +62,10 @@ export default function ChatListPage() {
   const imageInputRef = useRef<HTMLInputElement>(null);
   const emojiAnchorRef = useRef<HTMLDivElement>(null);
   const composerRef = useRef<HTMLDivElement>(null);
+  const [reviewDialog, setReviewDialog] = useState<{
+    requestId: string;
+    shopName: string;
+  } | null>(null);
 
   useEffect(() => {
     selectedIdRef.current = selectedId;
@@ -155,10 +163,19 @@ export default function ChatListPage() {
       if (res.ok) {
         const data = await res.json();
         setMessages(
-          data.messages.map((m: { id: string; content: string; fromId: string; type: string; createdAt: string }) => ({
-            ...m,
-            isMine: m.fromId === currentUser?.id,
-          }))
+          data.messages.map(
+            (m: {
+              id: string;
+              content: string;
+              fromId: string;
+              type: string;
+              createdAt: string;
+              metadata?: Record<string, unknown> | null;
+            }) => ({
+              ...m,
+              isMine: m.fromId === currentUser?.id,
+            })
+          )
         );
         await markConversationRead(convId);
       }
@@ -190,6 +207,7 @@ export default function ChatListPage() {
       fromId: string;
       type?: string;
       createdAt: string;
+      metadata?: Record<string, unknown> | null;
     }) => {
       const activeConvId = selectedIdRef.current;
       const isMine = msg.fromId === currentUser.id;
@@ -206,6 +224,7 @@ export default function ChatListPage() {
               type: msg.type || "text",
               createdAt: msg.createdAt,
               isMine,
+              metadata: msg.metadata ?? null,
             },
           ];
         });
@@ -242,6 +261,7 @@ export default function ChatListPage() {
       fromId: string;
       type: string;
       createdAt: string;
+      metadata?: Record<string, unknown> | null;
     }) => {
       setMessages((prev) => {
         if (prev.some((m) => m.id === msg.id)) return prev;
@@ -251,9 +271,10 @@ export default function ChatListPage() {
             id: msg.id,
             content: msg.content,
             fromId: msg.fromId,
-            type: msg.type,
+            type: msg.type || "text",
             createdAt: msg.createdAt,
             isMine: true,
+            metadata: msg.metadata ?? null,
           },
         ];
       });
@@ -417,6 +438,8 @@ export default function ChatListPage() {
       }
     : null;
   const isBossViewingShop = currentUser?.role === "BOSS" && contact?.role === "SHOP";
+  const isShopViewingBoss = currentUser?.role === "SHOP" && contact?.role === "BOSS";
+  const chatToken = typeof window !== "undefined" ? localStorage.getItem(TOKEN_KEY) : null;
   const totalUnread = conversations.reduce((sum, c) => sum + (c.unreadCount || 0), 0);
 
   return (
@@ -460,9 +483,23 @@ export default function ChatListPage() {
                 msg={msg}
                 contact={contact}
                 currentUserId={currentUser?.id}
+                currentUserRole={currentUser?.role}
+                onReview={(requestId, shopName) => setReviewDialog({ requestId, shopName })}
               />
             ))}
           </div>
+
+          {isShopViewingBoss && selectedId && otherUserId && currentUser?.id && (
+            <ShopInviteReviewBar
+              shopId={currentUser.id}
+              bossUserId={otherUserId}
+              conversationId={selectedId}
+              token={chatToken}
+              onInvited={() => {
+                if (selectedId) void fetchMessages(selectedId);
+              }}
+            />
+          )}
 
           <div
             ref={composerRef}
@@ -537,6 +574,18 @@ export default function ChatListPage() {
           </div>
         </div>
       )}
+      {reviewDialog && (
+        <ShopReviewFormDialog
+          open
+          shopName={reviewDialog.shopName}
+          requestId={reviewDialog.requestId}
+          token={chatToken}
+          onClose={() => setReviewDialog(null)}
+          onSubmitted={() => {
+            if (selectedId) void fetchMessages(selectedId);
+          }}
+        />
+      )}
     </div>
   );
 }
@@ -545,11 +594,34 @@ function MessageRow({
   msg,
   contact,
   currentUserId,
+  currentUserRole,
+  onReview,
 }: {
   msg: ChatMessage;
   contact: ChatUser;
   currentUserId?: string;
+  currentUserRole?: string;
+  onReview?: (requestId: string, shopName: string) => void;
 }) {
+  if (msg.type === "review_request") {
+    const meta = (msg.metadata as Record<string, unknown> | null) ?? null;
+    return (
+      <div className={`flex ${msg.isMine ? "justify-end" : "justify-start"}`}>
+        <ReviewRequestMessageCard
+          content={msg.content}
+          metadata={{
+            requestId: meta?.requestId as string | undefined,
+            shopName: meta?.shopName as string | undefined,
+            completed: meta?.completed as boolean | undefined,
+          }}
+          isMine={msg.isMine}
+          isBoss={currentUserRole === "BOSS"}
+          onReview={onReview}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className={`flex ${msg.isMine ? "justify-end" : "justify-start"}`}>
       {!msg.isMine && <SafeAvatar src={contact.avatar} seed={contact.id} size={32} className="mr-2 mt-1" />}
