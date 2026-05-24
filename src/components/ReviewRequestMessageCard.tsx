@@ -52,9 +52,13 @@ export function ReviewRequestMessageCard({
             </button>
           )}
 
-          {completed && <p className="mt-2 text-xs text-green-400/90">✓ 已完成评价</p>}
-
-          {isMine && !isBoss && <p className="mt-2 text-xs text-gray-400">等待对方评价</p>}
+          {completed ? (
+            <p className="mt-2 text-xs text-green-400/90">
+              {isBoss ? "✓ 已完成评价" : "对方已完成评价"}
+            </p>
+          ) : isMine && !isBoss ? (
+            <p className="mt-2 text-xs text-gray-400">等待对方评价</p>
+          ) : null}
         </div>
       </div>
     </div>
