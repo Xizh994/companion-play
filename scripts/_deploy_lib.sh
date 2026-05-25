@@ -13,6 +13,9 @@
 
 set -euo pipefail
 
+# scripts/ 绝对路径（source 时解析，避免 build 中 cd 后相对路径失效）
+_SCRIPT_LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
 # ================================================================
 # 共享配置
 # ================================================================
@@ -208,7 +211,7 @@ build_project() {
   npx prisma generate 2>&1 | tee -a "$BUILD_LOG" || die "Prisma generate 失败"
 
   info "应用数据库迁移 (仅 migrate deploy，禁止 db push/reset) ..."
-  bash "$(dirname "${BASH_SOURCE[0]}")/prisma-migrate-deploy.sh" 2>&1 | tee -a "$BUILD_LOG" \
+  bash "${_SCRIPT_LIB_DIR}/prisma-migrate-deploy.sh" 2>&1 | tee -a "$BUILD_LOG" \
     || die "数据库迁移失败，见日志与 docs/DATABASE-MIGRATIONS.md（切勿 db push / migrate reset）"
 
   info "TypeScript 类型检查 ..."

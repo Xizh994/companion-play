@@ -5,7 +5,7 @@
 测试/生产发布脚本（`scripts/deploy-test.sh` 等）只会执行：
 
 ```bash
-bash scripts/prisma-migrate-deploy.sh
+bash scripts/prisma-migrate-deploy.sh   # 内部用 scripts/ 绝对路径，可从任意目录运行 deploy
 ```
 
 **不会**再回退到 `prisma db push`，避免在表有数据时提示 **reset 整库**。

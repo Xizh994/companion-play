@@ -6,6 +6,7 @@
 # ================================================================
 
 set -e
+_DEPLOY_REPO_ROOT="$(cd "$(dirname "$0")" && pwd)"
 echo "🚀 搭子星部署开始..."
 
 # ================================================================
@@ -122,7 +123,7 @@ echo "=== [7/8] 安装依赖并构建 ==="
 cd /www/dazistar
 npm install
 npx prisma generate
-bash scripts/prisma-migrate-deploy.sh
+bash "${_DEPLOY_REPO_ROOT}/scripts/prisma-migrate-deploy.sh"
 npm run build
 
 # ================================================================
