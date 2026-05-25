@@ -68,7 +68,7 @@ export default function ShopStatsPage() {
   return (
     <ShopManageLayout title="经营数据" subtitle="了解店铺曝光与咨询情况" activeTab="stats">
       <div className="grid grid-cols-2 gap-3 mb-6">
-        <MetricCard label="今日浏览" value={summary.pageViewsToday} sub={`访客 ${summary.uniqueVisitorsToday}`} />
+        <MetricCard label="今日访客" value={summary.pageViewsToday} sub="同一人当日只计 1 次" />
         <MetricCard label="累计咨询" value={summary.consultationsTotal} sub="互聊过的老板" />
         <MetricCard
           label="累计评价"
@@ -93,7 +93,7 @@ export default function ShopStatsPage() {
                   style={{ width: `${(row.pageViews / maxPv) * 100}%` }}
                 />
               </div>
-              <span className="w-16 text-right text-gray-400 shrink-0">{row.pageViews} 浏览</span>
+              <span className="w-16 text-right text-gray-400 shrink-0">{row.pageViews} 访客</span>
               <span className="w-12 text-right text-gray-500 shrink-0">{row.reviews} 评</span>
             </div>
           ))}

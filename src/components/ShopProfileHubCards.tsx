@@ -40,7 +40,7 @@ export function ShopProfileHubCards({ token, shopUserId }: ShopProfileHubCardsPr
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium text-white">经营数据</p>
             <p className="text-xs text-gray-500 mt-0.5">
-              今日访问 {summary?.pageViewsToday ?? "—"} · 咨询 {summary?.consultationsTotal ?? "—"} · 评价{" "}
+                今日访客 {summary?.pageViewsToday ?? "—"} · 咨询 {summary?.consultationsTotal ?? "—"} · 评价{" "}
               {summary?.reviewsTotal ?? "—"}
             </p>
           </div>

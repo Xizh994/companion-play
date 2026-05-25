@@ -314,10 +314,12 @@ model ShopPageView {
   id         String   @id @default(cuid())
   shopUserId String
   visitorId  String?
+  visitorKey String // dedupe: userId or ip:hash
   source     String?
   createdAt  DateTime @default(now())
 
   @@index([shopUserId, createdAt])
+  @@index([shopUserId, visitorKey, createdAt])
   @@map("shop_page_views")
 }
 
