@@ -215,31 +215,28 @@ export default function ShopPage() {
           </div>
         </div>
 
-        {chatError && !isOwnerPreview && (
+        {!isOwnerPreview && chatError && (
           <p className="text-center text-sm text-red-400 mb-4">{chatError}</p>
         )}
 
-        {isOwnerPreview ? (
-          <div className="w-full mb-8 p-4 rounded-xl bg-violet-500/10 border border-violet-500/30 text-center text-sm text-violet-100">
-            预览模式：这是老板看到的店铺主页，无法与自己发起聊天
-          </div>
-        ) : chatRestricted ? (
-          <div className="w-full mb-8 p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 text-center text-sm text-amber-100 space-y-2">
-            <p>完成实名认证后可与店铺发起聊天</p>
-            <Link href="/profile" className="text-pink-400 hover:text-pink-300 font-medium underline">
-              前往实名认证 →
-            </Link>
-          </div>
-        ) : (
-          <button
-            onClick={handleChat}
-            disabled={chatLoading}
-            className="w-full py-3.5 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-medium flex items-center justify-center gap-2 transition-all duration-300 hover:shadow-lg hover:shadow-purple-500/25 disabled:opacity-60 mb-8"
-          >
-            {chatLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : <MessageCircle className="h-5 w-5" />}
-            发起聊天
-          </button>
-        )}
+        {!isOwnerPreview &&
+          (chatRestricted ? (
+            <div className="w-full mb-8 p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 text-center text-sm text-amber-100 space-y-2">
+              <p>完成实名认证后可与店铺发起聊天</p>
+              <Link href="/profile" className="text-pink-400 hover:text-pink-300 font-medium underline">
+                前往实名认证 →
+              </Link>
+            </div>
+          ) : (
+            <button
+              onClick={handleChat}
+              disabled={chatLoading}
+              className="w-full py-3.5 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-medium flex items-center justify-center gap-2 transition-all duration-300 hover:shadow-lg hover:shadow-purple-500/25 disabled:opacity-60 mb-8"
+            >
+              {chatLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : <MessageCircle className="h-5 w-5" />}
+              发起聊天
+            </button>
+          ))}
 
         <div className="glass rounded-2xl p-6 mb-6">
           <div className="flex flex-wrap items-center justify-center gap-4 mb-6 text-sm text-gray-400">
