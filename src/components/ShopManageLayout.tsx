@@ -33,7 +33,7 @@ export function ShopManageLayout({ title, subtitle, activeTab, children }: ShopM
             经营数据
           </TabLink>
           <TabLink href="/profile/shop/reviews" active={activeTab === "reviews"}>
-            评价管理
+            评价详情
           </TabLink>
         </div>
       )}
