@@ -122,7 +122,7 @@ echo "=== [7/8] 安装依赖并构建 ==="
 cd /www/dazistar
 npm install
 npx prisma generate
-npx prisma db push --accept-data-loss
+bash scripts/prisma-migrate-deploy.sh
 npm run build
 
 # ================================================================

@@ -1,4 +1,4 @@
--- visitorKey: 可空 → 回填 → NOT NULL，兼容表中已有数据
+-- 手工补 visitorKey（与 migration 20260525061748 逻辑一致，可重复执行）
 
 ALTER TABLE "shop_page_views" ADD COLUMN IF NOT EXISTS "visitorKey" TEXT;
 

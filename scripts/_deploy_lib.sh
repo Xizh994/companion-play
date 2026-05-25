@@ -207,11 +207,9 @@ build_project() {
   info "生成 Prisma Client ..."
   npx prisma generate 2>&1 | tee -a "$BUILD_LOG" || die "Prisma generate 失败"
 
-  info "应用数据库迁移 ..."
-  npx prisma migrate deploy 2>&1 | tee -a "$BUILD_LOG" || {
-    warn "prisma migrate deploy 失败，尝试 db push (请确认无数据丢失风险)"
-    npx prisma db push 2>&1 | tee -a "$BUILD_LOG" || die "Prisma db push 失败"
-  }
+  info "应用数据库迁移 (仅 migrate deploy，禁止 db push/reset) ..."
+  bash "$(dirname "${BASH_SOURCE[0]}")/prisma-migrate-deploy.sh" 2>&1 | tee -a "$BUILD_LOG" \
+    || die "数据库迁移失败，见日志与 docs/DATABASE-MIGRATIONS.md（切勿 db push / migrate reset）"
 
   info "TypeScript 类型检查 ..."
   npx tsc --noEmit 2>&1 | tee -a "$BUILD_LOG" || warn "TypeScript 类型检查有警告，继续构建"
