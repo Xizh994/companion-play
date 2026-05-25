@@ -190,7 +190,7 @@ export default function ShopPage() {
         <div className="absolute -bottom-12 left-1/2 -translate-x-1/2 z-10">
           <div className="relative">
             <SafeAvatar src={shop.avatar} seed={shopName} size={96} />
-            {isOnline && (
+            {!isOwnerPreview && isOnline && (
               <span className="absolute -bottom-1 -right-1 w-5 h-5 bg-green-500 rounded-full border-3 border-[#0f0f1a]" />
             )}
           </div>
@@ -200,19 +200,21 @@ export default function ShopPage() {
       <div className="max-w-2xl mx-auto px-4 pt-16 pb-8">
         <div className="text-center mb-8">
           <h1 className="text-2xl font-bold text-white mb-2">{shopName}</h1>
-          <div className="flex items-center justify-center gap-1">
-            {isOnline ? (
-              <span className="flex items-center gap-1 text-sm text-green-400">
-                <span className="w-2 h-2 bg-green-500 rounded-full" />
-                营业中
-              </span>
-            ) : (
-              <span className="flex items-center gap-1 text-sm text-gray-500">
-                <span className="w-2 h-2 bg-gray-500 rounded-full" />
-                休息中
-              </span>
-            )}
-          </div>
+          {!isOwnerPreview && (
+            <div className="flex items-center justify-center gap-1">
+              {isOnline ? (
+                <span className="flex items-center gap-1 text-sm text-green-400">
+                  <span className="w-2 h-2 bg-green-500 rounded-full" />
+                  营业中
+                </span>
+              ) : (
+                <span className="flex items-center gap-1 text-sm text-gray-500">
+                  <span className="w-2 h-2 bg-gray-500 rounded-full" />
+                  休息中
+                </span>
+              )}
+            </div>
+          )}
         </div>
 
         {!isOwnerPreview && chatError && (
@@ -252,15 +254,24 @@ export default function ShopPage() {
             <div className="mb-6">
               <p className="text-sm text-gray-500 mb-2">主打游戏</p>
               <div className="flex flex-wrap justify-center gap-2">
-                {shop.shopGames.map((g) => (
-                  <Link
-                    key={g}
-                    href={`/lobby?game=${encodeURIComponent(g)}`}
-                    className="px-3 py-1 text-sm rounded-lg bg-purple-500/15 text-purple-300 border border-purple-500/30 hover:bg-purple-500/25 transition"
-                  >
-                    {g}
-                  </Link>
-                ))}
+                {shop.shopGames.map((g) =>
+                  isOwnerPreview ? (
+                    <span
+                      key={g}
+                      className="px-3 py-1 text-sm rounded-lg bg-purple-500/15 text-purple-300 border border-purple-500/30"
+                    >
+                      {g}
+                    </span>
+                  ) : (
+                    <Link
+                      key={g}
+                      href={`/lobby?game=${encodeURIComponent(g)}`}
+                      className="px-3 py-1 text-sm rounded-lg bg-purple-500/15 text-purple-300 border border-purple-500/30 hover:bg-purple-500/25 transition"
+                    >
+                      {g}
+                    </Link>
+                  )
+                )}
               </div>
             </div>
           )}
