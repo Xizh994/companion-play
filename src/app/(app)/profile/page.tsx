@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/hooks/useAuth";
-import { Crown, Store, Shield, Check, Clock, XCircle, Mail, Phone, Lock, Camera, ArrowLeft, X, Pencil, Loader2, ZoomIn, ZoomOut, MapPin, User, PhoneCall, FileText, BadgeCheck } from "lucide-react";
+import { Crown, Store, Shield, Check, Clock, XCircle, Mail, Phone, Lock, Camera, X, Pencil, Loader2, ZoomIn, ZoomOut, MapPin, User, PhoneCall, FileText, BadgeCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { maskPhone, maskEmail } from "@/lib/mask";
 import { isValidIdCardNumber } from "@/lib/id-card";
@@ -899,14 +899,6 @@ export default function ProfilePage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#0a0a1a] via-[#0f0f2a] to-[#0a0a1a]">
       <div className="max-w-md mx-auto px-4 py-10">
-        <button
-          onClick={() => router.back()}
-          className="flex items-center gap-1.5 text-gray-400 hover:text-gray-200 transition mb-6"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          <span className="text-sm">返回</span>
-        </button>
-
         <div className="glass rounded-3xl p-6 sm:p-8 glow-card">
           {profileError && (
             <div className="mb-4 p-3 bg-red-500/10 border border-red-500/30 rounded-xl text-red-400 text-sm text-center">

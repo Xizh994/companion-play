@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface ShopManageLayoutProps {
@@ -14,14 +13,6 @@ interface ShopManageLayoutProps {
 export function ShopManageLayout({ title, subtitle, activeTab, children }: ShopManageLayoutProps) {
   return (
     <div className="max-w-2xl mx-auto px-4 py-8">
-      <Link
-        href="/profile"
-        className="inline-flex items-center gap-1.5 text-gray-400 hover:text-gray-200 transition mb-6 text-sm"
-      >
-        <ArrowLeft className="w-4 h-4" />
-        返回我的
-      </Link>
-
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-white">{title}</h1>
         {subtitle && <p className="text-sm text-gray-500 mt-1">{subtitle}</p>}
