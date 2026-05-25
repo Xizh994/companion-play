@@ -47,25 +47,43 @@ export default function ShopPage() {
   const [chatLoading, setChatLoading] = useState(false);
   const [chatRestricted, setChatRestricted] = useState(false);
   const [chatError, setChatError] = useState("");
+  const [isOwnerPreview, setIsOwnerPreview] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem(TOKEN_KEY);
 
-    fetch(`/api/shops/${id}/track-view`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      },
-      body: JSON.stringify({ source: "shop_page" }),
-    }).catch(() => {});
+    const userStr = localStorage.getItem(USER_KEY);
+    let currentUserId: string | null = null;
+    if (userStr) {
+      try {
+        const user = JSON.parse(userStr);
+        currentUserId = user.id ?? null;
+        if (user.id === id) {
+          setIsOwnerPreview(true);
+        } else {
+          setIsOwnerPreview(false);
+        }
+      } catch {
+        /* ignore */
+      }
+    }
+
+    if (currentUserId !== id) {
+      fetch(`/api/shops/${id}/track-view`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ source: "shop_page" }),
+      }).catch(() => {});
+    }
 
     if (!token) {
       setLoading(false);
       return;
     }
 
-    const userStr = localStorage.getItem(USER_KEY);
     if (userStr) {
       try {
         const user = JSON.parse(userStr);
@@ -197,9 +215,15 @@ export default function ShopPage() {
           </div>
         </div>
 
-        {chatError && <p className="text-center text-sm text-red-400 mb-4">{chatError}</p>}
+        {chatError && !isOwnerPreview && (
+          <p className="text-center text-sm text-red-400 mb-4">{chatError}</p>
+        )}
 
-        {chatRestricted ? (
+        {isOwnerPreview ? (
+          <div className="w-full mb-8 p-4 rounded-xl bg-violet-500/10 border border-violet-500/30 text-center text-sm text-violet-100">
+            预览模式：这是老板看到的店铺主页，无法与自己发起聊天
+          </div>
+        ) : chatRestricted ? (
           <div className="w-full mb-8 p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 text-center text-sm text-amber-100 space-y-2">
             <p>完成实名认证后可与店铺发起聊天</p>
             <Link href="/profile" className="text-pink-400 hover:text-pink-300 font-medium underline">

@@ -75,12 +75,7 @@ export default function ShopStatsPage() {
           value={summary.reviewsTotal}
           sub={summary.avgRating != null ? `均分 ${summary.avgRating.toFixed(1)}` : "暂无均分"}
         />
-        <MetricCard
-          label="今日新增评价"
-          value={summary.reviewsToday}
-          sub="点击查看详情"
-          href="/profile/shop/reviews"
-        />
+        <MetricCard label="今日新增评价" value={summary.reviewsToday} sub="今日统计" />
       </div>
 
       <div className="glass rounded-2xl p-5 border border-white/10 mb-6">
@@ -104,13 +99,6 @@ export default function ShopStatsPage() {
           ))}
         </div>
       </div>
-
-      <Link
-        href="/profile/shop/reviews"
-        className="block w-full py-3 rounded-xl border border-violet-500/30 text-violet-300 text-sm text-center hover:bg-violet-500/10 transition"
-      >
-        查看全部评价 →
-      </Link>
 
       <p className="text-[10px] text-gray-600 text-center mt-4">活跃度排名功能即将上线</p>
     </ShopManageLayout>

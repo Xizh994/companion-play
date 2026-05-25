@@ -44,6 +44,9 @@ export async function POST(req: NextRequest) {
 
     const { targetUserId } = await req.json();
     if (!targetUserId) return NextResponse.json({ error: "缺少目标用户ID" }, { status: 400 });
+    if (targetUserId === payload.userId) {
+      return NextResponse.json({ error: "无法与自己发起聊天" }, { status: 400 });
+    }
 
     const chatAccess = await assertChatAllowed(payload.userId, targetUserId);
     if (!chatAccess.allowed) {
