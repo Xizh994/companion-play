@@ -100,7 +100,7 @@ export default function ShopStatsPage() {
         </div>
       </div>
 
-      <p className="text-[10px] text-gray-600 text-center mt-4">活跃度排名功能即将上线</p>
+      <p className="text-[10px] text-gray-600 text-center mt-4">活跃度排名即将上线</p>
     </ShopManageLayout>
   );
 }

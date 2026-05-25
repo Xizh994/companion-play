@@ -46,6 +46,7 @@ main() {
 
   preflight_check
   pull_code
+  info "拉取后 commit: $(git -C "$PROJECT_DIR" rev-parse --short HEAD) — $(git -C "$PROJECT_DIR" log -1 --format='%s')"
   install_deps
   build_project
   header "5/7 部署发布"
