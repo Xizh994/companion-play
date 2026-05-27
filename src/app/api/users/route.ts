@@ -81,7 +81,8 @@ export async function GET(req: NextRequest) {
       const shopProfileWhere: Record<string, unknown> = {
         verificationStatus: "APPROVED",
       };
-      if (game) {
+      // 搜索模式下全站搜店，不按游戏分类缩小范围
+      if (game && !search) {
         shopProfileWhere.gameCategories = { has: game };
       }
 
@@ -112,11 +113,17 @@ export async function GET(req: NextRequest) {
       let hotShops: ReturnType<typeof formatHotShop>[] = [];
       let hotRankingDate: string | null = null;
 
-      if (caller?.role === "BOSS") {
+      // 热门榜：全局排行，与搜索/游戏分类无关；搜索时不返回热门数据
+      if (caller?.role === "BOSS" && !search) {
         await ensureDailyShopRankingRefresh();
         hotRankingDate = await getShopRankingDateKey();
         const hotLimit = bossPreview ? BOSS_PREVIEW_SHOP_LIMIT : HOT_SHOP_LIMIT;
-        const hotRows = await queryHotShopUsers(where, hotLimit);
+        const hotWhere: Record<string, unknown> = {
+          role: "SHOP",
+          status: "online",
+          shopProfile: { verificationStatus: "APPROVED" },
+        };
+        const hotRows = await queryHotShopUsers(hotWhere, hotLimit);
         hotShops = hotRows.map((u, i) => formatHotShop(u, i + 1));
       }
 

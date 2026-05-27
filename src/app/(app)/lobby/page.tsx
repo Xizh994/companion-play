@@ -10,7 +10,7 @@ import { SafeAvatar } from "@/components/GeneratedAvatar";
 import { Input } from "@/components/ui/input";
 import { useUnreadMessages } from "@/contexts/UnreadMessagesContext";
 import { RealtimeConnectionStatus } from "@/components/RealtimeConnectionStatus";
-import { MessageCircle, Search, Sparkles, Store, Crown, ShieldAlert } from "lucide-react";
+import { MessageCircle, Search, Sparkles, Store, Crown, ShieldAlert, X } from "lucide-react";
 import { ShopGameFilterChips } from "@/components/ShopGameFilterChips";
 import { LobbyHotShopsSection, type HotShopItem } from "@/components/LobbyHotShopsSection";
 
@@ -93,7 +93,7 @@ export default function LobbyPage() {
         const params = new URLSearchParams({ role });
         if (isBoss) {
           if (debouncedSearch) params.set("search", debouncedSearch);
-          if (selectedGame) params.set("game", selectedGame);
+          else if (selectedGame) params.set("game", selectedGame);
         }
         const res = await fetch(`/api/users?${params.toString()}`, {
           headers: { Authorization: `Bearer ${token}` },
@@ -177,6 +177,12 @@ export default function LobbyPage() {
   }, [users, search, isBoss]);
 
   const displayUsers = isBoss ? users : shopFiltered;
+  const isSearchMode = isBoss && debouncedSearch.length > 0;
+
+  const clearSearch = () => {
+    setSearch("");
+    setDebouncedSearch("");
+  };
 
   const bossPreviewMode = isBoss && lobbyMeta?.chatRestricted;
   const shopRestrictedMode = isShop && lobbyMeta?.chatRestricted;
@@ -220,10 +226,20 @@ export default function LobbyPage() {
                 placeholder={isBoss ? "搜索店名、简介、游戏…" : "搜索老板昵称..."}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="pl-12 bg-white/5 border-white/10 rounded-xl py-6"
+                className="pl-12 pr-12 bg-white/5 border-white/10 rounded-xl py-6"
               />
+              {isBoss && search.length > 0 && (
+                <button
+                  type="button"
+                  onClick={clearSearch}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/10 transition"
+                  aria-label="清除搜索"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              )}
             </div>
-            {isBoss && (
+            {isBoss && !isSearchMode && (
               <ShopGameFilterChips
                 selectedGame={selectedGame}
                 onSelect={setGameFilter}
@@ -290,11 +306,10 @@ export default function LobbyPage() {
           </div>
         )}
 
-        {isBoss && !loading && (
+        {isBoss && !loading && !isSearchMode && (
           <LobbyHotShopsSection
             shops={hotShops}
             rankingDate={lobbyMeta?.hotRankingDate ?? null}
-            hasFilters={Boolean(selectedGame || debouncedSearch)}
           />
         )}
 
@@ -305,7 +320,11 @@ export default function LobbyPage() {
             <Crown className="h-6 w-6 text-amber-400" />
           )}
           <h2 className="text-2xl font-bold">
-            {isBoss ? "陪玩店" : "老板"} ({displayUsers.length})
+            {isBoss
+              ? isSearchMode
+                ? `搜索结果 (${displayUsers.length})`
+                : `陪玩店 (${displayUsers.length})`
+              : `老板 (${displayUsers.length})`}
           </h2>
         </div>
 
@@ -319,23 +338,32 @@ export default function LobbyPage() {
             <span className="text-6xl block mb-4">🎮</span>
             <p className="text-lg text-muted-foreground">
               {isBoss
-                ? selectedGame || debouncedSearch
-                  ? "没有符合条件的在线店铺"
-                  : "暂无陪玩店"
+                ? isSearchMode
+                  ? "没有匹配的店铺"
+                  : selectedGame
+                    ? "没有符合条件的在线店铺"
+                    : "暂无陪玩店"
                 : "暂无在线老板"}
             </p>
-            {isBoss && (selectedGame || debouncedSearch) && (
+            {isBoss && isSearchMode && (
+              <button
+                type="button"
+                onClick={clearSearch}
+                className="mt-4 text-sm text-purple-400 hover:text-purple-300"
+              >
+                返回大厅
+              </button>
+            )}
+            {isBoss && !isSearchMode && selectedGame && (
               <button
                 type="button"
                 onClick={() => {
-                  setSearch("");
-                  setDebouncedSearch("");
                   setSelectedGame("");
                   router.replace("/lobby", { scroll: false });
                 }}
                 className="mt-4 text-sm text-purple-400 hover:text-purple-300"
               >
-                清除筛选
+                清除游戏筛选
               </button>
             )}
           </div>

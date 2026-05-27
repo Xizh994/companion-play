@@ -20,7 +20,6 @@ export interface HotShopItem {
 interface LobbyHotShopsSectionProps {
   shops: HotShopItem[];
   rankingDate: string | null;
-  hasFilters: boolean;
 }
 
 function rankBadgeClass(rank: number): string {
@@ -30,7 +29,7 @@ function rankBadgeClass(rank: number): string {
   return "bg-white/10 text-gray-300 border-white/15";
 }
 
-export function LobbyHotShopsSection({ shops, rankingDate, hasFilters }: LobbyHotShopsSectionProps) {
+export function LobbyHotShopsSection({ shops, rankingDate }: LobbyHotShopsSectionProps) {
   return (
     <section className="mb-10">
       <div className="flex flex-wrap items-end justify-between gap-2 mb-4">
@@ -48,9 +47,7 @@ export function LobbyHotShopsSection({ shops, rankingDate, hasFilters }: LobbyHo
 
       {shops.length === 0 ? (
         <div className="glass rounded-xl border border-white/10 px-4 py-8 text-center">
-          <p className="text-sm text-gray-400">
-            {hasFilters ? "当前筛选下暂无上榜店铺" : "暂无热门店铺（至少 3 条评价后可参与排名）"}
-          </p>
+          <p className="text-sm text-gray-400">暂无热门店铺（至少 3 条评价后可参与排名）</p>
         </div>
       ) : (
         <div className="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1 snap-x snap-mandatory">
