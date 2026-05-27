@@ -12,6 +12,9 @@ import {
   SHOP_VERIFY_RESTRICTION_MESSAGE,
 } from "@/lib/shop-access";
 import { normalizeShopGameCategories } from "@/lib/shop-taxonomy";
+import { HOT_SHOP_LIMIT } from "@/lib/shop-ranking-constants";
+import { ensureDailyShopRankingRefresh, getShopRankingDateKey } from "@/lib/shop-ranking";
+import { queryHotShopUsers } from "@/lib/shop-ranking-query";
 
 export async function GET(req: NextRequest) {
   try {
@@ -106,9 +109,24 @@ export async function GET(req: NextRequest) {
         orderBy: { shopProfile: { orderCount: "desc" } },
       });
 
+      let hotShops: ReturnType<typeof formatHotShop>[] = [];
+      let hotRankingDate: string | null = null;
+
+      if (caller?.role === "BOSS") {
+        await ensureDailyShopRankingRefresh();
+        hotRankingDate = await getShopRankingDateKey();
+        const hotLimit = bossPreview ? BOSS_PREVIEW_SHOP_LIMIT : HOT_SHOP_LIMIT;
+        const hotRows = await queryHotShopUsers(where, hotLimit);
+        hotShops = hotRows.map((u, i) => formatHotShop(u, i + 1));
+      }
+
       return NextResponse.json({
         users: users.map(formatUser),
-        meta: buildMeta(),
+        hotShops,
+        meta: {
+          ...(buildMeta() ?? {}),
+          hotRankingDate,
+        },
       });
     }
 
@@ -164,6 +182,38 @@ export async function GET(req: NextRequest) {
     console.error("Users API error:", error);
     return NextResponse.json({ error: "获取用户列表失败" }, { status: 500 });
   }
+}
+
+function formatHotShop(
+  u: {
+    id: string;
+    nickname: string;
+    avatar: string | null;
+    status: string;
+    shopProfile?: {
+      shopName: string;
+      gameCategories: string[];
+      rating: unknown;
+      reviewCount: number;
+      rankScore: unknown;
+      orderCount: number;
+    } | null;
+  },
+  rank: number
+) {
+  return {
+    rank,
+    id: u.id,
+    nickname: u.nickname,
+    avatar: u.avatar,
+    status: u.status,
+    shopName: u.shopProfile?.shopName || u.nickname,
+    shopGames: normalizeShopGameCategories(u.shopProfile?.gameCategories ?? []),
+    rating: u.shopProfile?.rating != null ? Number(u.shopProfile.rating) : null,
+    reviewCount: u.shopProfile?.reviewCount ?? 0,
+    rankScore: u.shopProfile?.rankScore != null ? Number(u.shopProfile.rankScore) : null,
+    orderCount: u.shopProfile?.orderCount ?? 0,
+  };
 }
 
 function formatUser(u: {

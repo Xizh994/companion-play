@@ -8,7 +8,8 @@
     "start": "node server.js",
     "next-start": "next start",
     "lint": "eslint",
-    "seed": "tsx prisma/seed.ts"
+    "seed": "tsx prisma/seed.ts",
+    "ranking:refresh": "tsx scripts/refresh-shop-ranking.ts"
   },
   "dependencies": {
     "@alicloud/dm20151123": "^1.9.2",

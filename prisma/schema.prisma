@@ -333,3 +333,12 @@ model ShopConsultation {
   @@index([shopUserId, createdAt])
   @@map("shop_consultations")
 }
+
+// 应用级 KV（如热门榜每日刷新日期）
+model AppKv {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
+
+  @@map("app_kv")
+}

@@ -45,3 +45,17 @@ npx prisma migrate deploy
 ## visitorKey 迁移说明
 
 `20260525061748_shop_page_view_dedupe` 采用：加可空列 → 用 `visitorId` 或 `legacy:{id}` 回填 → 再设 NOT NULL，兼容 `shop_page_views` 中已有行。
+
+## 大厅热门店铺榜
+
+- `rankScore` **每日刷新一次**（上海自然日），评价提交只更新 `rating`/`reviewCount`，不即时改榜。
+- 老板首次拉大厅列表当日会自动 `refreshAllShopRankScores`；也可 cron：`bash scripts/refresh-shop-ranking.sh`
+- 进榜门槛：`reviewCount >= 3` 且已认证、在线。
+- 新表：`app_kv`（migration `20260526120000_app_kv`），部署时需 `migrate deploy`。
+
+## 大厅热门店铺榜
+
+- `shop_profiles.rankScore`：**每日**（上海自然日）刷新一次，评价提交只更新 `rating`/`reviewCount`，**不即时改榜**。
+- 首次老板打开大厅当日会触发全量重算；也可 cron：`bash scripts/refresh-shop-ranking.sh`。
+- 进榜门槛：`reviewCount >= 3` 且已认证、在线（与大厅筛选一致）。
+- 部署需应用 migration `20260526120000_app_kv`（`app_kv` 表存刷新日期）。

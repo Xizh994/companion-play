@@ -12,6 +12,7 @@ import { useUnreadMessages } from "@/contexts/UnreadMessagesContext";
 import { RealtimeConnectionStatus } from "@/components/RealtimeConnectionStatus";
 import { MessageCircle, Search, Sparkles, Store, Crown, ShieldAlert } from "lucide-react";
 import { ShopGameFilterChips } from "@/components/ShopGameFilterChips";
+import { LobbyHotShopsSection, type HotShopItem } from "@/components/LobbyHotShopsSection";
 
 interface UserItem {
   id: string;
@@ -35,6 +36,7 @@ interface LobbyMeta {
   previewLimit: number | null;
   chatRestricted: boolean;
   restrictionMessage: string | null;
+  hotRankingDate?: string | null;
 }
 
 const TOKEN_KEY = "dazistar_token";
@@ -47,6 +49,7 @@ export default function LobbyPage() {
   const initialGame = searchParams.get("game") || "";
 
   const [users, setUsers] = useState<UserItem[]>([]);
+  const [hotShops, setHotShops] = useState<HotShopItem[]>([]);
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [selectedGame, setSelectedGame] = useState(initialGame);
@@ -98,6 +101,7 @@ export default function LobbyPage() {
         if (res.ok) {
           const data = await res.json();
           setUsers(data.users);
+          setHotShops(Array.isArray(data.hotShops) ? data.hotShops : []);
           if (data.meta) setLobbyMeta(data.meta);
         }
       } catch (err) {
@@ -284,6 +288,14 @@ export default function LobbyPage() {
           <div className="mb-4 p-3 bg-red-500/10 border border-red-500/30 rounded-xl text-red-400 text-sm text-center">
             {chatError}
           </div>
+        )}
+
+        {isBoss && !loading && (
+          <LobbyHotShopsSection
+            shops={hotShops}
+            rankingDate={lobbyMeta?.hotRankingDate ?? null}
+            hasFilters={Boolean(selectedGame || debouncedSearch)}
+          />
         )}
 
         <div className="flex items-center gap-2 mb-6">

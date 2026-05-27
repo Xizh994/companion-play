@@ -139,6 +139,7 @@ export async function recalculateShopRating(shopUserId: string) {
     data: {
       rating: agg._avg.score != null ? Number(agg._avg.score.toFixed(2)) : null,
       reviewCount: agg._count.id,
+      // rankScore 仅由每日任务 refreshAllShopRankScores 更新，不在此处即时改榜
     },
   });
 }
