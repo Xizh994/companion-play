@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/hooks/useAuth";
-import { Crown, Store, Shield, Check, Clock, XCircle, Mail, Phone, Lock, Camera, X, Pencil, Loader2, ZoomIn, ZoomOut, MapPin, User, PhoneCall, FileText, BadgeCheck } from "lucide-react";
+import { Crown, Store, Shield, Check, Clock, XCircle, Mail, Phone, Lock, Camera, X, Pencil, Loader2, ZoomIn, ZoomOut, MapPin, User, PhoneCall, FileText, BadgeCheck, Heart } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { maskPhone, maskEmail } from "@/lib/mask";
 import { isValidIdCardNumber } from "@/lib/id-card";
@@ -1069,6 +1069,22 @@ export default function ProfilePage() {
               </div>
             </div>
           </div>
+
+          {user.role === "BOSS" && (
+            <Link
+              href="/profile/favorites"
+              className="mb-6 block p-4 rounded-2xl bg-white/[0.03] border border-white/[0.08] hover:border-pink-500/30 transition group"
+            >
+              <div className="flex items-center gap-3">
+                <Heart className="w-5 h-5 text-rose-400 shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-white">收藏的店铺</p>
+                  <p className="text-xs text-gray-500 mt-0.5">查看已收藏、快速回访</p>
+                </div>
+                <span className="text-xs text-pink-400 group-hover:text-pink-300 shrink-0">查看 →</span>
+              </div>
+            </Link>
+          )}
 
           {/* Real Name Verification (BOSS only) */}
           {user.role === "BOSS" && (

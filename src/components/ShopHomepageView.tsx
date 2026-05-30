@@ -77,58 +77,60 @@ export function ShopHomepageView({
         </div>
       )}
 
-      <div className="relative h-52 sm:h-64 overflow-hidden">
-        {homepage.shopBanner ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={homepage.shopBanner} alt="" className="absolute inset-0 w-full h-full object-cover" />
-        ) : (
-          <div className={cn("absolute inset-0 bg-gradient-to-br", theme.gradient)} />
-        )}
-        <div className="absolute inset-0 bg-gradient-to-t from-[#0f0f1a] via-[#0f0f1a]/40 to-black/20" />
-
-        <div className="absolute top-4 left-4 right-4 z-10 flex items-center justify-between">
-          {onBack ? (
-            <button
-              onClick={onBack}
-              className="w-10 h-10 glass rounded-full flex items-center justify-center text-white hover:bg-white/20 transition"
-              aria-label="返回"
-            >
-              ←
-            </button>
+      <div className="relative">
+        <div className="relative h-44 sm:h-52 overflow-hidden">
+          {homepage.shopBanner ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={homepage.shopBanner} alt="" className="absolute inset-0 w-full h-full object-cover" />
           ) : (
-            <span />
+            <div className={cn("absolute inset-0 bg-gradient-to-br", theme.gradient)} />
           )}
-          <div className="flex items-center gap-2">
-            {!isOwner && onToggleFavorite && (
+          <div className="absolute inset-0 bg-gradient-to-t from-[#0f0f1a] via-[#0f0f1a]/40 to-black/20" />
+
+          <div className="absolute top-4 left-4 right-4 z-20 flex items-center justify-between">
+            {onBack ? (
               <button
-                onClick={onToggleFavorite}
-                disabled={favoriteLoading}
-                className={cn(
-                  "w-10 h-10 glass rounded-full flex items-center justify-center transition",
-                  homepage.isFavorited ? "text-rose-400" : "text-white hover:bg-white/20"
-                )}
-                aria-label={homepage.isFavorited ? "取消收藏" : "收藏店铺"}
+                onClick={onBack}
+                className="w-10 h-10 glass rounded-full flex items-center justify-center text-white hover:bg-white/20 transition"
+                aria-label="返回"
               >
-                {favoriteLoading ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <Heart className={cn("w-5 h-5", homepage.isFavorited && "fill-current")} />
-                )}
+                ←
               </button>
+            ) : (
+              <span />
             )}
-            {isOwner && editHref && (
-              <Link
-                href={editHref}
-                className="px-3 py-2 glass rounded-full text-xs text-white hover:bg-white/20 transition inline-flex items-center gap-1"
-              >
-                <Pencil className="w-3.5 h-3.5" />
-                编辑
-              </Link>
-            )}
+            <div className="flex items-center gap-2">
+              {!isOwner && onToggleFavorite && (
+                <button
+                  onClick={onToggleFavorite}
+                  disabled={favoriteLoading}
+                  className={cn(
+                    "w-10 h-10 glass rounded-full flex items-center justify-center transition",
+                    homepage.isFavorited ? "text-rose-400" : "text-white hover:bg-white/20"
+                  )}
+                  aria-label={homepage.isFavorited ? "取消收藏" : "收藏店铺"}
+                >
+                  {favoriteLoading ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Heart className={cn("w-5 h-5", homepage.isFavorited && "fill-current")} />
+                  )}
+                </button>
+              )}
+              {isOwner && editHref && (
+                <Link
+                  href={editHref}
+                  className="px-3 py-2 glass rounded-full text-xs text-white hover:bg-white/20 transition inline-flex items-center gap-1"
+                >
+                  <Pencil className="w-3.5 h-3.5" />
+                  编辑
+                </Link>
+              )}
+            </div>
           </div>
         </div>
 
-        <div className="absolute -bottom-12 left-1/2 -translate-x-1/2 z-10">
+        <div className="relative z-20 flex justify-center -mt-12">
           <div className="relative ring-4 ring-[#0f0f1a] rounded-full">
             <SafeAvatar src={homepage.avatar} seed={shopName} size={96} />
             {!isOwner && isOnline && (
@@ -138,7 +140,7 @@ export function ShopHomepageView({
         </div>
       </div>
 
-      <div className="max-w-2xl mx-auto px-4 pt-16 pb-8">
+      <div className="max-w-2xl mx-auto px-4 pt-6 pb-8">
         <div className="text-center mb-6">
           <h1 className="text-2xl font-bold text-white mb-1">{shopName}</h1>
           {homepage.slogan && (
