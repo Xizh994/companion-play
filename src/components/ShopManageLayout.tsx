@@ -8,12 +8,13 @@ interface ShopManageLayoutProps {
   title: string;
   subtitle?: string;
   activeTab?: "stats" | "reviews" | "homepage";
+  wide?: boolean;
   children: React.ReactNode;
 }
 
-export function ShopManageLayout({ title, subtitle, activeTab, children }: ShopManageLayoutProps) {
+export function ShopManageLayout({ title, subtitle, activeTab, wide, children }: ShopManageLayoutProps) {
   return (
-    <div className="max-w-2xl mx-auto px-4 py-8">
+    <div className={cn("mx-auto px-4 py-8", wide ? "max-w-6xl" : "max-w-2xl")}>
       <Link
         href="/profile"
         className="inline-flex items-center gap-1.5 text-gray-400 hover:text-gray-200 transition mb-6 text-sm"

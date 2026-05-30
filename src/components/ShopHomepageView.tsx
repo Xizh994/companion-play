@@ -35,6 +35,8 @@ interface ShopHomepageViewProps {
   onToggleFavorite?: () => void;
   onBack?: () => void;
   editHref?: string;
+  /** 嵌入编辑页手机预览：紧凑布局、无顶栏/底栏 fixed */
+  embedded?: boolean;
 }
 
 export function ShopHomepageView({
@@ -51,8 +53,9 @@ export function ShopHomepageView({
   onToggleFavorite,
   onBack,
   editHref,
+  embedded = false,
 }: ShopHomepageViewProps) {
-  const isOwner = mode === "owner" || mode === "preview";
+  const isOwner = !embedded && (mode === "owner" || mode === "preview");
   const theme = SHOP_THEME_STYLES[homepage.themeKey];
   const shopName = homepage.shopName || homepage.nickname;
   const isOnline = homepage.status !== "offline";
@@ -64,8 +67,8 @@ export function ShopHomepageView({
   const showPlayers = homepage.showShowcasePlayers && homepage.showcasePlayers.length > 0;
 
   return (
-    <div className="min-h-screen pb-24 md:pb-8">
-      {isOwner && mode === "preview" && (
+    <div className={cn(embedded ? "min-h-0 pb-2" : "min-h-screen pb-24 md:pb-8")}>
+      {isOwner && mode === "preview" && !embedded && (
         <div className="sticky top-0 z-30 bg-violet-600/90 backdrop-blur-md text-center text-xs text-white py-2 px-4">
           预览中 · 客人看到的效果
           {editHref && (
@@ -78,7 +81,7 @@ export function ShopHomepageView({
       )}
 
       <div className="relative">
-        <div className="relative h-44 sm:h-52 overflow-hidden">
+        <div className={cn("relative overflow-hidden", embedded ? "h-36" : "h-44 sm:h-52")}>
           {homepage.shopBanner ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={homepage.shopBanner} alt="" className="absolute inset-0 w-full h-full object-cover" />
@@ -87,6 +90,7 @@ export function ShopHomepageView({
           )}
           <div className="absolute inset-0 bg-gradient-to-t from-[#0f0f1a] via-[#0f0f1a]/40 to-black/20" />
 
+          {!embedded && (
           <div className="absolute top-4 left-4 right-4 z-20 flex items-center justify-between">
             {onBack ? (
               <button
@@ -128,11 +132,12 @@ export function ShopHomepageView({
               )}
             </div>
           </div>
+          )}
         </div>
 
-        <div className="relative z-20 flex justify-center -mt-12">
+        <div className={cn("relative z-20 flex justify-center", embedded ? "-mt-10" : "-mt-12")}>
           <div className="relative ring-4 ring-[#0f0f1a] rounded-full">
-            <SafeAvatar src={homepage.avatar} seed={shopName} size={96} />
+            <SafeAvatar src={homepage.avatar} seed={shopName} size={embedded ? 80 : 96} />
             {!isOwner && isOnline && (
               <span className="absolute -bottom-1 -right-1 w-5 h-5 bg-green-500 rounded-full border-[3px] border-[#0f0f1a]" />
             )}
@@ -140,9 +145,9 @@ export function ShopHomepageView({
         </div>
       </div>
 
-      <div className="max-w-2xl mx-auto px-4 pt-6 pb-8">
-        <div className="text-center mb-6">
-          <h1 className="text-2xl font-bold text-white mb-1">{shopName}</h1>
+      <div className={cn(embedded ? "px-3 pt-4 pb-2" : "max-w-2xl mx-auto px-4 pt-6 pb-8")}>
+        <div className={cn("text-center", embedded ? "mb-4" : "mb-6")}>
+          <h1 className={cn("font-bold text-white mb-1", embedded ? "text-xl" : "text-2xl")}>{shopName}</h1>
           {homepage.slogan && (
             <p className={cn("text-sm mt-1", theme.accentMuted)}>{homepage.slogan}</p>
           )}
@@ -167,7 +172,7 @@ export function ShopHomepageView({
           <p className="text-center text-sm text-red-400 mb-4">{chatError}</p>
         )}
 
-        {!isOwner && (
+        {!isOwner && !embedded && (
           <div className="hidden md:block mb-6">
             <ChatCta
               chatRestricted={chatRestricted}
@@ -249,7 +254,10 @@ export function ShopHomepageView({
               {homepage.promoImages.map((img) => (
                 <div
                   key={img.id}
-                  className="snap-start shrink-0 w-[72%] sm:w-[280px] aspect-[16/10] rounded-2xl overflow-hidden border border-white/10 shadow-lg shadow-black/20"
+                  className={cn(
+                    "snap-start shrink-0 w-[72%] aspect-[16/10] rounded-2xl overflow-hidden border border-white/10 shadow-lg shadow-black/20",
+                    !embedded && "sm:w-[280px]"
+                  )}
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={img.url} alt="" className="w-full h-full object-cover" />
@@ -262,7 +270,7 @@ export function ShopHomepageView({
         {showPlayers && (
           <section className="mb-6">
             <h2 className="text-sm font-semibold text-gray-300 mb-3 px-1">主打陪玩</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className={cn("grid gap-3", embedded ? "grid-cols-1" : "grid-cols-1 sm:grid-cols-2")}>
               {homepage.showcasePlayers.map((p) => (
                 <ShowcasePlayerCard key={p.id} player={p} themeChip={theme.chip} accent={theme.accent} />
               ))}
@@ -302,7 +310,21 @@ export function ShopHomepageView({
         )}
       </div>
 
-      {!isOwner && (
+      {embedded && (
+        <div className="px-3 pb-3 pt-2">
+          <div
+            className={cn(
+              "w-full py-3 rounded-xl bg-gradient-to-r text-white text-sm font-medium flex items-center justify-center gap-2 opacity-90 pointer-events-none",
+              theme.cta
+            )}
+          >
+            <MessageCircle className="h-4 w-4" />
+            发起聊天
+          </div>
+        </div>
+      )}
+
+      {!isOwner && !embedded && (
         <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 p-4 bg-[#0f0f1a]/95 backdrop-blur-md border-t border-white/10">
           <ChatCta
             chatRestricted={chatRestricted}

@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/hooks/useAuth";
 import { ShopManageLayout } from "@/components/ShopManageLayout";
-import { ShopHomepageView } from "@/components/ShopHomepageView";
+import { ShopHomepagePreviewFrame } from "@/components/ShopHomepagePreviewFrame";
 import { GameCategoryPicker } from "@/components/GameCategoryPicker";
 import { SafeAvatar } from "@/components/GeneratedAvatar";
 import {
@@ -226,6 +226,7 @@ export default function ShopHomepageEditPage() {
       title="主页装修"
       subtitle="打造你的店铺橱窗，老板浏览后可直接发起咨询"
       activeTab="homepage"
+      wide
     >
       <div className="flex items-center justify-between gap-3 mb-4">
         <div className="text-xs text-gray-500">
@@ -242,8 +243,8 @@ export default function ShopHomepageEditPage() {
 
       {error && <p className="text-red-400 text-sm mb-4">{error}</p>}
 
-      <div className="grid lg:grid-cols-2 gap-6">
-        <div className="space-y-5">
+      <div className="grid lg:grid-cols-[minmax(0,1fr)_420px] gap-8 items-start">
+        <div className="space-y-5 min-w-0">
           <Section title="横幅背景">
             <input
               ref={bannerRef}
@@ -555,12 +556,7 @@ export default function ShopHomepageEditPage() {
           </Section>
         </div>
 
-        <div className="hidden lg:block sticky top-4 self-start">
-          <p className="text-xs text-gray-500 mb-2 px-1">实时预览</p>
-          <div className="rounded-2xl overflow-hidden border border-white/10 max-h-[80vh] overflow-y-auto bg-[#0f0f1a]">
-            <ShopHomepageView homepage={homepage} mode="preview" editHref="/profile/shop/homepage" />
-          </div>
-        </div>
+        <ShopHomepagePreviewFrame homepage={homepage} />
       </div>
 
       <style jsx global>{`
