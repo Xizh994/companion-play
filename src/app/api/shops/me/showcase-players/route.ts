@@ -57,7 +57,6 @@ export async function POST(req: NextRequest) {
         gameTags: (data.gameTags as string[]) ?? [],
         pricePerHour: data.pricePerHour as number | null | undefined,
         highlight: (data.highlight as string | null) ?? null,
-        isOnline: Boolean(data.isOnline),
         isFeatured: data.isFeatured !== false,
         sortOrder: count,
       },

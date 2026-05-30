@@ -39,12 +39,14 @@ export default function ShopHomepageEditPage() {
     pricePerHour: "",
     highlight: "",
     gameTags: [] as string[],
+    avatarUrl: null as string | null,
   });
   const [addingPlayer, setAddingPlayer] = useState(false);
 
   const bannerRef = useRef<HTMLInputElement>(null);
   const promoRef = useRef<HTMLInputElement>(null);
   const playerAvatarRef = useRef<HTMLInputElement>(null);
+  const newPlayerAvatarRef = useRef<HTMLInputElement>(null);
   const [avatarTargetPlayerId, setAvatarTargetPlayerId] = useState<string | null>(null);
 
   const loadHomepage = useCallback(async () => {
@@ -142,12 +144,12 @@ export default function ShopHomepageEditPage() {
           highlight: newPlayer.highlight.trim() || null,
           pricePerHour: newPlayer.pricePerHour ? Number(newPlayer.pricePerHour) : null,
           gameTags: newPlayer.gameTags,
-          isOnline: false,
+          avatar: newPlayer.avatarUrl,
         }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "添加失败");
-      setNewPlayer({ displayName: "", pricePerHour: "", highlight: "", gameTags: [] });
+      setNewPlayer({ displayName: "", pricePerHour: "", highlight: "", gameTags: [], avatarUrl: null });
       await loadHomepage();
     } catch (e) {
       setError(e instanceof Error ? e.message : "添加失败");
@@ -472,7 +474,6 @@ export default function ShopHomepageEditPage() {
                 <PlayerEditRow
                   key={p.id}
                   player={p}
-                  onToggleOnline={() => updatePlayer(p.id, { isOnline: !p.isOnline })}
                   onDelete={() => deletePlayer(p.id)}
                   onAvatar={() => {
                     setAvatarTargetPlayerId(p.id);
@@ -483,6 +484,41 @@ export default function ShopHomepageEditPage() {
             </div>
             <div className="mt-4 p-4 rounded-xl bg-white/[0.03] border border-white/10 space-y-3">
               <p className="text-xs text-gray-500">添加主打陪玩</p>
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => newPlayerAvatarRef.current?.click()}
+                  className="relative shrink-0 group"
+                  title="上传头像"
+                >
+                  <SafeAvatar
+                    src={newPlayer.avatarUrl}
+                    seed={newPlayer.displayName || "新陪玩"}
+                    size={48}
+                  />
+                  <span className="absolute inset-0 rounded-full bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center text-[10px] text-white transition">
+                    上传
+                  </span>
+                </button>
+                <input
+                  ref={newPlayerAvatarRef}
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp"
+                  className="hidden"
+                  onChange={async (e) => {
+                    const f = e.target.files?.[0];
+                    if (!f) return;
+                    try {
+                      const url = await uploadShopImage(f);
+                      setNewPlayer((prev) => ({ ...prev, avatarUrl: url }));
+                    } catch (err) {
+                      setError(err instanceof Error ? err.message : "上传失败");
+                    }
+                    e.target.value = "";
+                  }}
+                />
+                <p className="text-[11px] text-gray-500">点击左侧头像上传（可选）</p>
+              </div>
               <input
                 className="input-field"
                 placeholder="昵称"
@@ -588,40 +624,34 @@ function ToggleRow({
 
 function PlayerEditRow({
   player,
-  onToggleOnline,
   onDelete,
   onAvatar,
 }: {
   player: ShopHomepageShowcasePlayer;
-  onToggleOnline: () => void;
   onDelete: () => void;
   onAvatar: () => void;
 }) {
   return (
     <div className="flex items-center gap-3 p-3 rounded-xl bg-white/[0.03] border border-white/10">
       <GripVertical className="w-4 h-4 text-gray-600 shrink-0" />
-      <button type="button" onClick={onAvatar} className="shrink-0">
+      <button
+        type="button"
+        onClick={onAvatar}
+        className="shrink-0 relative group"
+        title="点击上传头像"
+      >
         <SafeAvatar src={player.avatar} seed={player.displayName} size={40} />
+        <span className="absolute inset-0 rounded-full bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center text-[9px] text-white transition">
+          上传
+        </span>
       </button>
       <div className="flex-1 min-w-0">
         <p className="text-sm text-white truncate">{player.displayName}</p>
         <p className="text-[11px] text-gray-500">
-          {player.pricePerHour != null ? `¥${player.pricePerHour}/时 · ` : ""}
-          {player.isOnline ? "可接单" : "休息中"}
+          {player.pricePerHour != null ? `¥${player.pricePerHour}/时` : "点击头像可上传照片"}
+          {player.highlight ? ` · ${player.highlight}` : ""}
         </p>
       </div>
-      <button
-        type="button"
-        onClick={onToggleOnline}
-        className={cn(
-          "text-[10px] px-2 py-1 rounded-lg border",
-          player.isOnline
-            ? "border-green-500/40 text-green-400"
-            : "border-white/10 text-gray-500"
-        )}
-      >
-        {player.isOnline ? "在线" : "离线"}
-      </button>
       <button type="button" onClick={onDelete} className="text-red-400 p-1">
         <Trash2 className="w-4 h-4" />
       </button>

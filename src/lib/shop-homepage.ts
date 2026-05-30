@@ -77,7 +77,6 @@ export type ShopHomepageShowcasePlayer = {
   highlight: string | null;
   sortOrder: number;
   isFeatured: boolean;
-  isOnline: boolean;
 };
 
 export type ShopHomepagePromoImage = {
@@ -130,7 +129,6 @@ function formatShowcasePlayer(p: ShopShowcasePlayer): ShopHomepageShowcasePlayer
     highlight: p.highlight,
     sortOrder: p.sortOrder,
     isFeatured: p.isFeatured,
-    isOnline: p.isOnline,
   };
 }
 
@@ -299,10 +297,6 @@ export function validateShowcasePlayerInput(body: Record<string, unknown>, parti
     const h = typeof body.highlight === "string" ? body.highlight.trim() : "";
     if (h.length > SHOP_HIGHLIGHT_MAX) return { data, error: `亮点最多 ${SHOP_HIGHLIGHT_MAX} 字` };
     data.highlight = h || null;
-  }
-
-  if ("isOnline" in body) {
-    data.isOnline = Boolean(body.isOnline);
   }
 
   if ("isFeatured" in body) {

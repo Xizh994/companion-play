@@ -245,7 +245,6 @@ export function ShopHomepageView({
 
         {showPromo && (
           <section className="mb-6">
-            <h2 className="text-sm font-semibold text-gray-300 mb-3 px-1">店铺亮点</h2>
             <div className="flex gap-3 overflow-x-auto snap-x snap-mandatory pb-2 -mx-1 px-1 scrollbar-hide">
               {homepage.promoImages.map((img) => (
                 <div
@@ -376,17 +375,11 @@ function ShowcasePlayerCard({
     <div className="glass rounded-2xl p-4 border border-white/10 flex gap-3">
       <div className="relative shrink-0">
         <SafeAvatar src={player.avatar} seed={player.displayName} size={52} />
-        {player.isOnline ? (
-          <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-green-500 rounded-full border-2 border-[#0f0f1a]" />
-        ) : null}
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
             <p className="text-sm font-medium text-white truncate">{player.displayName}</p>
-            <p className="text-[11px] text-gray-500 mt-0.5">
-              {player.isOnline ? "可接单" : "休息中"}
-            </p>
           </div>
           {player.pricePerHour != null && (
             <span className={cn("text-sm font-bold shrink-0", accent)}>
