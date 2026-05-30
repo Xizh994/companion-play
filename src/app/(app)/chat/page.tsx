@@ -5,7 +5,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useUnreadMessages, notifyUnreadUpdated } from "@/contexts/UnreadMessagesContext";
 import { RealtimeConnectionStatus } from "@/components/RealtimeConnectionStatus";
 import type { SocketConnectionStatus } from "@/lib/socket-connection";
-import { GeneratedAvatar, SafeAvatar } from "@/components/GeneratedAvatar";
+import { SafeAvatar } from "@/components/GeneratedAvatar";
+import type { AuthUser } from "@/hooks/useAuth";
 import { ChatEmojiPanel } from "@/components/ChatEmojiPanel";
 import { formatMessagePreview, isImageMessage } from "@/lib/chat-message";
 import { ImagePlus, Trash2 } from "lucide-react";
@@ -56,7 +57,7 @@ export default function ChatListPage() {
   const [input, setInput] = useState("");
   const [showEmoji, setShowEmoji] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
-  const [currentUser, setCurrentUser] = useState<{ id: string; role?: string } | null>(null);
+  const [currentUser, setCurrentUser] = useState<Pick<AuthUser, "id" | "role" | "avatar"> | null>(null);
   const selectedIdRef = useRef<string | null>(null);
   const contactsRef = useRef<Record<string, ChatUser>>({});
   const imageInputRef = useRef<HTMLInputElement>(null);
@@ -76,16 +77,34 @@ export default function ChatListPage() {
   }, [contacts]);
 
   useEffect(() => {
-    const userStr = localStorage.getItem(USER_KEY);
-    if (!userStr) {
-      router.push("/login");
-      return;
-    }
-    try {
-      setCurrentUser(JSON.parse(userStr));
-    } catch {
-      router.push("/login");
-    }
+    const loadUser = () => {
+      const userStr = localStorage.getItem(USER_KEY);
+      if (!userStr) {
+        router.push("/login");
+        return;
+      }
+      try {
+        const parsed = JSON.parse(userStr) as AuthUser;
+        setCurrentUser({
+          id: parsed.id,
+          role: parsed.role,
+          avatar: parsed.avatar ?? null,
+        });
+      } catch {
+        router.push("/login");
+      }
+    };
+    loadUser();
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === USER_KEY) loadUser();
+    };
+    const onFocus = () => loadUser();
+    window.addEventListener("storage", onStorage);
+    window.addEventListener("focus", onFocus);
+    return () => {
+      window.removeEventListener("storage", onStorage);
+      window.removeEventListener("focus", onFocus);
+    };
   }, [router]);
 
   const { socket, connectionStatus, connectionError, refreshUnread, setActiveConversationId } =
@@ -483,6 +502,7 @@ export default function ChatListPage() {
                 msg={msg}
                 contact={contact}
                 currentUserId={currentUser?.id}
+                currentUserAvatar={currentUser?.avatar}
                 currentUserRole={currentUser?.role}
                 onReview={(requestId, shopName) => setReviewDialog({ requestId, shopName })}
               />
@@ -594,12 +614,14 @@ function MessageRow({
   msg,
   contact,
   currentUserId,
+  currentUserAvatar,
   currentUserRole,
   onReview,
 }: {
   msg: ChatMessage;
   contact: ChatUser;
   currentUserId?: string;
+  currentUserAvatar?: string | null;
   currentUserRole?: string;
   onReview?: (requestId: string, shopName: string) => void;
 }) {
@@ -648,7 +670,15 @@ function MessageRow({
           {new Date(msg.createdAt).toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" })}
         </p>
       </div>
-      {msg.isMine && <GeneratedAvatar seed={currentUserId || "me"} size={32} className="ml-2 mt-1" />}
+      {msg.isMine && (
+        <SafeAvatar
+          src={currentUserAvatar}
+          seed={currentUserId || "me"}
+          size={32}
+          className="ml-2 mt-1"
+          alt="我"
+        />
+      )}
     </div>
   );
 }
