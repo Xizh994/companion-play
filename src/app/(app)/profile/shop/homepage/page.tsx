@@ -4,7 +4,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/hooks/useAuth";
 import { ShopManageLayout } from "@/components/ShopManageLayout";
-import { ShopHomepagePreviewFrame } from "@/components/ShopHomepagePreviewFrame";
 import { GameCategoryPicker } from "@/components/GameCategoryPicker";
 import { SafeAvatar } from "@/components/GeneratedAvatar";
 import {
@@ -226,7 +225,6 @@ export default function ShopHomepageEditPage() {
       title="主页装修"
       subtitle="打造你的店铺橱窗，老板浏览后可直接发起咨询"
       activeTab="homepage"
-      wide
     >
       <div className="flex items-center justify-between gap-3 mb-4">
         <div className="text-xs text-gray-500">
@@ -234,17 +232,18 @@ export default function ShopHomepageEditPage() {
         </div>
         <Link
           href={`/shop/${user.id}`}
+          target="_blank"
+          rel="noopener noreferrer"
           className="inline-flex items-center gap-1.5 text-xs text-violet-400 hover:text-violet-300"
         >
           <ExternalLink className="w-3.5 h-3.5" />
-          预览主页
+          预览主页（新标签）
         </Link>
       </div>
 
       {error && <p className="text-red-400 text-sm mb-4">{error}</p>}
 
-      <div className="grid lg:grid-cols-[minmax(0,1fr)_420px] gap-8 items-start">
-        <div className="space-y-5 min-w-0">
+      <div className="space-y-5">
           <Section title="横幅背景">
             <input
               ref={bannerRef}
@@ -554,9 +553,6 @@ export default function ShopHomepageEditPage() {
               </button>
             </div>
           </Section>
-        </div>
-
-        <ShopHomepagePreviewFrame homepage={homepage} />
       </div>
 
       <style jsx global>{`
