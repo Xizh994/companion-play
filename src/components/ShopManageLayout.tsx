@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 interface ShopManageLayoutProps {
   title: string;
   subtitle?: string;
-  activeTab?: "stats" | "reviews";
+  activeTab?: "stats" | "reviews" | "homepage";
   children: React.ReactNode;
 }
 
@@ -31,6 +31,9 @@ export function ShopManageLayout({ title, subtitle, activeTab, children }: ShopM
         <div className="flex gap-2 mb-6 p-1 bg-white/5 rounded-xl border border-white/10">
           <TabLink href="/profile/shop/stats" active={activeTab === "stats"}>
             经营数据
+          </TabLink>
+          <TabLink href="/profile/shop/homepage" active={activeTab === "homepage"}>
+            主页装修
           </TabLink>
           <TabLink href="/profile/shop/reviews" active={activeTab === "reviews"}>
             评价详情

@@ -239,6 +239,9 @@ function formatUser(u: {
     shopName: string;
     shopDesc: string | null;
     shopCover: string | null;
+    shopBanner: string | null;
+    slogan: string | null;
+    priceFrom: unknown;
     shopAddress: string | null;
     gameCategories: string[];
     playerCount: number;
@@ -262,6 +265,9 @@ function formatUser(u: {
     shopName: u.shopProfile?.shopName || null,
     shopDesc: u.shopProfile?.shopDesc || null,
     shopCover: u.shopProfile?.shopCover || null,
+    shopBanner: u.shopProfile?.shopBanner || null,
+    shopSlogan: u.shopProfile?.slogan || null,
+    priceFrom: u.shopProfile?.priceFrom != null ? Number(u.shopProfile.priceFrom) : null,
     shopAddress: u.shopProfile?.shopAddress || null,
     shopGames: normalizeShopGameCategories(u.shopProfile?.gameCategories ?? []),
     playerCount: u.shopProfile?.playerCount || 0,

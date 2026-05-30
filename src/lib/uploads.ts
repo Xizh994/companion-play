@@ -7,7 +7,7 @@ const AVATAR_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
 
 const CHAT_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
 
-export type UploadKind = "avatars" | "licenses" | "chat";
+export type UploadKind = "avatars" | "licenses" | "chat" | "shop";
 
 const CONFIG: Record<
   UploadKind,
@@ -28,6 +28,12 @@ const CONFIG: Record<
   chat: {
     dir: path.join(process.cwd(), "data", "uploads", "chat"),
     publicPath: "/api/uploads/chat",
+    allowed: CHAT_IMAGE_TYPES,
+    maxBytes: 5 * 1024 * 1024,
+  },
+  shop: {
+    dir: path.join(process.cwd(), "data", "uploads", "shop"),
+    publicPath: "/api/uploads/shop",
     allowed: CHAT_IMAGE_TYPES,
     maxBytes: 5 * 1024 * 1024,
   },

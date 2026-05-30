@@ -23,6 +23,10 @@ interface UserItem {
   role: string;
   shopName?: string | null;
   shopDesc?: string | null;
+  shopCover?: string | null;
+  shopBanner?: string | null;
+  shopSlogan?: string | null;
+  priceFrom?: number | null;
   shopGames?: string[];
   playerCount?: number;
   rating?: number | null;
@@ -373,12 +377,32 @@ export default function LobbyPage() {
               <Link
                 key={user.id}
                 href={`/shop/${user.id}`}
-                className="glass rounded-xl p-5 flex flex-col items-center gap-3 text-center hover:border-purple-500/30 hover:bg-white/[0.06] hover:-translate-y-1 hover:shadow-lg hover:shadow-purple-500/5 transition-all duration-300 cursor-pointer"
+                className="glass rounded-xl overflow-hidden flex flex-col hover:border-purple-500/30 hover:bg-white/[0.06] hover:-translate-y-1 hover:shadow-lg hover:shadow-purple-500/5 transition-all duration-300 cursor-pointer"
               >
-                <SafeAvatar src={user.avatar} seed={user.shopName || user.nickname} size={56} />
+                <div className="relative h-20 bg-gradient-to-br from-indigo-600/60 via-purple-600/40 to-pink-800/60">
+                  {(user.shopBanner || user.shopCover) && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={user.shopBanner || user.shopCover || ""}
+                      alt=""
+                      className="absolute inset-0 w-full h-full object-cover"
+                    />
+                  )}
+                  <div className="absolute inset-0 bg-gradient-to-t from-[#0f0f1a]/80 to-transparent" />
+                  <div className="absolute -bottom-7 left-1/2 -translate-x-1/2 ring-2 ring-[#0f0f1a] rounded-full">
+                    <SafeAvatar src={user.avatar} seed={user.shopName || user.nickname} size={48} />
+                  </div>
+                </div>
+                <div className="pt-9 pb-4 px-3 flex flex-col items-center gap-2 text-center">
                 <span className="text-sm font-medium text-white line-clamp-1 w-full">
                   {user.shopName || user.nickname}
                 </span>
+                {user.shopSlogan && (
+                  <span className="text-[10px] text-gray-500 line-clamp-1 w-full">{user.shopSlogan}</span>
+                )}
+                {(user.priceFrom != null) && (
+                  <span className="text-[10px] text-pink-400">¥{user.priceFrom} 起</span>
+                )}
                 {(user.rating != null || (user.reviewCount ?? 0) > 0) && (
                   <span className="text-xs text-yellow-400/90">
                     {user.rating != null ? `★ ${Number(user.rating).toFixed(1)}` : "★ —"}
@@ -402,6 +426,7 @@ export default function LobbyPage() {
                     )}
                   </div>
                 )}
+                </div>
               </Link>
             ))}
           </div>

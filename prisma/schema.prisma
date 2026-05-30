@@ -119,9 +119,23 @@ model ShopProfile {
   // 店铺信息
   shopName       String
   shopCover      String?
+  shopCoverStatus VerificationStatus @default(APPROVED)
   shopBanner     String?
+  shopBannerStatus VerificationStatus @default(APPROVED)
   shopDesc       String?
   shopAddress    String?
+  slogan         String?
+
+  // 主页价格展示（非交易闭环，仅橱窗）
+  priceFrom      Decimal?           @db.Decimal(10, 2)
+  priceUnit      String             @default("hour")
+  priceNote      String?
+
+  // 主页装修
+  themeKey              String  @default("violet")
+  showPromoImages       Boolean @default(true)
+  showShowcasePlayers   Boolean @default(true)
+  showReviews           Boolean @default(true)
 
   // 营业执照/实景照片
   licenseType    String
@@ -154,7 +168,57 @@ model ShopProfile {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
+  promoImages    ShopPromoImage[]
+  showcasePlayers ShopShowcasePlayer[]
+
   @@map("shop_profiles")
+}
+
+// 店铺宣传图（含审核状态）
+model ShopPromoImage {
+  id           String             @id @default(cuid())
+  shopProfileId String
+  shopProfile  ShopProfile        @relation(fields: [shopProfileId], references: [id], onDelete: Cascade)
+  url          String
+  status       VerificationStatus @default(APPROVED)
+  sortOrder    Int                @default(0)
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+
+  @@index([shopProfileId, sortOrder])
+  @@map("shop_promo_images")
+}
+
+// 店铺主打陪玩（店家自建名册，非平台 PLAYER 账号）
+model ShopShowcasePlayer {
+  id            String      @id @default(cuid())
+  shopProfileId String
+  shopProfile   ShopProfile @relation(fields: [shopProfileId], references: [id], onDelete: Cascade)
+  displayName   String
+  avatar        String?
+  gameTags      String[]    @default([])
+  pricePerHour  Decimal?    @db.Decimal(10, 2)
+  highlight     String?
+  sortOrder     Int         @default(0)
+  isFeatured    Boolean     @default(true)
+  isOnline      Boolean     @default(false)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  @@index([shopProfileId, sortOrder])
+  @@map("shop_showcase_players")
+}
+
+// 老板收藏店铺
+model ShopFavorite {
+  id         String   @id @default(cuid())
+  shopUserId String
+  bossUserId String
+  createdAt  DateTime @default(now())
+
+  @@unique([shopUserId, bossUserId])
+  @@index([bossUserId])
+  @@map("shop_favorites")
 }
 
 // ============================================================
