@@ -251,8 +251,10 @@ export async function assertReviewRequestAllowed(
   return { ok: true as const, shop, boss, conv };
 }
 
+/** 邀请在发起日（上海自然日）内有效，次日 0 点起视为过期 */
 export function reviewRequestExpiresAt(from: Date = new Date()) {
-  return new Date(from.getTime() + REVIEW_REQUEST_TTL_DAYS * 24 * 60 * 60 * 1000);
+  const { end } = getShanghaiDayBounds(from);
+  return end;
 }
 
 export function formatPublicReviewer(nickname: string, isAnonymous: boolean) {

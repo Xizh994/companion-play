@@ -1,4 +1,5 @@
-export const REVIEW_REQUEST_TTL_DAYS = 7;
+/** 评价邀请：发起日当天有效，次日 0 点（上海）过期，最早隔 1 天可再邀 */
+export const REVIEW_REQUEST_TTL_DAYS = 1;
 export const REVIEW_CONTENT_MIN = 5;
 export const REVIEW_CONTENT_MAX = 500;
 
