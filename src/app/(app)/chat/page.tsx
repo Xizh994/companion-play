@@ -9,6 +9,7 @@ import { SafeAvatar } from "@/components/GeneratedAvatar";
 import type { AuthUser } from "@/hooks/useAuth";
 import { ChatEmojiPanel } from "@/components/ChatEmojiPanel";
 import { formatMessagePreview, isImageMessage } from "@/lib/chat-message";
+import { formatChatListTime, formatChatMessageTime } from "@/lib/format-chat-time";
 import { ImagePlus, Trash2 } from "lucide-react";
 import { ShopInviteReviewBar } from "@/components/ShopInviteReviewBar";
 import { ShopReviewFormDialog } from "@/components/ShopReviewFormDialog";
@@ -667,7 +668,7 @@ function MessageRow({
           <p className="text-sm leading-relaxed break-words">{msg.content}</p>
         )}
         <p className={`text-[10px] mt-1 ${msg.isMine ? "text-pink-200/60 text-right" : "text-gray-500"}`}>
-          {new Date(msg.createdAt).toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" })}
+          {formatChatMessageTime(msg.createdAt)}
         </p>
       </div>
       {msg.isMine && (
@@ -777,12 +778,7 @@ function ConvMeta({
           {u?.nickname || "用户"}
         </h3>
         <span className="text-xs text-gray-500 shrink-0">
-          {conv.lastMessageAt
-            ? new Date(conv.lastMessageAt).toLocaleTimeString("zh-CN", {
-                hour: "2-digit",
-                minute: "2-digit",
-              })
-            : ""}
+          {conv.lastMessageAt ? formatChatListTime(conv.lastMessageAt) : ""}
         </span>
       </div>
       <div className="flex items-center justify-between gap-2 mt-0.5">
