@@ -6,6 +6,7 @@ import type { ShopReviewInviteState } from "@/lib/shop-review-constants";
 
 const INVITE_LABELS: Record<ShopReviewInviteState, string> = {
   not_mutual_chat: "需与老板互发过消息后可邀请评价",
+  not_recent_mutual_chat: "再次邀请需近 3 天内双方互发过消息",
   can_invite: "",
   pending: "已发送邀请，等待对方评价",
   expired_can_reinvite: "",

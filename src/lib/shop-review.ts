@@ -7,10 +7,11 @@ import {
   REVIEW_REQUEST_TTL_DAYS,
   REVIEW_CONTENT_MIN,
   REVIEW_CONTENT_MAX,
+  RECENT_MUTUAL_CHAT_HOURS,
   type ShopReviewInviteState,
 } from "@/lib/shop-review-constants";
 
-export { REVIEW_REQUEST_TTL_DAYS, REVIEW_CONTENT_MIN, REVIEW_CONTENT_MAX };
+export { REVIEW_REQUEST_TTL_DAYS, REVIEW_CONTENT_MIN, REVIEW_CONTENT_MAX, RECENT_MUTUAL_CHAT_HOURS };
 export type { ShopReviewInviteState };
 
 const CHAT_MESSAGE_TYPES = ["text", "image"];
@@ -33,6 +34,55 @@ export async function hasMutualChat(shopUserId: string, bossUserId: string): Pro
     }),
   ]);
   return shopToBoss >= 1 && bossToShop >= 1;
+}
+
+/** 近 RECENT_MUTUAL_CHAT_HOURS 小时内双方各至少 1 条 text/image */
+export async function hasRecentMutualChat(shopUserId: string, bossUserId: string): Promise<boolean> {
+  const since = new Date(Date.now() - RECENT_MUTUAL_CHAT_HOURS * 60 * 60 * 1000);
+  const [shopToBoss, bossToShop] = await Promise.all([
+    prisma.message.count({
+      where: {
+        fromId: shopUserId,
+        toId: bossUserId,
+        type: { in: CHAT_MESSAGE_TYPES },
+        createdAt: { gte: since },
+      },
+    }),
+    prisma.message.count({
+      where: {
+        fromId: bossUserId,
+        toId: shopUserId,
+        type: { in: CHAT_MESSAGE_TYPES },
+        createdAt: { gte: since },
+      },
+    }),
+  ]);
+  return shopToBoss >= 1 && bossToShop >= 1;
+}
+
+/** 是否曾向该老板发过评价邀请（含已完成/过期/进行中等） */
+export async function hasPriorReviewRequest(shopUserId: string, bossUserId: string): Promise<boolean> {
+  const count = await prisma.shopReviewRequest.count({
+    where: { shopUserId, bossUserId },
+  });
+  return count > 0;
+}
+
+/** 首次邀：历史互聊；再次邀：近 72h 内互聊 */
+export async function meetsInviteChatRequirement(
+  shopUserId: string,
+  bossUserId: string
+): Promise<"ok" | "not_mutual_chat" | "not_recent_mutual_chat"> {
+  const mutual = await hasMutualChat(shopUserId, bossUserId);
+  if (!mutual) return "not_mutual_chat";
+
+  const prior = await hasPriorReviewRequest(shopUserId, bossUserId);
+  if (!prior) return "ok";
+
+  const recent = await hasRecentMutualChat(shopUserId, bossUserId);
+  if (!recent) return "not_recent_mutual_chat";
+
+  return "ok";
 }
 
 export async function expireStaleReviewRequests(shopUserId?: string, bossUserId?: string) {
@@ -90,8 +140,9 @@ export async function getShopReviewInviteState(
 ): Promise<ShopReviewInviteState> {
   await expireStaleReviewRequests(shopUserId, bossUserId);
 
-  const mutual = await hasMutualChat(shopUserId, bossUserId);
-  if (!mutual) return "not_mutual_chat";
+  const chatReq = await meetsInviteChatRequirement(shopUserId, bossUserId);
+  if (chatReq === "not_mutual_chat") return "not_mutual_chat";
+  if (chatReq === "not_recent_mutual_chat") return "not_recent_mutual_chat";
 
   if (await hasPublishedReviewToday(shopUserId, bossUserId)) {
     return "boss_reviewed_today";
@@ -172,9 +223,16 @@ export async function assertReviewRequestAllowed(
 
   await expireStaleReviewRequests(shopUserId, bossUserId);
 
-  const mutual = await hasMutualChat(shopUserId, bossUserId);
-  if (!mutual) {
+  const chatReq = await meetsInviteChatRequirement(shopUserId, bossUserId);
+  if (chatReq === "not_mutual_chat") {
     return { ok: false as const, error: "需与老板互发过消息后才能邀请评价", status: 403 };
+  }
+  if (chatReq === "not_recent_mutual_chat") {
+    return {
+      ok: false as const,
+      error: `再次邀请需近 ${RECENT_MUTUAL_CHAT_HOURS} 小时内双方互发过消息`,
+      status: 403,
+    };
   }
 
   if (await hasPublishedReviewToday(shopUserId, bossUserId)) {
